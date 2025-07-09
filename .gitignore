@@ -1,0 +1,16 @@
+# .gitignore
+
+# Client
+client/node_modules/
+client/.env
+
+# Server
+server/node_modules/
+server/.env
+
+# General
+*.log
+.env
+node_modules/
+dist/
+build/
