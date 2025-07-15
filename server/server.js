@@ -1,13 +1,18 @@
-// server.js
-const http = require('http');
+require('dotenv').config();
+const app = require('./app');
+const connectDB = require('./config/db');
+const logger = require('./utils/logger');
 
-const server = http.createServer((req, res) => {
-  res.statusCode = 200; // OK
-  res.setHeader('Content-Type', 'text/plain');
-  res.end('Hello, world!\n');
+const PORT = process.env.PORT || 5000;
+
+// Connect Database
+connectDB();
+
+app.listen(PORT, () => {
+  logger.info(`✅ Server running on port ${PORT}`);
 });
 
-const PORT = 3000;
-server.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}/`);
+process.on('unhandledRejection', (err) => {
+  logger.error(`❌ Unhandled Rejection: ${err.message}`);
+  process.exit(1);
 });
