@@ -7,7 +7,8 @@ const otpSchema = new mongoose.Schema({
     required: true,
     lowercase: true,
     trim: true,
-    match: [/\S+@\S+\.\S+/, 'Please provide a valid email']
+    match: [/\S+@\S+\.\S+/, 'Please provide a valid email'],
+    index: true
   },
   otp: {
     type: String,
@@ -15,8 +16,7 @@ const otpSchema = new mongoose.Schema({
   },
   expiresAt: {
     type: Date,
-    required: true,
-    index: true
+    required: true
   },
   attempts: {
     type: Number,
