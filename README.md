@@ -153,7 +153,7 @@ TWITTER_API_KEY=your_api_key
 ## 👤 **Author**
 
 **Ankit Singh**
-📧 [ankit@example.com](mailto:ankitsinghrjt794@gmail.com) | [LinkedIn](https://www.linkedin.com/in/ankitsingh794/) | [Portfolio](#)
+📧 [ankitsinghrjt794@gmail.com](mailto:ankitsinghrjt794@gmail.com) | [LinkedIn](https://www.linkedin.com/in/ankitsingh794/) | [Portfolio](#)
 
 ---
 
