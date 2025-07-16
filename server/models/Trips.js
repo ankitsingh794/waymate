@@ -6,6 +6,10 @@ const tripSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  groupId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Group'
+  },
   tripName: {
     type: String,
     required: [true, 'Please add a trip name'],
@@ -15,6 +19,10 @@ const tripSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Please add a destination'],
     trim: true
+  },
+  destinationCoordinates: {
+    type: [Number], // [lng, lat]
+    index: '2dsphere'
   },
   startDate: {
     type: Date,
@@ -36,14 +44,20 @@ const tripSchema = new mongoose.Schema({
     min: 1
   },
   budget: {
-    type: Number,
-    default: 0
+    estimated: { type: Number, default: 0 },
+    currency: { type: String, default: 'USD' }
   },
   preferences: {
     transportMode: { type: String, enum: ['car', 'train', 'flight', 'bus', 'bike'], default: 'car' },
     accommodationType: { type: String, enum: ['hotel', 'hostel', 'homestay', 'resort'], default: 'hotel' },
     activities: [String]
   },
+  itinerary: [
+    {
+      day: Number,
+      activities: [String]
+    }
+  ],
   route: [
     {
       location: String,
@@ -57,9 +71,7 @@ const tripSchema = new mongoose.Schema({
     enum: ['planned', 'ongoing', 'completed', 'canceled'],
     default: 'planned'
   },
-  weatherData: {
-    type: Object
-  },
+  weatherData: Object,
   alerts: [String],
   coverImage: {
     type: String,

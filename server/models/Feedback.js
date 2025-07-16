@@ -4,22 +4,23 @@ const feedbackSchema = new mongoose.Schema(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User', // Optional: For logged-in users
+      ref: 'User',
       required: false
     },
-    name: { type: String, required: true }, // For guests
-    email: { type: String, required: true }, // For reply
-    message: { type: String, required: true }, // Feedback message
-    reply: { type: String }, // Admin response
+    name: { type: String, required: true },
+    email: {
+      type: String,
+      required: true,
+      match: [/\S+@\S+\.\S+/, 'Please provide a valid email']
+    },
+    message: { type: String, required: true },
+    reply: { type: String },
 
-    // Feedback type: app-related or trip-specific
     type: {
       type: String,
       enum: ['app_support', 'trip_feedback'],
       default: 'app_support'
     },
-
-    // Required if it's trip-related feedback
     tripId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Trip',
@@ -27,22 +28,26 @@ const feedbackSchema = new mongoose.Schema(
         return this.type === 'trip_feedback';
       }
     },
-
     rating: {
       type: Number,
       min: 1,
-      max: 5,
-      required: false // Optional: For trip feedback
+      max: 5
     },
-
+    priority: {
+      type: String,
+      enum: ['low', 'medium', 'high'],
+      default: 'low'
+    },
     status: {
       type: String,
       enum: ['pending', 'reviewed', 'resolved'],
       default: 'pending'
-    }
+    },
   },
-  { timestamps: { createdAt: true, updatedAt: true } }
+  { timestamps: true }
 );
 
-const Feedback = mongoose.model('Feedback', feedbackSchema);
-module.exports = Feedback;
+// Index for dashboard performance
+feedbackSchema.index({ status: 1, type: 1 });
+
+module.exports = mongoose.model('Feedback', feedbackSchema);
