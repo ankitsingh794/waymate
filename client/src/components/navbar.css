@@ -1,0 +1,154 @@
+@import url('https://fonts.googleapis.com/css2?family=Tangerine:wght@400;700&family=Tinos:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+.navbar {
+    width: 100%;
+    z-index: 50;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: transparent;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    position: relative;
+}
+
+/* Branding Title Block */
+.navbar .title {
+    max-width: 50%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    margin-left: clamp(0.5rem, 2vw, 2rem);
+    color: #F8DE7E;
+    font-size: clamp(3rem, 4vw, 4rem);
+    font-family: "Tangerine", cursive;
+    font-weight: 700;
+    font-style: normal;
+    line-height: 1.1;
+
+}
+
+/* Nav Links (Desktop) */
+.navbar-links {
+    display: none;
+    align-items: center;
+    margin-right: 1rem;
+    font-family: "Tinos", serif;
+    font-weight: 700;
+    font-style: normal;
+    font-size: 1.25rem;
+}
+
+@media (min-width: 768px) {
+    .navbar-links {
+        display: flex;
+        flex-direction: row;
+        gap: 2rem;
+    }
+}
+
+/* Link Style */
+.nav-link {
+    color: #F8DE7E;
+    font-weight: 500;
+    text-decoration: none;
+    transition: color 0.3s ease, transform 0.2s ease;
+}
+
+.nav-link:hover {
+    color: #FFFF00;
+    /* Indigo-600 */
+    transform: scale(1.05);
+}
+
+/* CTA Button */
+.nav-cta {
+    background-color: #FFEFD5;
+    color: #000;
+    font-weight: 600;
+    padding: 0.4rem 1.2rem;
+    border-radius: 9999px;
+    text-decoration: none;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+    font-family: "Tinos", serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.nav-cta:hover {
+    background-color: #2A3439;
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+/* Hamburger Icon */
+.hamburger {
+    display: none;
+    font-size: 2rem;
+    color: black;
+    background: transparent;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    padding: 0.25rem 0.5rem;
+    cursor: pointer;
+    transition: border 0.3s ease, background-color 0.3s ease;
+}
+
+.hamburger.open {
+    border: 2px solid #000;
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Logo Section */
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+}
+
+.logo img {
+    height: 60px;
+    width: auto;
+    object-fit: contain;
+}
+
+
+
+@media (max-width: 767px) {
+    .hamburger {
+        display: block;
+    }
+
+    .navbar-links {
+        display: none;
+    }
+
+    .navbar-links.active {
+        display: flex;
+        flex-direction: column;
+        position: absolute;
+        top: 100%;
+        right: 1rem;
+        background: #F5F5F5;
+        padding: 1rem;
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+        gap: 1rem;
+        z-index: 40;
+        animation: fadeIn 0.25s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10%);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0%);
+        }
+    }
+}
