@@ -1,4 +1,6 @@
 const logger = require('../utils/logger');
+const multer = require('multer');
+const { validationResult } = require('express-validator');
 
 /**
  * Global Error Handling Middleware
@@ -38,14 +40,26 @@ const errorHandler = (err, req, res, next) => {
     message = 'Token expired, please log in again';
   }
 
-  // ✅ Log error with Winston
-  logger.error('Error occurred', {
+  // ✅ Handle Multer Errors
+  if (err instanceof multer.MulterError) {
+    statusCode = 400;
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      message = 'File too large. Max size is 2MB';
+    } else if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+      message = 'Invalid file type. Only jpeg, jpg, png, webp allowed';
+    } else {
+      message = `File upload error: ${err.message}`;
+    }
+  }
+
+  // ✅ Log error with Winston (with more context)
+  logger.error(`Error: ${message}`, {
     statusCode,
-    message,
-    stack: err.stack,
     path: req.originalUrl,
     method: req.method,
-    ip: req.ip
+    user: req.user ? req.user.email : 'Guest',
+    ip: req.ip,
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
   });
 
   // ✅ Send JSON response
@@ -53,7 +67,6 @@ const errorHandler = (err, req, res, next) => {
     success: false,
     statusCode,
     message,
-    // Show stack only in development
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 };

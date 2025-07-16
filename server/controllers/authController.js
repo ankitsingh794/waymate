@@ -20,7 +20,6 @@ const setRefreshTokenCookie = (res, token) => {
     maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
   });
 };
-
 /**
  * @desc Register new user
  * @route POST /api/auth/register
@@ -37,19 +36,31 @@ exports.registerUser = async (req, res, next) => {
       return sendResponse(res, 400, false, 'User already exists');
     }
 
-    const user = await User.create({ name, email, password });
+    const user = await User.create({
+      name,
+      email,
+      password,
+      role: 'user',            // ✅ Default role
+      accountStatus: 'active'  // ✅ Default status
+    });
 
-    // Generate tokens
+    // ✅ Generate tokens
     const accessToken = generateAccessToken(user._id);
     const refreshToken = generateRefreshToken(user._id);
 
-    // Set refresh token in HTTP-only cookie
+    // ✅ Set refresh token in HTTP-only cookie
     setRefreshTokenCookie(res, refreshToken);
 
     logger.info('User registered successfully', { email, userId: user._id });
     return sendResponse(res, 201, true, 'User registered successfully', {
       accessToken,
-      user: { id: user._id, name: user.name, email: user.email }
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        accountStatus: user.accountStatus
+      }
     });
   } catch (error) {
     logger.error('Error in registerUser', { error: error.message });
@@ -67,27 +78,48 @@ exports.loginUser = async (req, res, next) => {
     const { email, password } = req.body;
     logger.info('Login attempt', { email, ip: req.ip });
 
+    // ✅ Find user
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
       logger.warn('Login failed - user not found', { email });
       return sendResponse(res, 400, false, 'Invalid credentials');
     }
 
+    // ✅ Check account status
+    if (user.accountStatus === 'suspended') {
+      logger.warn('Login blocked - account suspended', { email });
+      return sendResponse(res, 403, false, 'Your account is suspended. Contact support.');
+    }
+
+    if (user.accountStatus === 'banned') {
+      logger.warn('Login blocked - account banned', { email });
+      return sendResponse(res, 403, false, 'Your account has been banned. Contact support.');
+    }
+
+    // ✅ Validate password
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
       logger.warn('Login failed - invalid password', { email });
       return sendResponse(res, 400, false, 'Invalid credentials');
     }
 
+    // ✅ Generate tokens
     const accessToken = generateAccessToken(user._id);
     const refreshToken = generateRefreshToken(user._id);
 
+    // ✅ Set refresh token in HttpOnly cookie
     setRefreshTokenCookie(res, refreshToken);
 
     logger.info('Login successful', { email, userId: user._id });
     return sendResponse(res, 200, true, 'Login successful', {
       accessToken,
-      user: { id: user._id, name: user.name, email: user.email }
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        accountStatus: user.accountStatus
+      }
     });
   } catch (error) {
     logger.error('Error in loginUser', { error: error.message });

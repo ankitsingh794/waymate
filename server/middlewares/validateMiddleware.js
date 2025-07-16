@@ -1,5 +1,5 @@
 const { validationResult } = require('express-validator');
-const logger = require('../utils/logger'); // Optional, use Winston if available
+const logger = require('../utils/logger');
 
 /**
  * Middleware to handle validation errors from express-validator
@@ -13,14 +13,18 @@ const validate = (req, res, next) => {
       message: err.msg
     }));
 
-    // Log validation errors for debugging
-    logger.warn('Validation failed', { errors: formattedErrors, path: req.originalUrl });
+    // ✅ Log validation errors
+    logger.warn(`Validation failed | Path: ${req.originalUrl} | Method: ${req.method}`, {
+      user: req.user ? req.user.email : 'Guest',
+      errors: formattedErrors
+    });
 
     return res.status(400).json({
       success: false,
       statusCode: 400,
       message: 'Validation error',
-      errors: formattedErrors
+      errors: formattedErrors,
+      ...(process.env.NODE_ENV === 'development' && { rawErrors: errors.array() }) // Extra info for dev
     });
   }
 

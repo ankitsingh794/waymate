@@ -51,6 +51,7 @@ app.use('/api', apiLimiter);
  * ✅ API Routes
  */
 app.use('/api/auth', authRoutes);
+app.use('/api/user', require('./routes/userRoutes')); // User management routes
 // app.use('/api/trips', tripRoutes); // Will integrate later
 
 /**
