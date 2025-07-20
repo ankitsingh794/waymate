@@ -135,8 +135,8 @@ WayMate/
 
 ```bash
 # Clone the repo
-git clone https://github.com/your-username/WayMate.git
-cd WayMate/Server
+git clone https://github.com/ankitsingh794/WayMate.git
+cd WayMate/server
 
 # Install dependencies
 npm install
