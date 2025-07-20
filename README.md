@@ -1,210 +1,229 @@
-# 🌍 **WayMate – The AI Travel Companion You Deserve** ✈
+# 🌍 WayMate - AI-Powered Collaborative Travel Planner
 
-**Web + Mobile | AI-Powered | Free & Open-Source**
-
-Planning trips is exciting—but also stressful. Multiple apps, endless tabs, and surprises like bad weather or closed attractions can ruin your experience.
-
-**WayMate solves that.**
-An **AI-powered travel assistant** that helps you **plan smarter, travel safer, and stay connected**—all in **one platform**, across **Web and Mobile**.
+**WayMate** is a comprehensive, full-stack travel planning application designed to transform how users plan and experience their journeys.
+It leverages a powerful **AI core** to generate dynamic, personalized itineraries and fosters **real-time collaboration** among travelers.
 
 ---
 
-## ✅ **What is WayMate?**
+## ✨ Key Features
 
-WayMate is your **personal travel assistant**, combining:
-✔ **AI Chat** for personalized trip planning
-✔ **Smart Itineraries**
-✔ **Weather Updates & Packing Suggestions**
-✔ **Budget Estimates**
-✔ **Interactive Maps**
-✔ **Real-Time Local Alerts from Social Media**
-✔ **Connect with Friends** for group trips
-✔ **Offline AI Mode** (unique feature!)
+WayMate is more than just a travel app; it's a complete ecosystem built with a production-ready mindset.
 
----
+### 🤖 AI-Powered Itinerary Generation
 
-## 🌟 **Key Features**
+* **Intelligent Planning:** Creates detailed, day-by-day travel plans by aggregating data from multiple APIs (Google Places, OpenWeather, Mapbox).
+* **Conversational AI:** Users can chat with an AI assistant that uses intent detection to differentiate between casual conversation and planning requests.
+* **Rich Content:** Generates not just schedules, but also packing checklists, budget estimations, must-try food recommendations, and travel tips.
 
-### **Core**
+### 🤝 Real-Time Collaboration
 
-* 💬 **AI Chat Assistant** – Plan trips through natural conversation.
-* 🗓 **Itinerary Planner** – Day-wise smart plans tailored to your preferences.
-* 🏨 **Recommendations** – Hotels, attractions, food spots from real APIs.
-* 🌦 **Weather Insights** – Real-time forecasts + AI packing tips.
-* 💸 **Budget Estimator** – Calculate trip costs before you leave.
+* **Group Planning:** Users can form groups for trips, enabling a shared planning experience.
+* **Live Chat:** A real-time group chat system built with **Socket.IO** allows seamless communication.
+* **Collaborative AI Editing:**
+  In a group chat, any member can command the AI (e.g.,
+  `@waymate add a visit to the Eiffel Tower on day 2`)
+  to dynamically update the shared trip itinerary for everyone in real time.
 
-### **Standout Features**
+### 🚨 Live Travel Alerts
 
-* **Offline AI Mode** – Works without internet using local LLM (Ollama).
-* **Interactive Maps** – Visualize destinations and itineraries.
-* **Voice Interaction** – Talk to your AI travel buddy.
-* **Social Travel** – Connect with friends, share and co-create itineraries.
-* **Local Alerts** – Pull news and safety info from Twitter/X and IG pages.
+Automatically scrapes and categorizes real-time travel alerts (e.g., weather, safety, transport strikes) from **regional RSS feeds** relevant to the user's destination.
 
----
+### 🔐 Robust Security
 
-## 🛠 **Tech Stack**
+* **JWT Authentication:** Secure stateless authentication using access & refresh tokens.
+* **Redis-Based Token Blacklisting:** Immediately invalidates user sessions on logout.
+* **Layered Authorization:** Multi-level access control combining:
 
-| Layer              | Tech                                            |
-| ------------------ | ----------------------------------------------- |
-| **Frontend (Web)** | React + Tailwind CSS + Framer Motion            |
-| **Mobile**         | React Native (Expo)                             |
-| **Backend**        | Node.js + Express                               |
-| **Database**       | MongoDB Atlas                                   |
-| **AI Layer**       | Hugging Face API / Ollama (Offline mode)        |
-| **APIs**           | OpenTripMap, OpenWeather, Unsplash, Twitter API |
+  * Authentication checks
+  * Role-based permissions (user, admin)
+  * Resource-specific rules (e.g., group members)
+* **API Security:** Includes:
+
+  * Redis-backed rate limiting
+  * Security headers with Helmet
+  * Input validation
 
 ---
 
-## 🗺 **Architecture**
+## 🏗️ System Architecture
 
 ```
-                        ┌─────────────────────────────┐
-                        │         USERS               │
-                        │  (Web & Android App)        │
-                        └─────────────┬───────────────┘
-                                      │
-                      ┌───────────────▼────────────────┐
-                      │      FRONTEND LAYER            │
-                      │ (React for Web, React Native)  │
-                      ├────────────────────────────────┤
-                      │ Features:                      │
-                      │  • AI Chat Screen              │
-                      │  • Maps & Explore Screen       │
-                      │  • Itinerary Planner           │
-                      │  • Alerts & Notifications      │
-                      │  • Group Chat & Travel Mode    │
-                      └───────────────┬────────────────┘
-                                      │ API Calls
-       ┌──────────────────────────────▼─────────────────────────────────┐
-       │                        BACKEND (Node.js + Express)             │
-       │----------------------------------------------------------------│
-       │ **Modules:**                                                   │
-       │  1. Auth Service  → JWT-based login/signup                     │
-       │  2. AI Chat Service → Hugging Face API                         │
-       │  3. Weather Service → OpenWeatherMap API                       │
-       │  4. Places Service → OpenTripMap API                           │
-       │  5. Images Service → Unsplash API                              │
-       │  6. Alerts Service → RSS Parser + Weather Alerts               │
-       │  7. Groups Service → Create/Join Group                         │
-       │  8. Real-time Chat → Socket.io                                 │
-       │  9. Notifications → Firebase Cloud Messaging / Expo Push       │
-       └───────────────┬────────────────────────────────────────────────┘
-                       │
-                       │ Handles Business Logic + Aggregation
-                       │
-     ┌─────────────────▼─────────────────────┐
-     │          DATABASE (MongoDB)           │
-     │---------------------------------------│
-     │ **Collections:**                      │
-     │  - Users                              │
-     │  - Trips                              │
-     │  - Groups                             │
-     │  - Chat Messages                      │
-     │  - Alerts Cache                       │
-     └───────────────────────────────────────┘
-
-   External APIs:  
-   ┌─────────────────────────┐   ┌───────────────────────────┐
-   │ OpenWeatherMap          │   │ Unsplash (Images)         │
-   └─────────────────────────┘   └───────────────────────────┘
-   ┌─────────────────────────┐   ┌───────────────────────────┐
-   │ OpenTripMap (Places)    │   │ Hugging Face (AI Chat)    │
-   └─────────────────────────┘   └───────────────────────────┘
-   ┌─────────────────────────┐
-   │ RSS Feeds (Local News)  │
-   └─────────────────────────┘
-
++--------------------------------+      +--------------------------------+
+|      Clients (Web & Mobile)    |      |       External Services        |
++--------------------------------+      +--------------------------------+
+| - React Web App                |      | - OpenRouter (LLM)             |
+| - Native Mobile App            |      | - Google Places, Mapbox, etc.  |
++-----------------|--------------+      | - Unsplash, OpenWeather        |
+                  |                     | - RSS Feeds (Alerts)           |
+                  | (HTTPS / WSS)       +-----------------|--------------+
+                  |                                       | (API Calls)
++-----------------v---------------------------------------v----------------+
+|                                WayMate Server                           |
+|-------------------------------------------------------------------------|
+| +---------------------+  +---------------------+  +---------------------+ |
+| |    Express App      |  |   Socket.IO Server  |  |    Rate Limiting    | |
+| |  (RESTful Routes)   |  | (Real-Time Events)  |  |      (Redis)        | |
+| +---------|-----------+  +----------|----------+  +----------|----------+ |
+|           |                         |                        |            |
+| +---------v-------------------------v------------------------v----------+ |
+| |                              Middleware                               | |
+| |  (Auth, Roles, Validation, Error Handling, Logging w/ Winston)        | |
+| +---------------------------------|-------------------------------------+ |
+|                                   |                                     |
+| +---------------------------------v-------------------------------------+ |
+| |                            Core Services                              | |
+| |  - AuthService    - TripService    - AIService    - AlertService      | |
+| +---------------------------------|-------------------------------------+ |
+|                                   |                                     |
+| +-----------------v---------------+----------------v------------------+ |
+| |   MongoDB (Mongoose)          | |        Redis                     | |
+| | - User Data, Trips, Groups    | | - Caching (API, AI)              | |
+| | - Chat History, Notifications | | - Token Blacklist, Rate Limits   | |
+| +-------------------------------+ +----------------------------------+ |
++-------------------------------------------------------------------------+
 ```
 
 ---
 
-## 🌐 **Features vs Others**
+## 🛠️ Technology Stack (Backend)
 
-✅ AI + Weather + Maps + Social Alerts → All-in-One Experience
-✅ Offline Mode → Unique Edge
-✅ Free Forever + Open Source
+* **Framework:** Node.js, Express.js
+* **Database:** MongoDB (Mongoose ODM)
+* **In-Memory Store:** Redis (caching, rate limiting, security)
+* **Real-Time:** Socket.IO
+* **Authentication:** JWT (access & refresh tokens)
+* **Security:** Helmet, bcrypt.js
+* **File Uploads:** Multer, Cloudinary
+* **API Integrations:** Axios (Google Places, OpenWeather, OpenTripMap, Unsplash)
+* **Validation:** express-validator
+* **Logging:** Winston, Morgan
+* **Env Management:** dotenv
 
 ---
 
-## 🚀 **Getting Started**
+## 📁 Project Structure
 
-### 1. Clone Repo
+```
+WayMate/
+├── Client/              # React Web Application
+├── Mobile/              # Native Mobile Application (React Native)
+├── Server/              # Node.js & Express.js Backend
+│   ├── config/          # DB, Redis, Cloudinary connections
+│   ├── controllers/     # Route handlers
+│   ├── middlewares/     # Auth, validation, error handling
+│   ├── models/          # Mongoose schemas
+│   ├── routes/          # API endpoints
+│   ├── services/        # External API/AI logic
+│   ├── utils/           # Helpers, logger, email
+│   ├── app.js           # Express app config
+│   └── server.js        # Main entry point
+├── .gitignore
+└── README.md
+```
+
+---
+
+## 🚀 Getting Started (Backend)
+
+### ✅ Prerequisites
+
+* Node.js (v16+)
+* MongoDB (local or Atlas)
+* Redis
+
+### 🔧 Installation
 
 ```bash
-git clone https://github.com/YOUR-USERNAME/WayMate.git
-cd WayMate
-```
+# Clone the repo
+git clone https://github.com/your-username/WayMate.git
+cd WayMate/Server
 
-### 2. Backend Setup
-
-```bash
-cd backend
+# Install dependencies
 npm install
+```
+
+### ⚙️ Environment Variables
+
+Create `.env` in `Server/`:
+
+```
+PORT=5000
+NODE_ENV=development
+CLIENT_URL=http://localhost:3000
+
+# MongoDB
+MONGO_URI=your_mongodb_connection_string
+
+# Redis
+REDIS_URL=redis://127.0.0.1:6379
+
+# JWT
+JWT_SECRET=your_super_secret_jwt_key
+JWT_REFRESH_SECRET=your_super_secret_jwt_refresh_key
+JWT_ACCESS_EXPIRE=15m
+JWT_REFRESH_EXPIRE=7d
+
+# Email
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASS=your_email_password
+SMTP_FROM="WayMate <no-reply@waymate.com>"
+
+# API Keys
+OPENROUTER_API_KEY=your_openrouter_api_key
+OPENTRIPMAP_API_KEY=your_opentripmap_api_key
+OPENWEATHER_API_KEY=your_openweathermap_api_key
+UNSPLASH_ACCESS_KEY=your_unsplash_api_key
+MAPBOX_SECRET_KEY=your_mapbox_secret_key
+GOOGLE_API_KEY=your_google_api_key
+
+# Cloudinary
+CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+```
+
+### ▶️ Run the server
+
+```bash
+# Development (auto-restart)
 npm run dev
+
+# Production
+npm start
 ```
 
-### 3. Frontend (Web)
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-### 4. Mobile
-
-```bash
-cd mobile
-npm install
-npx expo start
-```
+Server runs on: **[http://localhost:5000](http://localhost:5000)**
 
 ---
 
-## ⚙ **Environment Variables**
+## ⚡ Core API Endpoints
 
-```
-MONGODB_URI=your_mongo_uri
-HF_API_KEY=your_huggingface_key
-OPENTRIPMAP_API_KEY=your_api_key
-OPENWEATHER_API_KEY=your_api_key
-UNSPLASH_API_KEY=your_api_key
-TWITTER_API_KEY=your_api_key
-```
-
----
-
-## 🗓 **Roadmap**
-
-✅ Phase 1: AI Chat + Backend + DB
-✅ Phase 2: Web UI + Itinerary Planner
-✅ Phase 3: Mobile App Integration
-✅ Phase 4: Social Features + Alerts + Offline AI
-✅ Phase 5: Deploy (Web + Backend + DB)
+| Method | Endpoint                    | Description                           | Access  |
+| ------ | --------------------------- | ------------------------------------- | ------- |
+| POST   | `/api/auth/register`        | Register a new user                   | Public  |
+| POST   | `/api/auth/login`           | Log in a user                         | Public  |
+| POST   | `/api/auth/logout`          | Log out and blacklist tokens          | Private |
+| GET    | `/api/trips`                | Get all trips for the user            | Private |
+| POST   | `/api/trips`                | Create a new AI-generated trip plan   | Private |
+| POST   | `/api/groups/trip/:tripId`  | Create a new collaborative trip group | Private |
+| GET    | `/api/messages/session/:id` | Get chat history for a group session  | Private |
 
 ---
 
-## 🎥 **Demo**
+## 💡 Future Improvements
 
-*(Coming Soon)*
-
----
-
-## ⭐ **Why WayMate Stands Out**
-
-* **One App → All Travel Needs**
-* **AI-Powered Planning**
-* **Weather + Social Alerts + Packing Suggestions**
-* **Friends + Social Travel**
-* **Offline Mode → Privacy & Reliability**
+* **Expense Splitting:** Automatically split expenses entered by users.
+* **Offline Support:** Cache itineraries for offline access.
+* **Push Notifications:** Real-time alerts via Firebase Cloud Messaging.
+* **Advanced AI Tools:** Integrate booking APIs for flights & hotels.
 
 ---
 
-## 👤 **Author**
+## 📬 Contact
 
-**Ankit Singh**
-📧 [ankitsinghrjt794@gmail.com](mailto:ankitsinghrjt794@gmail.com) | [LinkedIn](https://www.linkedin.com/in/ankitsingh794/) | [Portfolio](#)
+**Your Name** – [Portfolio](https://yourportfolio.com) – [your.email@example.com](mailto:your.email@example.com)
+**Project Link:** [WayMate GitHub Repo](https://github.com/your-username/WayMate)
 
 ---
-
