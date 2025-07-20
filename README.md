@@ -223,7 +223,7 @@ Server runs on: **[http://localhost:5000](http://localhost:5000)**
 
 ## 📬 Contact
 
-**Your Name** – [Portfolio](https://yourportfolio.com) – [your.email@example.com](mailto:your.email@example.com)
-**Project Link:** [WayMate GitHub Repo](https://github.com/your-username/WayMate)
+**Your Name** – Portfolio(Under-Development) – [ankitsinghrjt794@gmail.com](mailto:ankitsinghrjt794@gmail.com)
+**Project Link:** [WayMate GitHub Repo](https://github.com/ankitsingh794/waymate)
 
 ---
