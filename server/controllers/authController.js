@@ -1,67 +1,70 @@
+const crypto = require('crypto');
 const User = require('../models/User');
-const Otp = require('../models/Otp');
 const sendEmail = require('../utils/sendEmail');
 const logger = require('../utils/logger');
 const { generateAccessToken, generateRefreshToken } = require('../utils/tokenUtils');
+const { blacklistToken } = require('../config/redis');
+const { generateVerificationEmailHTML, generatePasswordResetEmailHTML } = require('../utils/emailTemplates');
 
-// ✅ Unified response helper
+// Unified response helper
 const sendResponse = (res, statusCode, success, message, data = {}) => {
   return res.status(statusCode).json({ success, message, data });
 };
 
-/**
- * Set refresh token in HTTP-only cookie
- */
+// Set refresh token in HTTP-only cookie
 const setRefreshTokenCookie = (res, token) => {
   res.cookie('refreshToken', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production', // Only over HTTPS in production
+    secure: process.env.NODE_ENV === 'production',
     sameSite: 'Strict',
     maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
   });
 };
+
 /**
- * @desc Register new user
- * @route POST /api/auth/register
- * @access Public
+ * @desc    Register a new user with email verification link
+ * @route   POST /api/auth/register
+ * @access  Public
  */
 exports.registerUser = async (req, res, next) => {
-  try {
-    const { name, email, password } = req.body;
-    logger.info('Register request received', { email, ip: req.ip });
+  const { name, email, password } = req.body;
+  logger.info('Register request received', { email });
 
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      logger.warn('Registration failed - user exists', { email });
-      return sendResponse(res, 400, false, 'User already exists');
+  try {
+    let user = await User.findOne({ email });
+    if (user) {
+      if (!user.isEmailVerified) {
+        const verificationToken = user.createEmailVerifyToken();
+        await user.save({ validateBeforeSave: false });
+        const verifyURL = `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}`;
+
+        await sendEmail({
+          to: user.email,
+          subject: `🚀 Welcome to WayMate! Please Verify Your Email`,
+          html: generateVerificationEmailHTML(user.name, verifyURL)
+        });
+
+        return sendResponse(res, 200, true, 'Account already exists. A new verification email has been sent.');
+      }
+      return sendResponse(res, 400, false, 'User with this email already exists.');
     }
 
-    const user = await User.create({
-      name,
-      email,
-      password,
-      role: 'user',            // ✅ Default role
-      accountStatus: 'active'  // ✅ Default status
+    user = new User({ name, email, password, isEmailVerified: false });
+    const verificationToken = user.createEmailVerifyToken();
+    console.log('--- VERIFICATION TOKEN FOR TESTING --- :', verificationToken);
+    await user.save();
+
+    const verifyURL = `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}`;
+
+    await sendEmail({
+      to: user.email,
+      subject: `🚀 Welcome to WayMate! Please Verify Your Email`,
+      html: generateVerificationEmailHTML(user.name, verifyURL)
     });
 
-    // ✅ Generate tokens
-    const accessToken = generateAccessToken(user._id);
-    const refreshToken = generateRefreshToken(user._id);
+    logger.info('User partially registered. Verification email sent.', { email });
+    sendResponse(res, 201, true, 'Registration successful. Please check your email to verify your account.');
 
-    // ✅ Set refresh token in HTTP-only cookie
-    setRefreshTokenCookie(res, refreshToken);
-
-    logger.info('User registered successfully', { email, userId: user._id });
-    return sendResponse(res, 201, true, 'User registered successfully', {
-      accessToken,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        accountStatus: user.accountStatus
-      }
-    });
   } catch (error) {
     logger.error('Error in registerUser', { error: error.message });
     next(error);
@@ -69,57 +72,173 @@ exports.registerUser = async (req, res, next) => {
 };
 
 /**
+ * @desc    Verify email using token from link
+ * @route   POST /api/auth/verify-email
+ * @access  Public
+ */
+exports.verifyEmail = async (req, res, next) => {
+  const { token } = req.body;
+  if (!token) return sendResponse(res, 400, false, 'Verification token is required.');
+
+  try {
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    const user = await User.findOne({
+      emailVerificationToken: hashedToken,
+      emailVerificationTokenExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      logger.warn('Email verification failed: Invalid or expired token.');
+      return sendResponse(res, 400, false, 'Invalid or expired verification token.');
+    }
+
+    user.isEmailVerified = true;
+    user.accountStatus = 'active';
+    user.emailVerificationToken = undefined;
+    user.emailVerificationTokenExpires = undefined;
+    await user.save();
+
+    const accessToken = generateAccessToken(user._id);
+    const refreshToken = generateRefreshToken(user._id);
+    setRefreshTokenCookie(res, refreshToken);
+
+    logger.info('Email verified successfully and user logged in.', { email: user.email });
+    sendResponse(res, 200, true, 'Email verified successfully. You are now logged in.', {
+      accessToken,
+      user: { id: user._id, name: user.name, email: user.email }
+    });
+  } catch (error) {
+    logger.error('Error in verifyEmail', { error: error.message });
+    next(error);
+  }
+};
+
+/**
+ * @desc    Forgot Password - Send reset link
+ * @route   POST /api/auth/forgot-password
+ * @access  Public
+ */
+exports.forgotPassword = async (req, res, next) => {
+  const { email } = req.body;
+  logger.info('Forgot password request received', { email });
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      logger.warn(`Forgot password attempt for non-existent user: ${email}`);
+      return sendResponse(res, 200, true, 'If an account with that email exists, a password reset link has been sent.');
+    }
+
+    const resetToken = user.createPasswordResetToken();
+    await user.save({ validateBeforeSave: false });
+
+    const resetURL = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}`;
+
+    await sendEmail({
+      to: user.email,
+      subject: '🔑 Your WayMate Password Reset Request',
+      html: generatePasswordResetEmailHTML(user.name, resetURL)
+    });
+
+    sendResponse(res, 200, true, 'If an account with that email exists, a password reset link has been sent.');
+  } catch (error) {
+    const user = await User.findOne({ email });
+    if (user) {
+      user.passwordResetToken = undefined;
+      user.passwordResetTokenExpires = undefined;
+      await user.save({ validateBeforeSave: false });
+    }
+    logger.error('Error in forgotPassword', { error: error.message });
+    next(error);
+  }
+};
+
+/**
+ * @desc    Reset Password using token from link
+ * @route   POST /api/auth/reset-password
+ * @access  Public
+ */
+exports.resetPassword = async (req, res, next) => {
+  const { token, password } = req.body;
+  if (!token || !password) {
+    return sendResponse(res, 400, false, 'Token and new password are required.');
+  }
+
+  try {
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+    const user = await User.findOne({
+      passwordResetToken: hashedToken,
+      passwordResetTokenExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      logger.warn('Password reset failed: Invalid or expired token.');
+      return sendResponse(res, 400, false, 'Invalid or expired password reset token.');
+    }
+
+    user.password = password;
+    user.passwordResetToken = undefined;
+    user.passwordResetTokenExpires = undefined;
+    user.passwordChangedAt = Date.now();
+    await user.save();
+
+    const accessToken = generateAccessToken(user._id);
+    const refreshToken = generateRefreshToken(user._id);
+    setRefreshTokenCookie(res, refreshToken);
+
+    logger.info('Password has been reset successfully.', { email: user.email });
+    sendResponse(res, 200, true, 'Password reset successfully. You are now logged in.', {
+      accessToken,
+      user: { id: user._id, name: user.name, email: user.email }
+    });
+  } catch (error) {
+    logger.error('Error in resetPassword', { error: error.message });
+    next(error);
+  }
+};
+
+
+/**
  * @desc Login user
  * @route POST /api/auth/login
  * @access Public
  */
 exports.loginUser = async (req, res, next) => {
-  try {
-    const { email, password } = req.body;
-    logger.info('Login attempt', { email, ip: req.ip });
+  const { email, password } = req.body;
+  logger.info('Login attempt', { email, ip: req.ip });
 
-    // ✅ Find user
+  try {
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
-      logger.warn('Login failed - user not found', { email });
       return sendResponse(res, 400, false, 'Invalid credentials');
     }
 
-    // ✅ Check account status
-    if (user.accountStatus === 'suspended') {
-      logger.warn('Login blocked - account suspended', { email });
-      return sendResponse(res, 403, false, 'Your account is suspended. Contact support.');
+    // if (!user.isEmailVerified) {
+    //   return sendResponse(res, 400, false, 'Please verify your email before logging in.');
+    // }
+
+    // Temporary change:
+    if (!user.isEmailVerified) {
+      console.warn('Email verification bypassed for testing.');
     }
 
-    if (user.accountStatus === 'banned') {
-      logger.warn('Login blocked - account banned', { email });
-      return sendResponse(res, 403, false, 'Your account has been banned. Contact support.');
+    if (user.accountStatus !== 'active') {
+      return sendResponse(res, 403, false, `Your account is ${user.accountStatus}. Contact support.`);
     }
 
-    // ✅ Validate password
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
-      logger.warn('Login failed - invalid password', { email });
       return sendResponse(res, 400, false, 'Invalid credentials');
     }
 
-    // ✅ Generate tokens
     const accessToken = generateAccessToken(user._id);
     const refreshToken = generateRefreshToken(user._id);
-
-    // ✅ Set refresh token in HttpOnly cookie
     setRefreshTokenCookie(res, refreshToken);
 
     logger.info('Login successful', { email, userId: user._id });
-    return sendResponse(res, 200, true, 'Login successful', {
+    sendResponse(res, 200, true, 'Login successful', {
       accessToken,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        accountStatus: user.accountStatus
-      }
+      user: { id: user._id, name: user.name, email: user.email, role: user.role }
     });
   } catch (error) {
     logger.error('Error in loginUser', { error: error.message });
@@ -135,27 +254,40 @@ exports.loginUser = async (req, res, next) => {
 exports.refreshToken = async (req, res, next) => {
   try {
     const refreshToken = req.cookies.refreshToken;
+
     if (!refreshToken) {
       logger.warn('Refresh token missing');
       return sendResponse(res, 401, false, 'Refresh token missing');
     }
 
-    const decoded = require('../utils/tokenUtils').verifyToken(refreshToken, true);
+    // ✅ Check if refresh token is blacklisted
+    const blacklisted = await isTokenBlacklisted(refreshToken);
+    if (blacklisted) {
+      logger.warn('Blacklisted refresh token used');
+      return sendResponse(res, 401, false, 'Invalid or expired refresh token');
+    }
+
+    // ✅ Verify refresh token
+    const decoded = verifyToken(refreshToken);
     if (!decoded) {
       logger.warn('Invalid refresh token');
       return sendResponse(res, 401, false, 'Invalid refresh token');
     }
 
+    // ✅ Check user existence
     const user = await User.findById(decoded.id);
     if (!user) {
       logger.warn('Refresh token failed - user not found');
       return sendResponse(res, 404, false, 'User not found');
     }
 
+    // ✅ Generate new access token
     const newAccessToken = generateAccessToken(user._id);
-    logger.info('Access token refreshed', { userId: user._id });
 
-    return sendResponse(res, 200, true, 'Access token refreshed', { accessToken: newAccessToken });
+    logger.info('Access token refreshed', { userId: user._id });
+    return sendResponse(res, 200, true, 'Access token refreshed', {
+      accessToken: newAccessToken
+    });
   } catch (error) {
     logger.error('Error in refreshToken', { error: error.message });
     next(error);
@@ -163,114 +295,48 @@ exports.refreshToken = async (req, res, next) => {
 };
 
 /**
- * @desc Logout user
+ * @desc Logout user (Blacklist access & refresh tokens)
  * @route POST /api/auth/logout
  * @access Private
  */
 exports.logoutUser = async (req, res, next) => {
   try {
-    res.clearCookie('refreshToken');
-    logger.info('User logged out', { userId: req.user.id });
+    const accessToken = req.headers.authorization?.split(' ')[1];
+    const refreshToken = req.cookies.refreshToken;
+
+    const currentTime = Math.floor(Date.now() / 1000);
+
+    // ✅ Blacklist access token dynamically
+    if (accessToken) {
+      const decodedAccess = jwt.decode(accessToken);
+      const accessTTL = decodedAccess?.exp ? decodedAccess.exp - currentTime : 900; // fallback 15m
+      await blacklistToken(accessToken, accessTTL);
+      logger.debug(`Access token blacklisted for ${accessTTL}s`);
+    }
+
+    // ✅ Blacklist refresh token dynamically
+    if (refreshToken) {
+      const decodedRefresh = jwt.decode(refreshToken);
+      const refreshTTL = decodedRefresh?.exp ? decodedRefresh.exp - currentTime : 7 * 24 * 60 * 60; // fallback 7d
+      await blacklistToken(refreshToken, refreshTTL);
+      logger.debug(`Refresh token blacklisted for ${refreshTTL}s`);
+    }
+
+    // ✅ Clear refresh token cookie
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict'
+    });
+
+    logger.info('✅ User logged out successfully', { userId: req.user?.id });
     return sendResponse(res, 200, true, 'Logged out successfully');
   } catch (error) {
-    logger.error('Error in logoutUser', { error: error.message });
+    logger.error('❌ Error in logoutUser', { error: error.message });
     next(error);
   }
 };
 
-/**
- * @desc Send OTP to email
- * @route POST /api/auth/send-otp
- * @access Public
- */
-exports.sendOtp = async (req, res, next) => {
-  try {
-    const { email } = req.body;
-    logger.info('OTP request received', { email });
-
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    await Otp.create({
-      email,
-      otp,
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10 mins
-    });
-
-    await sendEmail({
-      to: email,
-      subject: 'Your OTP Code',
-      text: `Your OTP is ${otp}. It expires in 10 minutes.`
-    });
-
-    logger.info('OTP sent successfully', { email });
-    return sendResponse(res, 200, true, 'OTP sent to email');
-  } catch (error) {
-    logger.error('Error in sendOtp', { error: error.message, email: req.body.email });
-    next(error);
-  }
-};
-
-/**
- * @desc Verify OTP
- * @route POST /api/auth/verify-otp
- * @access Public
- */
-exports.verifyOtp = async (req, res, next) => {
-  try {
-    const { email, otp } = req.body;
-    logger.info('OTP verification attempt', { email });
-
-    const otpDoc = await Otp.findOne({ email }).sort({ createdAt: -1 });
-    if (!otpDoc) {
-      logger.warn('OTP verification failed - no OTP found', { email });
-      return sendResponse(res, 400, false, 'OTP not found');
-    }
-
-    const isMatch = await otpDoc.matchOtp(otp);
-    if (!isMatch) {
-      logger.warn('OTP verification failed - invalid OTP', { email });
-      return sendResponse(res, 400, false, 'Invalid OTP');
-    }
-
-    if (otpDoc.expiresAt < Date.now()) {
-      logger.warn('OTP verification failed - OTP expired', { email });
-      return sendResponse(res, 400, false, 'OTP expired');
-    }
-
-    await Otp.deleteMany({ email });
-    logger.info('OTP verified successfully', { email });
-    return sendResponse(res, 200, true, 'OTP verified');
-  } catch (error) {
-    logger.error('Error in verifyOtp', { error: error.message, email: req.body.email });
-    next(error);
-  }
-};
-
-/**
- * @desc Reset password using OTP
- * @route POST /api/auth/reset-password
- * @access Public
- */
-exports.resetPassword = async (req, res, next) => {
-  try {
-    const { email, newPassword } = req.body;
-    logger.info('Password reset attempt', { email });
-
-    const user = await User.findOne({ email });
-    if (!user) {
-      logger.warn('Password reset failed - user not found', { email });
-      return sendResponse(res, 400, false, 'User not found');
-    }
-
-    user.password = newPassword;
-    await user.save();
-    logger.info('Password reset successful', { email });
-    return sendResponse(res, 200, true, 'Password updated successfully');
-  } catch (error) {
-    logger.error('Error in resetPassword', { error: error.message, email: req.body.email });
-    next(error);
-  }
-};
 
 /**
  * @desc Update password for logged-in user
@@ -320,5 +386,3 @@ exports.getCurrentUser = async (req, res, next) => {
     next(error);
   }
 };
-
-

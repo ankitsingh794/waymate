@@ -3,12 +3,16 @@ const cors = require('cors');
 const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
 const logger = require('./utils/logger');
+const { globalLimiter } = require('./middlewares/rateLimiter');
 
 // Routes
 const authRoutes = require('./routes/authRoutes');
-// const tripRoutes = require('./routes/tripRoutes'); // Coming later
+const userRoutes = require('./routes/userRoutes');
+const tripRoutes = require('./routes/tripRoutes');
+const groupRoutes = require('./routes/groupRoutes');
+const messageRoutes = require('./routes/messageRoutes');
+const chatRoutes = require('./routes/chatRoutes');
 
 const app = express();
 
@@ -17,6 +21,9 @@ const app = express();
  */
 // Security headers
 app.use(helmet());
+
+// Apply global rate limiter (Redis-based)
+app.use(globalLimiter);
 
 // CORS setup
 app.use(cors({
@@ -35,24 +42,15 @@ app.use(morgan(':method :url :status :res[content-length] - :response-time ms', 
   },
 }));
 
-
-/**
- * ✅ Rate Limiter for overall API
- * (Additional rate limiters for OTP and login are already applied in authRoutes)
- */
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // max 100 requests per IP
-  message: { success: false, message: 'Too many requests from this IP. Try again later.' }
-});
-app.use('/api', apiLimiter);
-
 /**
  * ✅ API Routes
  */
 app.use('/api/auth', authRoutes);
-app.use('/api/user', require('./routes/userRoutes')); // User management routes
-// app.use('/api/trips', tripRoutes); // Will integrate later
+app.use('/api/user', userRoutes);
+app.use('/api/trips', tripRoutes);
+app.use('/api/groups', groupRoutes);
+app.use('/api/messages', messageRoutes);
+app.use('/api/chat', chatRoutes);
 
 /**
  * ✅ Health Check

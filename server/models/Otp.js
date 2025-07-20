@@ -28,18 +28,18 @@ const otpSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// TTL index for auto-deletion after expiration
+// ✅ TTL index for auto-delete after expiration
 otpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-// Hash OTP before saving
+// ✅ Hash OTP before saving
 otpSchema.pre('save', async function(next) {
   if (!this.isModified('otp')) return next();
-  const salt = await bcrypt.genSalt(10);
+  const salt = await bcrypt.genSalt(12); // Consistent with user password hashing
   this.otp = await bcrypt.hash(this.otp, salt);
   next();
 });
 
-// Compare OTP
+// ✅ Compare OTP
 otpSchema.methods.matchOtp = async function(enteredOtp) {
   return await bcrypt.compare(enteredOtp, this.otp);
 };

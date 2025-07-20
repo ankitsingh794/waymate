@@ -1,27 +1,42 @@
 const mongoose = require('mongoose');
 
-const messageSchema = new mongoose.Schema({
-  sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  text: { type: String, required: true },
-  status: {
-    type: String,
-    enum: ['sent', 'delivered', 'read'],
-    default: 'sent'
-  },
-  sentAt: { type: Date, default: Date.now }
-});
+const chatSessionSchema = new mongoose.Schema(
+  {
+    participants: [
+      { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
+    ],
 
-const chatSessionSchema = new mongoose.Schema({
-  participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }],
-  type: { type: String, enum: ['private', 'group'], default: 'private' },
-  messages: [messageSchema],
-  lastMessage: {
-    text: String,
-    sentAt: Date
-  },
-  createdAt: { type: Date, default: Date.now }
-});
+    sessionType: {
+      type: String,
+      enum: ['ai', 'private', 'group'],
+      default: 'ai'
+    },
 
+    tripId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Trip'
+    },
+
+    groupId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Group'
+    },
+
+    aiContext: {
+      type: Object, // Store AI conversation history/context for continuity
+      default: {}
+    },
+
+    lastMessage: {
+      text: String,
+      sentAt: Date
+    }
+  },
+  { timestamps: true }
+);
+
+// ✅ Index for quick lookup
 chatSessionSchema.index({ participants: 1 });
+chatSessionSchema.index({ sessionType: 1 });
 
 module.exports = mongoose.model('ChatSession', chatSessionSchema);

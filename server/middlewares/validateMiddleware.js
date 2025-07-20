@@ -13,8 +13,8 @@ const validate = (req, res, next) => {
       message: err.msg
     }));
 
-    // ✅ Log validation errors
-    logger.warn(`Validation failed | Path: ${req.originalUrl} | Method: ${req.method}`, {
+    // ✅ Log validation errors with IP for better tracking
+    logger.warn(`Validation failed | Path: ${req.originalUrl} | Method: ${req.method} | IP: ${req.ip}`, {
       user: req.user ? req.user.email : 'Guest',
       errors: formattedErrors
     });
@@ -24,7 +24,7 @@ const validate = (req, res, next) => {
       statusCode: 400,
       message: 'Validation error',
       errors: formattedErrors,
-      ...(process.env.NODE_ENV === 'development' && { rawErrors: errors.array() }) // Extra info for dev
+      ...(process.env.NODE_ENV === 'development' && { rawErrors: errors.array() })
     });
   }
 

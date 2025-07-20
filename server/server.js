@@ -1,7 +1,10 @@
 require('dotenv').config();
+const http = require('http'); // ✅ Import http module
 const app = require('./app');
 const connectDB = require('./config/db');
 const logger = require('./utils/logger');
+const { initSocket } = require('./socketHandler');
+const { setSocketIO } = require('./utils/socket');
 
 const PORT = process.env.PORT || 5000;
 
@@ -17,7 +20,7 @@ requiredEnvVars.forEach((key) => {
 });
 
 /**
- * ✅ Handle uncaught exceptions (sync errors)
+ * ✅ Handle uncaught exceptions
  */
 process.on('uncaughtException', (err) => {
   logger.error(`❌ Uncaught Exception: ${err.message}`);
@@ -25,17 +28,28 @@ process.on('uncaughtException', (err) => {
 });
 
 /**
+ * ✅ Create HTTP server from the Express app
+ */
+const server = http.createServer(app);
+
+/**
+ * ✅ Initialize Socket.IO and attach it to the server
+ */
+const io = initSocket(server);
+setSocketIO(io);
+
+/**
  * ✅ Connect to Database and Start Server
  */
 const startServer = async () => {
   try {
     await connectDB();
-    const server = app.listen(PORT, () => {
+    server.listen(PORT, () => { // ✅ Use server.listen instead of app.listen
       logger.info(`✅ Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
     });
 
     /**
-     * ✅ Graceful Shutdown on SIGTERM / SIGINT
+     * ✅ Graceful Shutdown
      */
     const shutdown = (signal) => {
       logger.info(`🛑 ${signal} received. Closing server...`);

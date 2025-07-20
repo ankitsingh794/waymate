@@ -5,7 +5,6 @@ const router = express.Router();
 const {
   getUserProfile,
   updateUserProfile,
-  updateAvatar,
   changeAccountStatus
 } = require('../controllers/userController');
 
@@ -54,8 +53,6 @@ router.get('/profile', protect, getUserProfile);
 // Update user profile
 router.put('/profile', protect, updateProfileValidation, validate, updateUserProfile);
 
-// Update avatar (Cloudinary upload)
-router.put('/profile/avatar', protect, upload.single('avatar'), updateAvatar);
 
 // Admin: Change account status
 router.put('/:id/status', protect, authorizeRoles('admin'), [

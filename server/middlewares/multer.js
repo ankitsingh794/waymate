@@ -2,10 +2,10 @@ const multer = require('multer');
 const path = require('path');
 const logger = require('../utils/logger');
 
-// ✅ Use memory storage (for Cloudinary/S3 uploads)
+// ✅ Memory storage for Cloudinary/S3
 const storage = multer.memoryStorage();
 
-// ✅ File filter for image validation
+// ✅ File type filter
 const fileFilter = (req, file, cb) => {
   const allowedTypes = /jpeg|jpg|png|webp/;
   const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
@@ -14,13 +14,16 @@ const fileFilter = (req, file, cb) => {
   if (extname && mimetype) {
     cb(null, true);
   } else {
-    const errorMsg = `Invalid file type: ${file.originalname}. Only jpeg, jpg, png, webp are allowed.`;
-    logger.warn(`File upload rejected | User: ${req.user ? req.user._id : 'unknown'} | Reason: ${errorMsg}`);
-    cb(new multer.MulterError('LIMIT_UNEXPECTED_FILE', errorMsg)); // Standard Multer error
+    const errorMsg = `Invalid file type: ${file.originalname}. Only jpeg, jpg, png, webp allowed.`;
+    logger.warn(`Upload rejected | User: ${req.user ? req.user._id : 'Guest'} | IP: ${req.ip} | Reason: ${errorMsg}`);
+    
+    const err = new multer.MulterError('LIMIT_UNEXPECTED_FILE');
+    err.message = errorMsg;
+    cb(err);
   }
 };
 
-// ✅ Configure Multer with size limit & custom error messages
+// ✅ Multer config
 const upload = multer({
   storage,
   fileFilter,
