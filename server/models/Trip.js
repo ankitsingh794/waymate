@@ -1,6 +1,11 @@
+/**
+ * @fileoverview Defines the Mongoose schema for a Trip, supporting a robust group model with roles
+ * and detailed sub-schemas for rich data representation.
+ */
+
 const mongoose = require('mongoose');
 
-// ✅ Sub-schema for richer weather data
+// Sub-schema for richer weather data
 const weatherForecastSchema = new mongoose.Schema({
   day: { type: Number, required: true },
   date: { type: String },
@@ -13,7 +18,7 @@ const weatherForecastSchema = new mongoose.Schema({
   wind_speed: { type: Number },
 }, { _id: false });
 
-// ✅ Sub-schema for richer attraction data
+// Sub-schema for richer attraction data
 const attractionSchema = new mongoose.Schema({
   name: { type: String, required: true },
   kinds: { type: String },
@@ -22,13 +27,14 @@ const attractionSchema = new mongoose.Schema({
   wikidata: { type: String },
 }, { _id: false });
 
+// Sub-schema for food recommendations
 const foodSchema = new mongoose.Schema({
   name: { type: String, required: true },
   kinds: { type: String },
   description: { type: String },
 }, { _id: false });
 
-// ✅ Sub-schema for the new structured budget
+// Sub-schema for the structured budget
 const budgetSchema = new mongoose.Schema({
     total: { type: Number, required: true },
     travel: { type: Number },
@@ -37,17 +43,38 @@ const budgetSchema = new mongoose.Schema({
     food: { type: Number },
 }, { _id: false });
 
+const routeSchema = new mongoose.Schema({
+    mode: { type: String, enum: ['flight', 'train', 'car', 'bus'], required: true },
+    provider: { type: String },
+    details: { type: mongoose.Schema.Types.Mixed } // Can be flexible for different route types
+}, { _id: false });
 
-const tripSchema = new mongoose.Schema({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-  },
+// FIX: Defined a specific sub-schema for accommodation
+const accommodationSchema = new mongoose.Schema({
+    name: { type: String, required: true },
+    type: { type: String }, // e.g., Hotel, Airbnb
+    rating: { type: Number },
+    link: { type: String }
+}, { _id: false });
+
+// FIX: Defined a specific sub-schema for local events
+const localEventSchema = new mongoose.Schema({
+    name: { type: String, required: true },
+    date: { type: Date },
+    description: { type: String },
+    link: { type: String }
+}, { _id: false });
+
+
+const TripSchema = new mongoose.Schema({
+  /**
+   * ✅ FINALIZED: Using a robust group object with roles.
+   * This is the single source of truth for trip membership and permissions.
+   */
   group: {
     isGroup: { type: Boolean, default: false },
     members: [{
-      userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
       role: { type: String, enum: ['owner', 'editor', 'viewer'], default: 'editor' }
     }],
   },
@@ -84,14 +111,14 @@ const tripSchema = new mongoose.Schema({
   coverImage: {
     type: String,
   },
-  routes: { type: mongoose.Schema.Types.Mixed }, // Use Mixed for flexible route object
-  weather: {
-    forecast: [weatherForecastSchema],
-  },
+  routes: [routeSchema],
+  
+  weather: { forecast: [weatherForecastSchema] },
   attractions: [attractionSchema],
   foodRecommendations: [foodSchema],
+  accommodationSuggestions: [accommodationSchema],
   alerts: [String],
-  budget: budgetSchema, // ✅ Using the new structured budget schema
+  budget: budgetSchema,
   itinerary: [{
     day: { type: Number, required: true },
     title: { type: String, required: true },
@@ -104,11 +131,11 @@ const tripSchema = new mongoose.Schema({
   formattedPlan: {
     type: String,
   },
-  // ✅ Fields for enhanced AI data
   tips: [String],
   mustEats: [String],
   highlights: [String],
   packingChecklist: [String],
+  localEvents: [localEventSchema],
   favorite: {
     type: Boolean,
     default: false,
@@ -120,6 +147,8 @@ const tripSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
-tripSchema.index({ userId: 1, startDate: -1 }); // Index for sorting trips
+TripSchema.index({ 'group.members.userId': 1, startDate: -1 });
 
-module.exports = mongoose.model('Trip', tripSchema);
+TripSchema.index({ destination: 'text' });
+
+module.exports = mongoose.model('Trip', TripSchema);

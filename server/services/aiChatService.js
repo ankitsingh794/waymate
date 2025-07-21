@@ -1,7 +1,7 @@
 const logger = require('../utils/logger');
 const Message = require('../models/Message');
 const ChatSession = require('../models/ChatSession');
-const Trip = require('../models/Trips');
+const Trip = require('../models/Trip');
 const { getSocketIO } = require('../utils/socket');
 const axios = require('axios');
 

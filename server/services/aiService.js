@@ -137,11 +137,26 @@ async function generateItinerary(aggregatedData) {
     route,
     budget, // Now a structured object
     alerts,
-    language,
+    localEvents, // New field for local events
+    language = 'English',
     preferences
   } = aggregatedData;
 
   const cacheKey = `v2:aiItinerary:${destinationName}:${startDate}:${endDate}:${travelers}:${language || 'English'}`;
+
+  const languageFullName = {
+      'english': 'English',
+      'hindi': 'Hindi (written in Devanagari script)',
+      'bengali': 'Bengali (written in Bengali script)',
+      'tamil': 'Tamil (written in Tamil script)',
+      'telugu': 'Telugu (written in Telugu script)',
+      'kannada': 'Kannada (written in Kannada script)',
+      'marathi': 'Marathi (written in Devanagari script)',
+      'gujarati': 'Gujarati (written in Gujarati script)',
+      'malayalam': 'Malayalam (written in Malayalam script)',
+      'punjabi': 'Punjabi (written in Gurmukhi script)',
+  }[language.toLowerCase()] || 'English';
+
 
   const cachedData = await getCache(cacheKey);
   if (cachedData) {
@@ -157,8 +172,8 @@ async function generateItinerary(aggregatedData) {
       .map(f => `${f.date.split('-').slice(1).join('/')}: ${f.condition}, ${f.temp}°C`)
       .join('; ');
     const budgetSummary = `Total: $${budget.total} (Travel: $${budget.travel}, Stay: $${budget.accommodation}, Activities: $${budget.activities}, Food: $${budget.food})`;
-    
-const prompt = `
+
+    const prompt = `
 You are **WayMate**, a passionate and super-friendly AI Travel Assistant and storyteller. Your job: create an exciting, **personalized travel plan** that feels like a text from a travel-savvy friend—but also returns structured data for the app.
 
 ---
@@ -181,7 +196,8 @@ Using the provided details, produce:
 - **Important Alerts:** ${alerts.length ? alerts.join(', ') : 'No alerts'}
 - **Recommended Attractions:** ${attractions.map(a => a.name).join(', ')}
 - **Routes:** ${JSON.stringify(route)}
-- **Language:** ${language || 'English'}
+- **Local Events Happening:** ${localEvents.length > 0 ? localEvents.map(e => `${e.title} on ${e.date}`).join('; ') : 'No specific events found.'}
+-  **Language for entire response:** ${languageFullName}
 
 ---
 
@@ -206,6 +222,9 @@ If the weather or alerts indicate unfavorable conditions (e.g., storms, heavy ra
 - End with **"My Secret Tips & Must-Eats"**:
   - 3–5 insider tips
   - 3–5 must-try local dishes or spots
+  - **What's On 🎟️:** Briefly list the local events found.
+- **What's On 🎟️:** Briefly list the local events found.
+- **Packing Checklist 🧳:** 3–5 items to pack based on weather and activities.
 
 ---
 
@@ -294,7 +313,37 @@ If the weather or alerts indicate unfavorable conditions (e.g., storms, heavy ra
   }
 };
 
+// Add this function to services/aiChatService.js
+
+/**
+ * Gets a contextual AI response for a one-on-one AI chat session.
+ * @param {string} sessionId - The ID of the chat session.
+ * @param {string} userId - The ID of the user sending the message.
+ * @param {string} text - The user's message.
+ * @returns {Promise<object>} The saved and populated AI message object.
+ */
+const getAiResponse = async (sessionId, userId, text) => {
+    // 1. Fetch recent message history for context
+    const history = await Message.find({ chatSession: sessionId }).sort({ createdAt: -1 }).limit(10);
+    
+    // 2. Call the main AI service to get a casual response
+    const aiText = await getCasualResponse(text, history);
+
+    // 3. Save the AI's response to the database
+    const aiMessage = new Message({
+        chatSession: sessionId,
+        sender: null, // Or a dedicated AI user ID
+        text: aiText,
+        type: 'ai',
+    });
+    await aiMessage.save();
+
+    return aiMessage;
+};
+
 module.exports = {
   generateItinerary,
-  getCasualResponse
+  getCasualResponse,
+  getAiResponse,
+  extractJsonBlocks,
 };

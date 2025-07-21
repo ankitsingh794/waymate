@@ -2,6 +2,7 @@ const axios = require('axios');
 const logger = require('../utils/logger');
 const { setCache, getCache, incrCache } = require('../config/redis');
 const { fetchThreatAlertsForDestination } = require('../services/alertService');
+const { fetchLocalEvents } = require('./eventService');
 
 const OPENTRIPMAP_BASE = 'https://api.opentripmap.com/0.1/en/places';
 const OPENWEATHER_FORECAST_BASE = 'https://api.openweathermap.org/data/2.5/forecast'; // ✅ Correct endpoint for forecast
@@ -69,6 +70,21 @@ const LIMITS = {
 // Redis keys for API usage tracking
 const MAPBOX_DIRECTIONS_KEY = 'usage:mapbox:directions';
 const MAPBOX_STATIC_KEY = 'usage:mapbox:static';
+
+// Sub-schema for attractions
+const API_LANGUAGE_CODES = {
+  'english': 'en',
+  'hindi': 'hi',
+  'bengali': 'bn',
+  'tamil': 'ta',
+  'telugu': 'te',
+  'kannada': 'kn',
+  'marathi': 'mr',
+  'gujarati': 'gu',
+  'malayalam': 'ml',
+  'punjabi': 'pa',
+};
+
 
 /**
  * ✅ Retry wrapper with improved logging
@@ -347,6 +363,7 @@ const aggregateTripData = async ({
     accommodationType = 'budget'
   } = preferences;
 
+  const apiLangCode = API_LANGUAGE_CODES[language.toLowerCase()] || 'en';
   // ✅ NEW: Logic to build personalized query parameters
   const personalizedParams = {};
 
@@ -405,13 +422,14 @@ const aggregateTripData = async ({
       return cached;
     }
 
-    const [attractionsRes, foodRes, weatherRes, unsplashRes, routeRes, accommodationRes] = await Promise.allSettled([
+    const [attractionsRes, foodRes, weatherRes, unsplashRes, routeRes, accommodationRes, eventsRes] = await Promise.allSettled([
       // ✅ NEW: Google Places is now the primary source for attractions
       retry(() => axios.get(GOOGLE_PLACES_BASE, {
         params: {
           location: `${destinationCoords.lat},${destinationCoords.lon}`,
           radius: 5000,
           ...personalizedParams,
+          language: apiLangCode,
           key: GOOGLE_API_KEY,
         }
       }), 'Google Places Attractions'),
@@ -421,10 +439,11 @@ const aggregateTripData = async ({
           radius: 5000,
           keyword: 'hotel|lodging|inn|hostel',
           ...personalizedParams,
+          language: apiLangCode,
           key: GOOGLE_API_KEY,
         }
       }), 'Google Places Accommodations'),
-      retry(() => axios.get(`${OPENTRIPMAP_BASE}/radius`, {
+      retry(() => axios.get(`${OPENTRIPMAP_BASE}/${apiLangCode}/places/radius`, {
         params: { lat: destinationCoords.lat, lon: destinationCoords.lon, radius: 5000, kinds: 'restaurants,cafes,food,bar', rate: 3, limit: 8, apikey: OPENTRIPMAP_API_KEY }
       }), 'OpenTripMap Food'),
       retry(() => axios.get(OPENWEATHER_FORECAST_BASE, {
@@ -433,7 +452,8 @@ const aggregateTripData = async ({
       retry(() => axios.get(UNSPLASH_BASE, {
         params: { query: destinationName, per_page: 1, client_id: UNSPLASH_ACCESS_KEY }
       }), 'Unsplash Image'),
-      getRouteData(origin, destinationCoords)
+      getRouteData(origin, destinationCoords),
+      fetchLocalEvents(destinationName, startDate, endDate)
     ]);
 
     // ✅ NEW: Cascading fallback logic for attractions
@@ -552,6 +572,7 @@ const aggregateTripData = async ({
       total: (travelCost + accommodationCost + activityCost + foodCost)
     };
     const alerts = await fetchThreatAlertsForDestination(destinationName);
+     const localEvents = eventsRes.status === 'fulfilled' ? eventsRes.value : [];
 
 
     const aggregatedData = {
@@ -564,7 +585,8 @@ const aggregateTripData = async ({
       coverImage,
       route,
       budget,
-      alerts: alerts.length > 0 ? alerts : ['No critical alerts found. Always check local travel guidelines.']
+      alerts: alerts.length > 0 ? alerts : ['No critical alerts found. Always check local travel guidelines.'],
+      localEvents
     };
 
     await setCache(cacheKey, aggregatedData, 600);

@@ -30,10 +30,10 @@ const userSchema = new mongoose.Schema(
     },
     accountStatus: {
       type: String,
-      enum: ['pending', 'active', 'suspended', 'banned'], // Added 'pending'
-      default: 'pending' // Default to pending until email is verified
+      enum: ['pending', 'active', 'suspended', 'banned'],
+      default: 'pending'
     },
-    isEmailVerified: { // ✅ ADDED: Field to track verification status
+    isEmailVerified: {
       type: Boolean,
       default: false
     },
@@ -53,17 +53,17 @@ const userSchema = new mongoose.Schema(
         index: '2dsphere'
       }
     },
-    trips: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Trip' }],
     passwordChangedAt: Date,
-    passwordResetToken: String, // ✅ RENAMED for consistency
-    passwordResetTokenExpires: Date, // ✅ RENAMED for consistency
-    emailVerificationToken: String, // ✅ ADDED: Field for email token
-    emailVerificationTokenExpires: Date // ✅ ADDED: Field for email token expiration
+    passwordResetToken: String,
+    passwordResetTokenExpires: Date,
+    emailVerificationToken: String,
+    emailVerificationTokenExpires: Date
   },
   { timestamps: true }
 );
 
-// Hash password before saving
+// --- Hooks and Methods (unchanged) ---
+
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   const salt = await bcrypt.genSalt(12);
@@ -71,44 +71,30 @@ userSchema.pre('save', async function (next) {
   next();
 });
 
-// Update passwordChangedAt if password is modified
 userSchema.pre('save', function (next) {
   if (!this.isModified('password') || this.isNew) return next();
   this.passwordChangedAt = Date.now() - 1000;
   next();
 });
 
-// Compare password during login
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-// ✅ ADDED: Method to generate email verification token
 userSchema.methods.createEmailVerifyToken = function () {
   const verificationToken = crypto.randomBytes(32).toString('hex');
-
-  this.emailVerificationToken = crypto
-    .createHash('sha256')
-    .update(verificationToken)
-    .digest('hex');
-  
+  this.emailVerificationToken = crypto.createHash('sha256').update(verificationToken).digest('hex');
   this.emailVerificationTokenExpires = Date.now() + 15 * 60 * 1000; // 15 mins
-
   return verificationToken;
 };
 
-// ✅ RENAMED: Method to generate password reset token
 userSchema.methods.createPasswordResetToken = function () {
   const resetToken = crypto.randomBytes(20).toString('hex');
-  this.passwordResetToken = crypto
-    .createHash('sha256')
-    .update(resetToken)
-    .digest('hex');
+  this.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex');
   this.passwordResetTokenExpires = Date.now() + 15 * 60 * 1000; // 15 mins
   return resetToken;
 };
 
-// Remove sensitive data from JSON output
 userSchema.set('toJSON', {
   transform: (doc, ret) => {
     delete ret.password;

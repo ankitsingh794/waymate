@@ -1,10 +1,11 @@
 require('dotenv').config();
-const http = require('http'); // ✅ Import http module
+const http = require('http'); 
 const app = require('./app');
 const connectDB = require('./config/db');
 const logger = require('./utils/logger');
 const { initSocket } = require('./socketHandler');
 const { setSocketIO } = require('./utils/socket');
+const { closeRedisConnection } = require('./config/redis');
 
 const PORT = process.env.PORT || 5000;
 
@@ -51,13 +52,15 @@ const startServer = async () => {
     /**
      * ✅ Graceful Shutdown
      */
-    const shutdown = (signal) => {
+    const shutdown = async (signal) => { 
       logger.info(`🛑 ${signal} received. Closing server...`);
+      await closeRedisConnection(); 
       server.close(() => {
         logger.info('✅ Server closed. Exiting process.');
         process.exit(0);
       });
     };
+
 
     process.on('SIGTERM', shutdown);
     process.on('SIGINT', shutdown);

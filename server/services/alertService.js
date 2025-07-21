@@ -3,13 +3,7 @@ const Parser = require('rss-parser');
 // ✅ Increased timeout to 15 seconds for better resilience
 const parser = new Parser({ timeout: 15000 });
 const logger = require('../utils/logger');
-const Redis = require('ioredis');
-
-const redis = new Redis({
-  host: 'localhost', // update as needed
-  port: 6379,
-  // password: 'yourpassword', // if needed
-});
+const { getCache, setCache } = require('../config/redis');
 
 const CACHE_TTL_SECONDS = 600; // 10 minutes cache TTL
 
@@ -35,7 +29,7 @@ const ALERT_FEEDS_BY_REGION = {
     'https://feeds.feedburner.com/ndtvnews-top-stories', // ✅ Updated NDTV feed URL
     'https://www.indiatoday.in/rss/1206573', // India Today National
   ],
-   andhra_pradesh: [
+  andhra_pradesh: [
     'https://www.thehindu.com/news/national/andhra-pradesh/?service=rss',
     'https://www.deccanchronicle.com/rss/state/andhra-pradesh',
     'https://www.sakshi.com/rss-feed',
@@ -331,11 +325,12 @@ const MAX_ALERTS = 5;
 
 // Main function to fetch and cache alerts for destination
 async function fetchThreatAlertsForDestination(destinationName) {
-  const cacheKey = `v2:alerts:${normalizeText(destinationName)}`; // Using versioned cache key
+  const normalizedDest = destinationName.toLowerCase().trim();
+  const cacheKey = `v2:alerts:${normalizedDest}`;
 
   // Try cache first
   try {
-    const cached = await redis.get(cacheKey);
+    const cached = await getCache(cacheKey);
     if (cached) {
       logger.info(`Serving alerts from cache for: ${destinationName}`);
       return JSON.parse(cached);
@@ -424,17 +419,7 @@ async function fetchThreatAlertsForDestination(destinationName) {
   const finalAlerts = alertsWithDate.slice(0, MAX_ALERTS).map(a => `[${a.category}] ${a.title}`);
 
   // Cache the result
-  try {
-    await redis.set(cacheKey, JSON.stringify(finalAlerts), 'EX', CACHE_TTL_SECONDS);
-  } catch (err) {
-    logger.warn(`Redis set error for key ${cacheKey}: ${err.message}`);
-  }
-
-  if (finalAlerts.length === 0) {
-    logger.info('No relevant alerts found.');
-  } else {
-    logger.info(`Found ${finalAlerts.length} relevant alerts.`);
-  }
+  await setCache(cacheKey, finalAlerts, CACHE_TTL_SECONDS);
 
   return finalAlerts;
 }

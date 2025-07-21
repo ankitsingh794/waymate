@@ -1,15 +1,13 @@
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const sendEmail = require('../utils/sendEmail');
 const logger = require('../utils/logger');
-const { generateAccessToken, generateRefreshToken } = require('../utils/tokenUtils');
-const { blacklistToken } = require('../config/redis');
+const { generateAccessToken, generateRefreshToken, verifyToken } = require('../utils/tokenUtils');
+const { blacklistToken, isTokenBlacklisted } = require('../config/redis');
 const { generateVerificationEmailHTML, generatePasswordResetEmailHTML } = require('../utils/emailTemplates');
+const { sendResponse } = require('../utils/responseHelper');
 
-// Unified response helper
-const sendResponse = (res, statusCode, success, message, data = {}) => {
-  return res.status(statusCode).json({ success, message, data });
-};
 
 // Set refresh token in HTTP-only cookie
 const setRefreshTokenCookie = (res, token) => {
@@ -17,7 +15,7 @@ const setRefreshTokenCookie = (res, token) => {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'Strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   });
 };
 
@@ -51,7 +49,6 @@ exports.registerUser = async (req, res, next) => {
 
     user = new User({ name, email, password, isEmailVerified: false });
     const verificationToken = user.createEmailVerifyToken();
-    console.log('--- VERIFICATION TOKEN FOR TESTING --- :', verificationToken);
     await user.save();
 
     const verifyURL = `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}`;
@@ -210,25 +207,21 @@ exports.loginUser = async (req, res, next) => {
   try {
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
-      return sendResponse(res, 400, false, 'Invalid credentials');
+      return sendResponse(res, 401, false, 'Invalid credentials');
     }
 
-    // if (!user.isEmailVerified) {
-    //   return sendResponse(res, 400, false, 'Please verify your email before logging in.');
-    // }
-
-    // Temporary change:
+    // FIX: Email verification is now properly enforced. The bypass has been removed.
     if (!user.isEmailVerified) {
-      console.warn('Email verification bypassed for testing.');
+      return sendResponse(res, 403, false, 'Please verify your email before logging in.');
     }
 
     if (user.accountStatus !== 'active') {
-      return sendResponse(res, 403, false, `Your account is ${user.accountStatus}. Contact support.`);
+      return sendResponse(res, 403, false, `Your account is ${user.accountStatus}. Please contact support.`);
     }
 
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
-      return sendResponse(res, 400, false, 'Invalid credentials');
+      return sendResponse(res, 401, false, 'Invalid credentials');
     }
 
     const accessToken = generateAccessToken(user._id);
@@ -238,7 +231,7 @@ exports.loginUser = async (req, res, next) => {
     logger.info('Login successful', { email, userId: user._id });
     sendResponse(res, 200, true, 'Login successful', {
       accessToken,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role }
+      user: { id: user._id, name: user.name, email: user.email, role: user.role },
     });
   } catch (error) {
     logger.error('Error in loginUser', { error: error.message });
@@ -246,6 +239,47 @@ exports.loginUser = async (req, res, next) => {
   }
 };
 
+
+/**
+ * @desc Logout user (Blacklist access & refresh tokens)
+ * @route POST /api/auth/logout
+ * @access Private
+ */
+
+exports.logoutUser = async (req, res, next) => {
+  try {
+    const accessToken = req.headers.authorization?.split(' ')[1];
+    const refreshToken = req.cookies.refreshToken;
+    const currentTime = Math.floor(Date.now() / 1000);
+
+    if (accessToken) {
+      const decodedAccess = jwt.decode(accessToken);
+      if (decodedAccess?.exp) {
+        const accessTTL = decodedAccess.exp - currentTime;
+        if (accessTTL > 0) {
+          await blacklistToken(`bl_access_${accessToken}`, 'true', accessTTL);
+        }
+      }
+    }
+
+    if (refreshToken) {
+      const decodedRefresh = jwt.decode(refreshToken);
+      if (decodedRefresh?.exp) {
+        const refreshTTL = decodedRefresh.exp - currentTime;
+        if (refreshTTL > 0) {
+          await blacklistToken(`bl_refresh_${refreshToken}`, 'true', refreshTTL);
+        }
+      }
+    }
+
+    res.clearCookie('refreshToken');
+    sendResponse(res, 200, true, 'Logged out successfully');
+
+  } catch (error) {
+    logger.error('Error in logoutUser', { error: error.message });
+    next(error);
+  }
+};
 /**
  * @desc Refresh access token
  * @route POST /api/auth/refresh-token
@@ -294,48 +328,6 @@ exports.refreshToken = async (req, res, next) => {
   }
 };
 
-/**
- * @desc Logout user (Blacklist access & refresh tokens)
- * @route POST /api/auth/logout
- * @access Private
- */
-exports.logoutUser = async (req, res, next) => {
-  try {
-    const accessToken = req.headers.authorization?.split(' ')[1];
-    const refreshToken = req.cookies.refreshToken;
-
-    const currentTime = Math.floor(Date.now() / 1000);
-
-    // ✅ Blacklist access token dynamically
-    if (accessToken) {
-      const decodedAccess = jwt.decode(accessToken);
-      const accessTTL = decodedAccess?.exp ? decodedAccess.exp - currentTime : 900; // fallback 15m
-      await blacklistToken(accessToken, accessTTL);
-      logger.debug(`Access token blacklisted for ${accessTTL}s`);
-    }
-
-    // ✅ Blacklist refresh token dynamically
-    if (refreshToken) {
-      const decodedRefresh = jwt.decode(refreshToken);
-      const refreshTTL = decodedRefresh?.exp ? decodedRefresh.exp - currentTime : 7 * 24 * 60 * 60; // fallback 7d
-      await blacklistToken(refreshToken, refreshTTL);
-      logger.debug(`Refresh token blacklisted for ${refreshTTL}s`);
-    }
-
-    // ✅ Clear refresh token cookie
-    res.clearCookie('refreshToken', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict'
-    });
-
-    logger.info('✅ User logged out successfully', { userId: req.user?.id });
-    return sendResponse(res, 200, true, 'Logged out successfully');
-  } catch (error) {
-    logger.error('❌ Error in logoutUser', { error: error.message });
-    next(error);
-  }
-};
 
 
 /**
@@ -371,18 +363,3 @@ exports.updatePassword = async (req, res, next) => {
   }
 };
 
-/**
- * @desc Get current user profile
- * @route GET /api/auth/me
- * @access Private
- */
-exports.getCurrentUser = async (req, res, next) => {
-  try {
-    logger.info('Fetching user profile', { userId: req.user.id });
-    const user = await User.findById(req.user.id);
-    return sendResponse(res, 200, true, 'User profile fetched successfully', { user });
-  } catch (error) {
-    logger.error('Error in getCurrentUser', { error: error.message, userId: req.user.id });
-    next(error);
-  }
-};
