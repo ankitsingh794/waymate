@@ -1,0 +1,24 @@
+{
+  "publicNav": {
+    "home": "முகப்பு",
+    "dashboard": "டாஷ்போர்டு",
+    "features": "அம்சங்கள்",
+    "pricing": "விலை",
+    "joinUs": "எங்களுடன் சேரவும்"
+  },
+  "dashboardNav": {
+    "myTrips": "என் பயணங்கள்",
+    "aiAssistant": "AI உதவியாளர்"
+  },
+  "profileMenu": {
+    "welcome": "மீண்டும் வருக!",
+    "myProfile": "என் சுயவிவரம்",
+    "settings": "அமைப்புகள்",
+    "logout": "வெளியேறு"
+  },
+  "general": {
+    "save": "மாற்றங்களைச் சேமிக்கவும்",
+    "add": "சேர்க்கவும்",
+    "invite": "அழைக்கவும்"
+  }
+}

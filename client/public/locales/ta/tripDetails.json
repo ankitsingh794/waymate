@@ -1,0 +1,53 @@
+{
+  "backToDashboard": "டாஷ்போர்டுக்கு திரும்பு",
+  "shareTrip": "பயணத்தை பகிரவும்",
+  "getDirections": "வழிகாட்டுதல்களைப் பெறவும்",
+  "dock": {
+    "overview": "மேலோட்டம்",
+    "itinerary": "பயண திட்டம்",
+    "budget": "செலவுத்திட்டம்",
+    "map": "வரைபடம்",
+    "documents": "ஆவணங்கள்",
+    "checklist": "சரிபார்ப்பு பட்டியல்",
+    "members": "உறுப்பினர்கள்",
+    "chat": "அரட்டை"
+  },
+  "overview": {
+    "countdownTitle": "பயண நேரக் குறைப்பு",
+    "days": "நாட்கள்",
+    "hours": "மணி",
+    "mins": "நிமிடங்கள்",
+    "weatherTitle": "பாரிஸின் தற்போதைய வானிலை",
+    "weatherDesc": "வெயில்",
+    "quickActionsTitle": "விரைவான செயல்கள்",
+    "viewItinerary": "முழு பயணத் திட்டத்தைப் பார்வையிடவும்",
+    "manageBudget": "செலவுத்திட்டத்தை நிர்வகிக்கவும்",
+    "seeChecklist": "சரிபார்ப்பு பட்டியலைப் பார்வையிடவும்"
+  },
+  "itinerary": {
+    "addEvent": "நிகழ்வைச் சேர்க்கவும்",
+    "viewTicket": "மின்னணு டிக்கெட்டைப் பார்க்கவும்",
+    "viewReservation": "முன்பதிவைப் பார்க்கவும்"
+  },
+  "budget": {
+    "total": "மொத்த செலவுத்திட்டம்",
+    "spent": "செலவிட்டது",
+    "remaining": "மீதமுள்ளவை",
+    "addExpenseTitle": "புதிய செலவைச் சேர்க்கவும்",
+    "expenseNamePlaceholder": "செலவு பெயர் (எ.கா., அருங்காட்சியக டிக்கெட்டுகள்)",
+    "amountPlaceholder": "தொகை ($)"
+  },
+  "documents": {
+    "upload": "ஆவணத்தைப் பதிவேற்றவும்"
+  },
+  "members": {
+    "findPlaceholder": "உறுப்பினரைத் தேடவும்...",
+    "organizer": "ஆய்வாளர்",
+    "member": "உறுப்பினர்",
+    "pending": "நிலுவையில் உள்ளது",
+    "invitationSent": "அழைப்பு அனுப்பப்பட்டது"
+  },
+  "chat": {
+    "messagePlaceholder": "ஒரு செய்தியைத் தட்டச்சு செய்யவும்..."
+  }
+}

@@ -1,65 +1,97 @@
+
 .home {
     position: relative;
     width: 100%;
     min-height: 100vh;
-    background-color: #FFF8E7;
+    background-color: #F7E1D7;
     overflow: hidden;
 }
 
-/* Hero Image with Soft Bottom Curve */
-.home-bg {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-bottom-left-radius: 50% 20%;
-    border-bottom-right-radius: 50% 20%;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    position: relative;
-    top: -9vh;
-    z-index: 0;
-}
-
-/* Overlay Wrapper */
 .img-wrapper {
     position: relative;
     width: 100%;
-    height: 100%;
+    height: 100vh;
     display: flex;
     flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
-/* Centered Overlay Content */
-.img-overlay {
+.globe-container {
     position: absolute;
-    top: 20%;
-    left: 5%;
-    text-align: left;
-    font-family: 'Tinos', serif;
-    font-size: clamp(1.5rem, 2.5vw, 2.5rem);
-    color: #004225;
-    z-index: 2;
-    max-width: 40%;
-    line-height: 1.4;
-    white-space: normal;
-    word-break: break-word;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    background-color: #000; 
 }
 
+.img-overlay {
+    position: relative;
+    z-index: 2;
+    font-family: 'Tinos', serif;
+    font-size: clamp(2rem, 4vw, 3.5rem);
+    color: #F7E1D7;
+    text-align: center;
+    max-width: 600px;
+    padding: 2rem;
+    line-height: 1.4;
+    animation: slideInBottom 1.2s ease forwards;
+}
 
-/* Call-To-Action Buttons */
+@keyframes slideInBottom {
+    0% {
+        opacity: 0;
+        transform: translateY(50%) scale(0.95);
+        filter: blur(6px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0);
+    }
+}
+
 .cta-button {
     display: inline-block;
-    margin: 1rem 0.5rem;
-    padding: 0.6rem 1.5rem;
-    background-color: #004225;
-    color: #fff;
+    margin: 1.5rem 0.5rem 0;
+    padding: 0.8rem 2rem;
+    background-color: #DEDBD2;
+    color: #4a5759;
     font-weight: bold;
     border-radius: 50px;
-    text-decoration: none;
     font-size: 1.2rem;
     transition: background-color 0.3s ease, transform 0.2s ease;
+    text-decoration: none;
 }
 
 .cta-button:hover {
-    background-color: #50C878;
-    transform: translateY(-2px);
+    background-color: #B0C4B1;
+    transform: translateY(-3px);
+}
+
+.mapboxgl-ctrl-bottom-left,
+.mapboxgl-ctrl-bottom-right {
+    z-index: 5 !important;
+}
+
+.mapboxgl-ctrl-attrib-inner a {
+    color: #fff !important; 
+    text-decoration: none;
+}
+
+.mapboxgl-ctrl-attrib-inner {
+    color: rgba(255, 255, 255, 0.7) !important; 
+}
+
+@media (max-width: 768px) {
+    .img-overlay {
+        font-size: clamp(1.5rem, 6vw, 2.5rem);
+        padding: 1rem;
+    }
+    .cta-button {
+        font-size: 1rem;
+        padding: 0.7rem 1.5rem;
+    }
 }

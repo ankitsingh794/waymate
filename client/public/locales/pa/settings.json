@@ -1,0 +1,33 @@
+{
+  "title": "ਸੈਟਿੰਗਸ",
+  "subtitle": "ਆਪਣਾ ਖਾਤਾ ਅਤੇ ਪਸੰਦਾਂ ਪ੍ਰਬੰਧਿਤ ਕਰੋ",
+  "languageTitle": "ਭਾਸ਼ਾ ਅਤੇ ਖੇਤਰ",
+  "language": "ਭਾਸ਼ਾ",
+  "appearance": {
+    "title": "ਦਿੱਖ",
+    "nightMode": "ਨਾਈਟ ਮੋਡ"
+  },
+  "notifications": {
+    "title": "ਨੋਟੀਫਿਕੇਸ਼ਨ",
+    "tripReminders": "ਯਾਤਰਾ ਯਾਦ ਦਿਹਾਾਣੀਆਂ",
+    "chatMessages": "ਚੈਟ ਸੁਨੇਹੇ",
+    "promotionalOffers": "ਪ੍ਰੋਮੋਸ਼ਨਲ ਆਫਰ"
+  },
+  "account": {
+    "title": "ਖਾਤਾ ਅਤੇ ਸੁਰੱਖਿਆ",
+    "editProfile": "ਪ੍ਰੋਫਾਈਲ ਸੋਧੋ",
+    "changePassword": "ਪਾਸਵਰਡ ਬਦਲੋ",
+    "privacyPolicy": "ਗੋਪਨੀਯਤਾ ਨੀਤੀ"
+  },
+  "subscription": {
+    "title": "ਸਬਸਕ੍ਰਿਪਸ਼ਨ",
+    "statusText": "ਤੁਸੀਂ ਹੋ",
+    "freePlan": "ਮੁਫ਼ਤ ਯੋਜਨਾ 'ਤੇ",
+    "upgradeButton": "ਪ੍ਰੋ 'ਤੇ ਅਪਗ੍ਰੇਡ ਕਰੋ"
+  },
+  "dangerZone": {
+    "title": "ਖਤਰਨਾਕ ਖੇਤਰ",
+    "logOutAll": "ਸਭ ਡਿਵਾਈਸਾਂ ਤੋਂ ਲਾਗਆਉਟ ਕਰੋ",
+    "deleteAccount": "ਖਾਤਾ ਮਿਟਾਓ"
+  }
+}

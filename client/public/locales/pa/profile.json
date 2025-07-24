@@ -1,0 +1,34 @@
+{
+  "userAvatarAlt": "ਉਪਭੋਗਤਾ ਅਵਤਾਰ",
+  "publicProfile": {
+    "title": "ਪਬਲਿਕ ਪ੍ਰੋਫ਼ਾਈਲ",
+    "editAvatar": "ਅਵਤਾਰ ਸੋਧੋ",
+    "fullName": "ਪੂਰਾ ਨਾਮ",
+    "email": "ਈਮੇਲ ਪਤਾ"
+  },
+  "updatePassword": {
+    "title": "ਪਾਸਵਰਡ ਅੱਪਡੇਟ ਕਰੋ",
+    "current": "ਮੌਜੂਦਾ ਪਾਸਵਰਡ",
+    "new": "ਨਵਾਂ ਪਾਸਵਰਡ",
+    "confirm": "ਨਵਾਂ ਪਾਸਵਰਡ ਪੁਸ਼ਟੀ ਕਰੋ",
+    "button": "ਪਾਸਵਰਡ ਅੱਪਡੇਟ ਕਰੋ"
+  },
+  "preferences": {
+    "title": "ਪਸੰਦਾਂ",
+    "language": "ਭਾਸ਼ਾ",
+    "currency": "ਮੁਦਰਾ"
+  },
+  "accountActions": {
+    "title": "ਖਾਤਾ ਪ੍ਰਬੰਧਨ",
+    "description": "ਤੁਹਾਡਾ ਖਾਤਾ ਅਯੋਗ ਕਰਨ ਨਾਲ ਸਰਗਰਮ ਯਾਤਰਾਵਾਂ ਅਤੇ ਸਬਸਕ੍ਰਿਪਸ਼ਨ ਰੱਦ ਹੋ ਜਾਣਗੇ। ਇਹ ਕਾਰਵਾਈ ਸਥਾਈ ਹੈ।",
+    "button": "ਖਾਤਾ ਅਯੋਗ ਕਰੋ",
+    "confirmDeactivation": "ਕੀ ਤੁਸੀਂ ਯਕੀਨਨ ਖਾਤਾ ਅਯੋਗ ਕਰਨਾ ਚਾਹੁੰਦੇ ਹੋ? ਇਹ ਕਾਰਵਾਈ ਵਾਪਸ ਨਹੀਂ ਕੀਤੀ ਜਾ ਸਕਦੀ।"
+  },
+  "alerts": {
+    "profileUpdated": "ਪ੍ਰੋਫ਼ਾਈਲ ਅੱਪਡੇਟ ਹੋ ਗਿਆ!",
+    "passwordsNoMatch": "ਨਵੇਂ ਪਾਸਵਰਡ ਮੇਲ ਨਹੀਂ ਖਾਂਦੇ!",
+    "passwordUpdated": "ਪਾਸਵਰਡ ਸਫਲਤਾਪੂਰਵਕ ਅੱਪਡੇਟ ਹੋਇਆ!",
+    "preferencesSaved": "ਪਸੰਦਾਂ ਸੇਵ ਕੀਤੀਆਂ!",
+    "accountDeactivated": "ਖਾਤਾ ਅਯੋਗ ਕੀਤਾ ਗਿਆ ਹੈ।"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "welcome": "Welcome back, {{name}}!",
+  "subheading": "Your next journey is just a click away. Where to?",
+  "searchPlaceholder": "Search for trips, destinations...",
+  "upcomingTrips": "Upcoming Trips",
+  "upcomingSubtitle": "Adventures that await on your horizon.",
+  "pastAdventures": "Past Adventures",
+  "pastSubtitle": "Cherish the memories from these wonderful places.",
+  "sidebar": {
+    "traveler": "Waymate Traveler",
+    "planTitle": "Ready for a new adventure?",
+    "planSubtitle": "Let our AI craft the perfect itinerary for you.",
+    "planButton": "Start Planning with AI"
+  }
+}

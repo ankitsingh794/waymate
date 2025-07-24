@@ -1,0 +1,33 @@
+{
+  "title": "సెట్టింగ్స్",
+  "subtitle": "మీ ఖాతా మరియు ప్రాధాన్యతలను నిర్వహించండి",
+  "languageTitle": "భాష & ప్రాంతం",
+  "language": "భాష",
+  "appearance": {
+    "title": "దృశ్యం",
+    "nightMode": "రాత్రి మోడ్"
+  },
+  "notifications": {
+    "title": "నోటిఫికేషన్లు",
+    "tripReminders": "ప్రయాణ గుర్తుచేసేవి",
+    "chatMessages": "చాట్ సందేశాలు",
+    "promotionalOffers": "ప్రచార ఆఫర్లు"
+  },
+  "account": {
+    "title": "ఖాతా & భద్రత",
+    "editProfile": "ప్రొఫైల్ సవరించండి",
+    "changePassword": "పాస్‌వర్డ్ మార్చండి",
+    "privacyPolicy": "గోప్యతా విధానం"
+  },
+  "subscription": {
+    "title": "చందా",
+    "statusText": "మీరు ఉన్నారు",
+    "freePlan": "ఉచిత ప్లాన్‌లో",
+    "upgradeButton": "ప్రోకు అప్‌గ్రేడ్ చేయండి"
+  },
+  "dangerZone": {
+    "title": "ప్రమాద ప్రాంతం",
+    "logOutAll": "అన్ని పరికరాల నుండి లాగ్ అవుట్ అవ్వండి",
+    "deleteAccount": "ఖాతాను తొలగించండి"
+  }
+}

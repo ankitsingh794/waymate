@@ -1,0 +1,53 @@
+{
+  "backToDashboard": "ഡാഷ്ബോർഡിലേയ്ക്ക് തിരിച്ചു പോവുക",
+  "shareTrip": "യാത്ര പങ്കുവെക്കുക",
+  "getDirections": "ദിശകൾ ലഭിക്കുക",
+  "dock": {
+    "overview": "അവലോകനം",
+    "itinerary": "യാത്രാപ്രവർത്തന പട്ടിക",
+    "budget": "ബഡ്ജറ്റ്",
+    "map": "മാപ്പ്",
+    "documents": "പത്രങ്ങൾ",
+    "checklist": "പരിശോധന പട്ടിക",
+    "members": "സദസ്യങ്ങൾ",
+    "chat": "ചാറ്റ്"
+  },
+  "overview": {
+    "countdownTitle": "യാത്ര കണക്കുകൂട്ടൽ",
+    "days": "ദിവസങ്ങൾ",
+    "hours": "മണിക്കൂറുകൾ",
+    "mins": "നിമിഷങ്ങൾ",
+    "weatherTitle": "പാരിസിലെ നിലവിലെ കാലാവസ്ഥ",
+    "weatherDesc": "സൂര്യപ്രകാശം",
+    "quickActionsTitle": "ക്ഷണിക പ്രവർത്തനങ്ങൾ",
+    "viewItinerary": "പൂർണ്ണ യാത്രാപ്രവർത്തന പട്ടിക കാണുക",
+    "manageBudget": "ബഡ്ജറ്റ് നിയന്ത്രിക്കുക",
+    "seeChecklist": "പരിശോധന പട്ടിക കാണുക"
+  },
+  "itinerary": {
+    "addEvent": "ഇവന്റ് ചേർക്കുക",
+    "viewTicket": "ഇ-ടിക്കറ്റ് കാണുക",
+    "viewReservation": "റിസർവേഷൻ കാണുക"
+  },
+  "budget": {
+    "total": "മൊത്തം ബഡ്ജറ്റ്",
+    "spent": "ചെലവാക്കി",
+    "remaining": "ഉണ്ടായിട്ടുള്ളത്",
+    "addExpenseTitle": "പുതിയ ചെലവ് ചേർക്കുക",
+    "expenseNamePlaceholder": "ചെലവിന്റെ പേര് (ഉദാ: മ്യൂസിയം ടിക്കറ്റുകൾ)",
+    "amountPlaceholder": "തുക ($)"
+  },
+  "documents": {
+    "upload": "പത്രങ്ങൾ അപ്‌ലോഡ് ചെയ്യുക"
+  },
+  "members": {
+    "findPlaceholder": "സദസ്യനെ കണ്ടെത്തുക...",
+    "organizer": "സംഘാടക",
+    "member": "സദസ്യൻ",
+    "pending": "നിലവിലുള്ളത്",
+    "invitationSent": "അഹ്വാനം അയച്ചു"
+  },
+  "chat": {
+    "messagePlaceholder": "സന്ദേശം ടൈപ്പ് ചെയ്യുക..."
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "backToDashboard": "डैशबोर्ड पर वापस जाएं",
+  "shareTrip": "यात्रा साझा करें",
+  "getDirections": "दिशा-निर्देश प्राप्त करें",
+  "dock": {
+    "overview": "अवलोकन",
+    "itinerary": "यात्रा कार्यक्रम",
+    "budget": "बजट",
+    "map": "मानचित्र",
+    "documents": "दस्तावेज़",
+    "checklist": "चेकलिस्ट",
+    "members": "सदस्य",
+    "chat": "चैट"
+  },
+  "overview": {
+    "countdownTitle": "यात्रा की उलटी गिनती",
+    "days": "दिन",
+    "hours": "घंटे",
+    "mins": "मिनट",
+    "weatherTitle": "पेरिस का वर्तमान मौसम",
+    "weatherDesc": "धूप",
+    "quickActionsTitle": "त्वरित क्रियाएँ",
+    "viewItinerary": "पूरा यात्रा कार्यक्रम देखें",
+    "manageBudget": "बजट प्रबंधित करें",
+    "seeChecklist": "चेकलिस्ट देखें"
+  },
+  "itinerary": {
+    "addEvent": "ईवेंट जोड़ें",
+    "viewTicket": "ई-टिकट देखें",
+    "viewReservation": "आरक्षण देखें"
+  },
+  "budget": {
+    "total": "कुल बजट",
+    "spent": "खर्च किया",
+    "remaining": "शेष",
+    "addExpenseTitle": "नया खर्च जोड़ें",
+    "expenseNamePlaceholder": "खर्च का नाम (जैसे, संग्रहालय टिकट)",
+    "amountPlaceholder": "राशि ($)"
+  },
+  "documents": {
+    "upload": "दस्तावेज़ अपलोड करें"
+  },
+  "members": {
+    "findPlaceholder": "सदस्य खोजें...",
+    "organizer": "आयोजक",
+    "member": "सदस्य",
+    "pending": "लंबित",
+    "invitationSent": "निमंत्रण भेजा गया"
+  },
+  "chat": {
+    "messagePlaceholder": "संदेश लिखें..."
+  }
+}

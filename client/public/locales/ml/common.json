@@ -1,0 +1,24 @@
+{
+  "publicNav": {
+    "home": "ഹോം",
+    "dashboard": "ഡാഷ്ബോർഡ്",
+    "features": "സവിശേഷതകൾ",
+    "pricing": "വില",
+    "joinUs": "ഞങ്ങളോടൊപ്പം ചേരുക"
+  },
+  "dashboardNav": {
+    "myTrips": "എന്റെ യാത്രകൾ",
+    "aiAssistant": "എ.ഐ സഹായി"
+  },
+  "profileMenu": {
+    "welcome": "തിരികെ സ്വാഗതം!",
+    "myProfile": "എന്റെ പ്രൊഫൈൽ",
+    "settings": "ക്രമീകരണങ്ങൾ",
+    "logout": "ലോഗ്ഔട്ട്"
+  },
+  "general": {
+    "save": "മാറ്റങ്ങൾ സംരക്ഷിക്കുക",
+    "add": "ചേർക്കുക",
+    "invite": "ആഹ്വാനം ചെയ്യുക"
+  }
+}

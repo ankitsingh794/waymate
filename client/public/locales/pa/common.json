@@ -1,0 +1,24 @@
+{
+  "publicNav": {
+    "home": "ਮੁੱਖ ਪੰਨਾ",
+    "dashboard": "ਡੈਸ਼ਬੋਰਡ",
+    "features": "ਫੀਚਰ",
+    "pricing": "ਕੀਮਤਾਂ",
+    "joinUs": "ਸਾਡੇ ਨਾਲ ਜੁੜੋ"
+  },
+  "dashboardNav": {
+    "myTrips": "ਮੇਰੀਆਂ ਯਾਤਰਾਂ",
+    "aiAssistant": "ਏਆਈ ਸਹਾਇਕ"
+  },
+  "profileMenu": {
+    "welcome": "ਵਾਪਸ ਆਉਣ 'ਤੇ ਸਵਾਗਤ ਹੈ!",
+    "myProfile": "ਮੇਰਾ ਪ੍ਰੋਫਾਈਲ",
+    "settings": "ਸੈਟਿੰਗਜ਼",
+    "logout": "ਲੋਗਆਊਟ"
+  },
+  "general": {
+    "save": "ਤਬਦੀਲੀਆਂ ਸੇਵ ਕਰੋ",
+    "add": "ਸ਼ਾਮਲ ਕਰੋ",
+    "invite": "ਬੁਲਾਓ"
+  }
+}

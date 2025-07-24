@@ -1,0 +1,53 @@
+{
+  "backToDashboard": "ਡੈਸ਼ਬੋਰਡ 'ਤੇ ਵਾਪਸ ਜਾਓ",
+  "shareTrip": "ਯਾਤਰਾ ਸਾਂਝੀ ਕਰੋ",
+  "getDirections": "ਦਿਸ਼ਾ-ਨਿਰਦੇਸ਼ ਪ੍ਰਾਪਤ ਕਰੋ",
+  "dock": {
+    "overview": "ਸਮਰੀ",
+    "itinerary": "ਯਾਤਰਾ ਦਿਸ਼ਾ-ਨਿਰਦੇਸ਼",
+    "budget": "ਬਜਟ",
+    "map": "ਨਕਸ਼ਾ",
+    "documents": "ਦਸਤਾਵੇਜ਼",
+    "checklist": "ਚੈੱਕਲਿਸਟ",
+    "members": "ਸਭਿਆਚਾਰਕ",
+    "chat": "ਚੈਟ"
+  },
+  "overview": {
+    "countdownTitle": "ਯਾਤਰਾ ਕਾਊਂਟਡਾਊਨ",
+    "days": "ਦਿਨ",
+    "hours": "ਘੰਟੇ",
+    "mins": "ਮਿੰਟ",
+    "weatherTitle": "ਪੈਰਿਸ ਵਿੱਚ ਮੌਜੂਦਾ ਮੌਸਮ",
+    "weatherDesc": "ਧੁੱਪਦਾਰ",
+    "quickActionsTitle": "ਤੁਰੰਤ ਕਾਰਵਾਈ",
+    "viewItinerary": "ਪੂਰਾ ਯਾਤਰਾ ਦਿਸ਼ਾ-ਨਿਰਦੇਸ਼ ਵੇਖੋ",
+    "manageBudget": "ਬਜਟ ਪ੍ਰਬੰਧਨ ਕਰੋ",
+    "seeChecklist": "ਚੈੱਕਲਿਸਟ ਵੇਖੋ"
+  },
+  "itinerary": {
+    "addEvent": "ਇਵੈਂਟ ਸ਼ਾਮਲ ਕਰੋ",
+    "viewTicket": "ਈ-ਟਿਕਟ ਵੇਖੋ",
+    "viewReservation": "ਰਿਜ਼ਰਵੇਸ਼ਨ ਵੇਖੋ"
+  },
+  "budget": {
+    "total": "ਕੁੱਲ ਬਜਟ",
+    "spent": "ਖਰਚ ਕੀਤਾ",
+    "remaining": "ਬਚਿਆ",
+    "addExpenseTitle": "ਨਵਾਂ ਖਰਚ ਸ਼ਾਮਲ ਕਰੋ",
+    "expenseNamePlaceholder": "ਖਰਚ ਦਾ ਨਾਮ (ਉਦਾਹਰਣ: ਮਿਊਜ਼ੀਅਮ ਟਿਕਟਾਂ)",
+    "amountPlaceholder": "ਰਕਮ ($)"
+  },
+  "documents": {
+    "upload": "ਦਸਤਾਵੇਜ਼ ਅਪਲੋਡ ਕਰੋ"
+  },
+  "members": {
+    "findPlaceholder": "ਸਭਿਆਚਾਰਕ ਲੱਭੋ...",
+    "organizer": "ਸੰਚਾਲਕ",
+    "member": "ਸਭਿਆਚਾਰਕ",
+    "pending": "ਬਕਾਇਆ",
+    "invitationSent": "ਨਿਯੋਤਾ ਭੇਜਿਆ ਗਿਆ"
+  },
+  "chat": {
+    "messagePlaceholder": "ਸੁਨੇਹਾ ਲਿਖੋ..."
+  }
+}

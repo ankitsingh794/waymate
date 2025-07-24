@@ -1,4 +1,4 @@
-/* Base Variables & Resets */
+
 :root {
   --font-main: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
   --font-size-base: 16px;
@@ -83,11 +83,10 @@ button {
   transition: background-color var(--transition-fast);
 }
 button:hover {
-  background-color: var(--primary-hover);
+  background-color: #EDAFB8;
 }
 button:focus,
 button:focus-visible {
-  outline: 3px solid rgba(99, 102, 241, 0.5);
   outline-offset: 2px;
 }
 

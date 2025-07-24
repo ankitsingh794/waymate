@@ -1,0 +1,24 @@
+{
+  "publicNav": {
+    "home": "హోమ్",
+    "dashboard": "డాష్‌బోర్డ్",
+    "features": "ఫీచర్లు",
+    "pricing": "ధరలు",
+    "joinUs": "మాతో చేరండి"
+  },
+  "dashboardNav": {
+    "myTrips": "నా ప్రయాణాలు",
+    "aiAssistant": "AI సహాయకుడు"
+  },
+  "profileMenu": {
+    "welcome": "తిరిగి స్వాగతం!",
+    "myProfile": "నా ప్రొఫైల్",
+    "settings": "అమరికలు",
+    "logout": "లాగ్ అవుట్"
+  },
+  "general": {
+    "save": "మార్పులను సేవ్ చేయండి",
+    "add": "జోడించండి",
+    "invite": "ఆహ్వానించండి"
+  }
+}

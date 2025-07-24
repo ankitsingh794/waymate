@@ -1,0 +1,34 @@
+{
+  "userAvatarAlt": "User Avatar",
+  "publicProfile": {
+    "title": "Public Profile",
+    "editAvatar": "Edit Avatar",
+    "fullName": "Full Name",
+    "email": "Email Address"
+  },
+  "updatePassword": {
+    "title": "Update Password",
+    "current": "Current Password",
+    "new": "New Password",
+    "confirm": "Confirm New Password",
+    "button": "Update Password"
+  },
+  "preferences": {
+    "title": "Preferences",
+    "language": "Language",
+    "currency": "Currency"
+  },
+  "accountActions": {
+    "title": "Account Management",
+    "description": "Deactivating your account will cancel active trips and subscriptions. This action is permanent.",
+    "button": "Deactivate Account",
+    "confirmDeactivation": "Are you sure you want to deactivate your account? This action cannot be undone."
+  },
+  "alerts": {
+    "profileUpdated": "Profile updated!",
+    "passwordsNoMatch": "New passwords do not match!",
+    "passwordUpdated": "Password updated successfully!",
+    "preferencesSaved": "Preferences saved!",
+    "accountDeactivated": "Account has been deactivated."
+  }
+}

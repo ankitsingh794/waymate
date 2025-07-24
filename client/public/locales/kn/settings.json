@@ -1,0 +1,33 @@
+{
+  "title": "ಸೆಟ್ಟಿಂಗ್ಗಳು",
+  "subtitle": "ನಿಮ್ಮ ಖಾತೆ ಮತ್ತು ಆದ್ಯತೆಗಳನ್ನು ನಿರ್ವಹಿಸಿ",
+  "languageTitle": "ಭಾಷೆ ಮತ್ತು ಪ್ರದೇಶ",
+  "language": "ಭಾಷೆ",
+  "appearance": {
+    "title": "ದೃಶ್ಯ",
+    "nightMode": "ರಾತ್ರಿ ಮೋಡ್"
+  },
+  "notifications": {
+    "title": "ಅಧಿಸೂಚನೆಗಳು",
+    "tripReminders": "ಪ್ರಯಾಣ ನೆನಪಿನಿ",
+    "chatMessages": "ಚಾಟ್ ಸಂದೇಶಗಳು",
+    "promotionalOffers": "ಪ್ರಚಾರಾತ್ಮಕ ಕೊಡುಗೆಗಳು"
+  },
+  "account": {
+    "title": "ಖಾತೆ ಮತ್ತು ಭದ್ರತೆ",
+    "editProfile": "ಪ್ರೊಫೈಲ್ ಸಂಪಾದಿಸಿ",
+    "changePassword": "ಪಾಸ್‌ವರ್ಡ್ ಬದಲಾಯಿಸಿ",
+    "privacyPolicy": "ಗೌಪ್ಯತಾ ನೀತಿ"
+  },
+  "subscription": {
+    "title": "ಚಂದಾ",
+    "statusText": "ನೀವು",
+    "freePlan": "ಉಚಿತ ಯೋಜನೆಯಲ್ಲಿ",
+    "upgradeButton": "ಪ್ರೋಗೆ ಅಪ್‌ಗ್ರೇಡ್ ಮಾಡಿ"
+  },
+  "dangerZone": {
+    "title": "ಅಪಾಯ ವಲಯ",
+    "logOutAll": "ಎಲ್ಲಾ ಸಾಧನಗಳಿಂದ ಲಾಗ್ ಔಟ್ ಮಾಡಿ",
+    "deleteAccount": "ಖಾತೆ ಅಳಿಸಿ"
+  }
+}

@@ -18,14 +18,10 @@ export default function Navbar() {
     }, []);
     return (
         <div className="navbar">
-
-            <div className="title">
                 <div className="logo">
                     <img src={Logo} alt="Logo" />
                 </div>
-                WayMate
-
-            </div>
+            
 
             <button
                 className={`hamburger ${menuOpen ? "open" : ""}`}
@@ -41,10 +37,10 @@ export default function Navbar() {
                 className={`navbar-links ${menuOpen ? "active" : ""}`}
             >
                 <Link to={"/"} className="nav-link">Home</Link>
-                <Link to={"/community"} className="nav-link">Dashboard</Link>
-                <Link to={"/login"} className="nav-link">Features</Link>
-                <Link to={"/login"} className="nav-link">Pricing</Link>
-                <Link to={"/login"} className="nav-cta">Join Us</Link>
+                <Link to={"/"} className="nav-link">Dashboard</Link>
+                <a href="#cards-container" className="nav-link">Features</a>
+                <Link to={"/"} className="nav-link">Pricing</Link>
+                <Link to={"/login"} className="nav-cta">Login</Link>
             </div>
         </div>
     )

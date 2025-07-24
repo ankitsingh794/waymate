@@ -1,0 +1,33 @@
+{
+  "title": "ക്രമീകരണങ്ങൾ",
+  "subtitle": "നിങ്ങളുടെ അക്കൗണ്ടും മുൻഗണനകളും കൈകാര്യം ചെയ്യുക",
+  "languageTitle": "ഭാഷയും പ്രദേശവും",
+  "language": "ഭാഷ",
+  "appearance": {
+    "title": "കാഴ്ച",
+    "nightMode": "നൈറ്റ് മോഡ്"
+  },
+  "notifications": {
+    "title": "അറിയിപ്പുകൾ",
+    "tripReminders": "യാത്രാ ഓർമ്മപ്പെടുത്തലുകൾ",
+    "chatMessages": "ചാറ്റ് സന്ദേശങ്ങൾ",
+    "promotionalOffers": "പ്രമോഷണൽ ഓഫറുകൾ"
+  },
+  "account": {
+    "title": "അക്കൗണ്ട് & സുരക്ഷ",
+    "editProfile": "പ്രൊഫൈൽ തിരുത്തുക",
+    "changePassword": "പാസ്വേഡ് മാറ്റുക",
+    "privacyPolicy": "സ്വകാര്യതാ നയം"
+  },
+  "subscription": {
+    "title": "സബ്സ്ക്രിപ്ഷൻ",
+    "statusText": "നിങ്ങൾ",
+    "freePlan": "ഫ്രീ പ്ലാനിൽ",
+    "upgradeButton": "പ്രോയിൽ അപ്ഗ്രേഡ് ചെയ്യുക"
+  },
+  "dangerZone": {
+    "title": "അപായ മേഖലം",
+    "logOutAll": "എല്ലാ ഉപകരണങ്ങളിൽ നിന്നും ലോഗ് ഔട്ട് ചെയ്യുക",
+    "deleteAccount": "അക്കൗണ്ട് ഇല്ലാതാക്കുക"
+  }
+}

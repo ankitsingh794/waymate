@@ -1,0 +1,53 @@
+{
+  "backToDashboard": "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್‌ಗೆ ಹಿಂದಿರುಗಿ",
+  "shareTrip": "ಪ್ರಯಾಣ ಹಂಚಿಕೊಳ್ಳಿ",
+  "getDirections": "ದಿಕ್ಕುಗಳನ್ನು ಪಡೆಯಿರಿ",
+  "dock": {
+    "overview": "ಸಾರಾಂಶ",
+    "itinerary": "ಯಾತ್ರಾಪಟ್ಯ",
+    "budget": "ಬಜೆಟ್",
+    "map": "ನಕ್ಷೆ",
+    "documents": "ದಸ್ತಾವೇಜುಗಳು",
+    "checklist": "ಚೆಕ್ಳಿಸ್ಟ್",
+    "members": "ಸದಸ್ಯರು",
+    "chat": "ಚಾಟ್"
+  },
+  "overview": {
+    "countdownTitle": "ಯಾತ್ರೆಯ ಗಣನೆ",
+    "days": "ದಿನಗಳು",
+    "hours": "ಗಂಟೆಗಳು",
+    "mins": "ನಿಮಿಷಗಳು",
+    "weatherTitle": "ಪ್ಯಾರಿಸ್‌ನ ಪ್ರಸ್ತುತ കാലಾವಸ್ಥೆ",
+    "weatherDesc": "ಸೂರ್ಯಪ್ರಕಾಶ",
+    "quickActionsTitle": "ತ್ವರಿತ ಕ್ರಮಗಳು",
+    "viewItinerary": "ಪೂರ್ಣ ಯಾತ್ರಾಪಟ್ಯ ವೀಕ್ಷಿಸಿ",
+    "manageBudget": "ಬಜೆಟ್ ನಿರ್ವಹಿಸಿ",
+    "seeChecklist": "ಚೆಕ್ಳಿಸ್ಟ್ ವೀಕ್ಷಿಸಿ"
+  },
+  "itinerary": {
+    "addEvent": "ಕಾರ್ಯಕ್ರಮ ಸೇರಿಸಿ",
+    "viewTicket": "ಇ-ಟಿಕೆಟ್ ವೀಕ್ಷಿಸಿ",
+    "viewReservation": "ರಿಸರ್ವೇಶನ್ ವೀಕ್ಷಿಸಿ"
+  },
+  "budget": {
+    "total": "ಒಟ್ಟು ಬಜೆಟ್",
+    "spent": "ವೆಚ್ಚ ಮಾಡಿದ",
+    "remaining": "ಉಳಿದಿದೆ",
+    "addExpenseTitle": "ಹೊಸ ವೆಚ್ಚ ಸೇರಿಸಿ",
+    "expenseNamePlaceholder": "ವೆಚ್ಚದ ಹೆಸರು (ಉದಾ: ಮ್ಯೂಸಿಯಂ ಟಿಕೆಟ್‌ಗಳು)",
+    "amountPlaceholder": "ಮೊತ್ತ ($)"
+  },
+  "documents": {
+    "upload": "ದಸ್ತಾವೇಜು ಅಪ್‌ಲೋಡ್ ಮಾಡಿ"
+  },
+  "members": {
+    "findPlaceholder": "ಸದಸ್ಯರನ್ನು ಹುಡುಕಿ...",
+    "organizer": "ನಿಯೋಜಕ",
+    "member": "ಸದಸ್ಯ",
+    "pending": "ಬಾಕಿ",
+    "invitationSent": "ಆಮಂತ್ರಣ ಕಳುಹಿಸಲಾಗಿದೆ"
+  },
+  "chat": {
+    "messagePlaceholder": "ಸಂದೇಶ ಟೈಪ್ ಮಾಡಿ..."
+  }
+}

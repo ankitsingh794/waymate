@@ -1,0 +1,53 @@
+{
+  "backToDashboard": "ડેશબોર્ડ પર પાછા જાઓ",
+  "shareTrip": "પ્રવાસ શેર કરો",
+  "getDirections": "દિશાઓ મેળવો",
+  "dock": {
+    "overview": "ઝલક",
+    "itinerary": "પ્રવાસ આયોજન",
+    "budget": "બજેટ",
+    "map": "નકશો",
+    "documents": "દસ્તાવેજો",
+    "checklist": "ચેકલિસ્ટ",
+    "members": "સભ્યો",
+    "chat": "ચેટ"
+  },
+  "overview": {
+    "countdownTitle": "પ્રવાસની ગણતરી",
+    "days": "દિવસ",
+    "hours": "કલાક",
+    "mins": "મિનિટ",
+    "weatherTitle": "પેરિસમાં હાલનું હવામાન",
+    "weatherDesc": "ધુપાળું",
+    "quickActionsTitle": "ઝડપી ક્રિયાઓ",
+    "viewItinerary": "સંપૂર્ણ આયોજન જુઓ",
+    "manageBudget": "બજેટ મેનેજ કરો",
+    "seeChecklist": "ચેકલિસ્ટ જુઓ"
+  },
+  "itinerary": {
+    "addEvent": "ઇવેન્ટ ઉમેરો",
+    "viewTicket": "ઇ-ટિકિટ જુઓ",
+    "viewReservation": "રિઝર્વેશન જુઓ"
+  },
+  "budget": {
+    "total": "કુલ બજેટ",
+    "spent": "ખર્ચ",
+    "remaining": "બાકી",
+    "addExpenseTitle": "નવો ખર્ચ ઉમેરો",
+    "expenseNamePlaceholder": "ખર્ચનું નામ (ઉદાહરણ: મ્યુઝિયમ ટિકિટ)",
+    "amountPlaceholder": "રકમ ($)"
+  },
+  "documents": {
+    "upload": "દસ્તાવેજ અપલોડ કરો"
+  },
+  "members": {
+    "findPlaceholder": "સભ્ય શોધો...",
+    "organizer": "આયોજક",
+    "member": "સભ્ય",
+    "pending": "બાકી",
+    "invitationSent": "આમંત્રણ મોકલાયું"
+  },
+  "chat": {
+    "messagePlaceholder": "સંદેશ લખો..."
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "title": "Settings",
+  "subtitle": "Manage your account and preferences",
+  "languageTitle": "Language & Region",
+  "language": "Language",
+  "appearance": {
+    "title": "Appearance",
+    "nightMode": "Night Mode"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "tripReminders": "Trip Reminders",
+    "chatMessages": "Chat Messages",
+    "promotionalOffers": "Promotional Offers"
+  },
+  "account": {
+    "title": "Account & Security",
+    "editProfile": "Edit Profile",
+    "changePassword": "Change Password",
+    "privacyPolicy": "Privacy Policy"
+  },
+  "subscription": {
+    "title": "Subscription",
+    "statusText": "You are on",
+    "freePlan": "Free Plan",
+    "upgradeButton": "Upgrade to Pro"
+  },
+  "dangerZone": {
+    "title": "Danger Zone",
+    "logOutAll": "Log Out on All Devices",
+    "deleteAccount": "Delete Account"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "exit": "Exit Assistant",
+  "title": "Waymate AI",
+  "initialMessage": "Hello! I'm your Waymate AI Assistant. How can I help you plan your next adventure today? You can ask me to create a trip, find flights, or suggest destinations.",
+  "inputPlaceholder": "Ask me to plan a trip to Paris...",
+  "simulatedResponse": "That sounds exciting! Let me look into some options for you. Please give me a moment..."
+}

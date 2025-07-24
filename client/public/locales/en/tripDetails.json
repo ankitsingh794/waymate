@@ -1,0 +1,53 @@
+{
+  "backToDashboard": "Back to Dashboard",
+  "shareTrip": "Share Trip",
+  "getDirections": "Get Directions",
+  "dock": {
+    "overview": "Overview",
+    "itinerary": "Itinerary",
+    "budget": "Budget",
+    "map": "Map",
+    "documents": "Documents",
+    "checklist": "Checklist",
+    "members": "Members",
+    "chat": "Chat"
+  },
+  "overview": {
+    "countdownTitle": "Trip Countdown",
+    "days": "Days",
+    "hours": "Hours",
+    "mins": "Mins",
+    "weatherTitle": "Current Weather in Paris",
+    "weatherDesc": "Sunny",
+    "quickActionsTitle": "Quick Actions",
+    "viewItinerary": "View Full Itinerary",
+    "manageBudget": "Manage Budget",
+    "seeChecklist": "See Checklist"
+  },
+  "itinerary": {
+    "addEvent": "Add Event",
+    "viewTicket": "View E-Ticket",
+    "viewReservation": "View Reservation"
+  },
+  "budget": {
+    "total": "Total Budget",
+    "spent": "Spent",
+    "remaining": "Remaining",
+    "addExpenseTitle": "Add New Expense",
+    "expenseNamePlaceholder": "Expense Name (e.g., Museum Tickets)",
+    "amountPlaceholder": "Amount ($)"
+  },
+  "documents": {
+    "upload": "Upload Document"
+  },
+  "members": {
+    "findPlaceholder": "Find a member...",
+    "organizer": "Organizer",
+    "member": "Member",
+    "pending": "Pending",
+    "invitationSent": "Invitation Sent"
+  },
+  "chat": {
+    "messagePlaceholder": "Type a message..."
+  }
+}

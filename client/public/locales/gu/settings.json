@@ -1,0 +1,33 @@
+{
+  "title": "સેટિંગ્સ",
+  "subtitle": "તમારું એકાઉન્ટ અને પસંદગીઓ મેનેજ કરો",
+  "languageTitle": "ભાષા અને પ્રદેશ",
+  "language": "ભાષા",
+  "appearance": {
+    "title": "દેખાવ",
+    "nightMode": "નાઇટ મોડ"
+  },
+  "notifications": {
+    "title": "સૂચનાઓ",
+    "tripReminders": "પ્રવાસ યાદ અપાવણીઓ",
+    "chatMessages": "ચેટ સંદેશાઓ",
+    "promotionalOffers": "પ્રમોશનલ ઓફર્સ"
+  },
+  "account": {
+    "title": "એકાઉન્ટ અને સુરક્ષા",
+    "editProfile": "પ્રોફાઇલ સંપાદિત કરો",
+    "changePassword": "પાસવર્ડ બદલો",
+    "privacyPolicy": "ગોપનીયતા નીતિ"
+  },
+  "subscription": {
+    "title": "સબ્સ્ક્રિપ્શન",
+    "statusText": "તમે છો",
+    "freePlan": "ફ્રી પ્લાનમાં",
+    "upgradeButton": "પ્રો માટે અપગ્રેડ કરો"
+  },
+  "dangerZone": {
+    "title": "જોખમ ક્ષેત્ર",
+    "logOutAll": "બધા ઉપકરણોમાંથી લોગઆઉટ કરો",
+    "deleteAccount": "એકાઉન્ટ કાઢી નાંખો"
+  }
+}

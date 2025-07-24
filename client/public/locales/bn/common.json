@@ -1,0 +1,24 @@
+{
+  "publicNav": {
+    "home": "হোম",
+    "dashboard": "ড্যাশবোর্ড",
+    "features": "বৈশিষ্ট্য",
+    "pricing": "মূল্য",
+    "joinUs": "আমাদের সাথে যোগ দিন"
+  },
+  "dashboardNav": {
+    "myTrips": "আমার ভ্রমণ",
+    "aiAssistant": "এআই সহকারী"
+  },
+  "profileMenu": {
+    "welcome": "ফিরে আসায় স্বাগতম!",
+    "myProfile": "আমার প্রোফাইল",
+    "settings": "সেটিংস",
+    "logout": "লগআউট"
+  },
+  "general": {
+    "save": "পরিবর্তন সংরক্ষণ করুন",
+    "add": "যোগ করুন",
+    "invite": "আমন্ত্রণ করুন"
+  }
+}

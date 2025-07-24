@@ -1,0 +1,58 @@
+{
+  "hero": {
+    "title": "Plan your hassle-free trip with WayMate",
+    "getStarted": "Get Started",
+    "explore": "Explore",
+    "alt": "A scenic view of a travel destination"
+  },
+  "features": {
+    "title": "Features",
+    "cards": [
+      {
+        "title": "AI Travel Assistant",
+        "description": "Plan trips through smart, conversational AI."
+      },
+      {
+        "title": "Smart Itinerary Planner",
+        "description": "Day-wise, personalized travel plans based on your preferences."
+      },
+      {
+        "title": "Real-Time Weather & Packing Tips",
+        "description": "Live weather updates + AI-powered packing suggestions."
+      },
+      {
+        "title": "Interactive Travel Map",
+        "description": "Explore destinations with an intuitive map interface."
+      },
+      {
+        "title": "Local Alerts & Safety Updates",
+        "description": "Get instant news, closures, and safety alerts for your destination."
+      },
+      {
+        "title": "Budget Estimator",
+        "description": "Know your trip costs before you start planning."
+      },
+      {
+        "title": "Group Travel & Social Planning",
+        "description": "Create groups, share itineraries, and plan together."
+      }
+    ]
+  },
+  "testimonials": {
+    "title": "Testimonials",
+    "items": [
+      {
+        "quote": "WayMate made planning my trip so easy! The AI suggestions were spot on and saved me so much time.",
+        "author": "Sarah J."
+      },
+      {
+        "quote": "I love the group planning feature! It made coordinating with friends a breeze.",
+        "author": "Mike T."
+      },
+      {
+        "quote": "The offline mode is a game changer. I could access my itinerary even without internet!",
+        "author": "Lisa S."
+      }
+    ]
+  }
+}

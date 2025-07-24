@@ -1,0 +1,53 @@
+{
+  "backToDashboard": "డాష్‌బోర్డ్‌కి తిరిగి వెళ్ళండి",
+  "shareTrip": "ప్రయాణాన్ని పంచుకోండి",
+  "getDirections": "దిశలను పొందండి",
+  "dock": {
+    "overview": "అవలోకనం",
+    "itinerary": "ప్రయాణ ప్రణాళిక",
+    "budget": "బడ్జెట్",
+    "map": "మ్యాప్",
+    "documents": "పత్రాలు",
+    "checklist": "తనిఖీ జాబితా",
+    "members": "సభ్యులు",
+    "chat": "చాట్"
+  },
+  "overview": {
+    "countdownTitle": "ప్రయాణ కౌంట్‌డౌన్",
+    "days": "రోజులు",
+    "hours": "గంటలు",
+    "mins": "నిమిషాలు",
+    "weatherTitle": "పారిస్‌లో ప్రస్తుత వాతావరణం",
+    "weatherDesc": "ఎండ",
+    "quickActionsTitle": "త్వరిత చర్యలు",
+    "viewItinerary": "పూర్తి ప్రణాళికను చూడండి",
+    "manageBudget": "బడ్జెట్‌ను నిర్వహించండి",
+    "seeChecklist": "తనిఖీ జాబితాను చూడండి"
+  },
+  "itinerary": {
+    "addEvent": "ఈవెంట్‌ను జోడించండి",
+    "viewTicket": "ఈ-టికెట్‌ను చూడండి",
+    "viewReservation": "రిజర్వేషన్‌ను చూడండి"
+  },
+  "budget": {
+    "total": "మొత్తం బడ్జెట్",
+    "spent": "ఖర్చు",
+    "remaining": "మిగిలినవి",
+    "addExpenseTitle": "కొత్త ఖర్చును జోడించండి",
+    "expenseNamePlaceholder": "ఖర్చు పేరు (ఉదా: మ్యూజియం టికెట్లు)",
+    "amountPlaceholder": "మొత్తం ($)"
+  },
+  "documents": {
+    "upload": "పత్రాన్ని అప్‌లోడ్ చేయండి"
+  },
+  "members": {
+    "findPlaceholder": "సభ్యుని కనుగొనండి...",
+    "organizer": "ఆయోజకుడు",
+    "member": "సభ్యుడు",
+    "pending": "పెండింగ్‌లో ఉంది",
+    "invitationSent": "ఆహ్వానం పంపబడింది"
+  },
+  "chat": {
+    "messagePlaceholder": "సందేశాన్ని టైప్ చేయండి..."
+  }
+}

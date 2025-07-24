@@ -1,0 +1,24 @@
+{
+  "publicNav": {
+    "home": "होम",
+    "dashboard": "डैशबोर्ड",
+    "features": "विशेषताएँ",
+    "pricing": "मूल्य निर्धारण",
+    "joinUs": "हमसे जुड़ें"
+  },
+  "dashboardNav": {
+    "myTrips": "मेरी यात्राएँ",
+    "aiAssistant": "एआई सहायक"
+  },
+  "profileMenu": {
+    "welcome": "वापसी पर स्वागत है!",
+    "myProfile": "मेरा प्रोफ़ाइल",
+    "settings": "सेटिंग्स",
+    "logout": "लॉगआउट"
+  },
+  "general": {
+    "save": "परिवर्तन सहेजें",
+    "add": "जोड़ें",
+    "invite": "निमंत्रण भेजें"
+  }
+}

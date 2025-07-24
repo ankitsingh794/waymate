@@ -1,0 +1,24 @@
+{
+  "publicNav": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "features": "Features",
+    "pricing": "Pricing",
+    "joinUs": "Join Us"
+  },
+  "dashboardNav": {
+    "myTrips": "My Trips",
+    "aiAssistant": "AI Assistant"
+  },
+  "profileMenu": {
+    "welcome": "Welcome back!",
+    "myProfile": "My Profile",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+  "general": {
+    "save": "Save Changes",
+    "add": "Add",
+    "invite": "Invite"
+  }
+}

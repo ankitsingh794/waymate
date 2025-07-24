@@ -1,0 +1,33 @@
+{
+  "title": "सेटिंग्स",
+  "subtitle": "अपने खाते और वरीयताओं को प्रबंधित करें",
+  "languageTitle": "भाषा और क्षेत्र",
+  "language": "भाषा",
+  "appearance": {
+    "title": "दिखावट",
+    "nightMode": "नाइट मोड"
+  },
+  "notifications": {
+    "title": "सूचनाएँ",
+    "tripReminders": "यात्रा अनुस्मारक",
+    "chatMessages": "चैट संदेश",
+    "promotionalOffers": "प्रचारात्मक ऑफ़र"
+  },
+  "account": {
+    "title": "खाता और सुरक्षा",
+    "editProfile": "प्रोफ़ाइल संपादित करें",
+    "changePassword": "पासवर्ड बदलें",
+    "privacyPolicy": "गोपनीयता नीति"
+  },
+  "subscription": {
+    "title": "सदस्यता",
+    "statusText": "आप हैं",
+    "freePlan": "फ्री प्लान पर",
+    "upgradeButton": "प्रो में अपग्रेड करें"
+  },
+  "dangerZone": {
+    "title": "खतरनाक क्षेत्र",
+    "logOutAll": "सभी डिवाइस से लॉगआउट करें",
+    "deleteAccount": "खाता हटाएँ"
+  }
+}

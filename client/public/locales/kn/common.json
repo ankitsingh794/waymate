@@ -1,0 +1,24 @@
+{
+  "publicNav": {
+    "home": "ಮುಖಪುಟ",
+    "dashboard": "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
+    "features": "ವೈಶಿಷ್ಟ್ಯಗಳು",
+    "pricing": "ಬೆಲೆಗಳು",
+    "joinUs": "ನಮ್ಮ ಜೊತೆಗೆ ಸೇರಿ"
+  },
+  "dashboardNav": {
+    "myTrips": "ನನ್ನ ಪ್ರಯಾಣಗಳು",
+    "aiAssistant": "AI ಸಹಾಯಕ"
+  },
+  "profileMenu": {
+    "welcome": "ಮತ್ತೆ ಸ್ವಾಗತ!",
+    "myProfile": "ನನ್ನ ಪ್ರೊಫೈಲ್",
+    "settings": "ಸೆಟ್ಟಿಂಗ್‌ಗಳು",
+    "logout": "ಲಾಗ್ ಔಟ್"
+  },
+  "general": {
+    "save": "ಬದಲಾವಣೆಗಳನ್ನು ಉಳಿಸಿ",
+    "add": "ಸೇರಿಸಿ",
+    "invite": "ಆಮಂತ್ರಿಸಿ"
+  }
+}

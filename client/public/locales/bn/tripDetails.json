@@ -1,0 +1,53 @@
+{
+  "backToDashboard": "ড্যাশবোর্ডে ফিরে যান",
+  "shareTrip": "ভ্রমণ শেয়ার করুন",
+  "getDirections": "দিকনির্দেশ পান",
+  "dock": {
+    "overview": "ওভারভিউ",
+    "itinerary": "ভ্রমণসূচি",
+    "budget": "বাজেট",
+    "map": "মানচিত্র",
+    "documents": "দলিলপত্র",
+    "checklist": "চেকলিস্ট",
+    "members": "সদস্য",
+    "chat": "চ্যাট"
+  },
+  "overview": {
+    "countdownTitle": "ভ্রমণের কাউন্টডাউন",
+    "days": "দিন",
+    "hours": "ঘণ্টা",
+    "mins": "মিনিট",
+    "weatherTitle": "প্যারিসের বর্তমান আবহাওয়া",
+    "weatherDesc": "রৌদ্রোজ্জ্বল",
+    "quickActionsTitle": "দ্রুত পদক্ষেপ",
+    "viewItinerary": "সম্পূর্ণ ভ্রমণসূচি দেখুন",
+    "manageBudget": "বাজেট পরিচালনা করুন",
+    "seeChecklist": "চেকলিস্ট দেখুন"
+  },
+  "itinerary": {
+    "addEvent": "ইভেন্ট যোগ করুন",
+    "viewTicket": "ই-টিকিট দেখুন",
+    "viewReservation": "সংরক্ষণ দেখুন"
+  },
+  "budget": {
+    "total": "মোট বাজেট",
+    "spent": "ব্যয় হয়েছে",
+    "remaining": "অবশিষ্ট",
+    "addExpenseTitle": "নতুন খরচ যোগ করুন",
+    "expenseNamePlaceholder": "খরচের নাম (যেমন: মিউজিয়ামের টিকিট)",
+    "amountPlaceholder": "পরিমাণ ($)"
+  },
+  "documents": {
+    "upload": "দলিল আপলোড করুন"
+  },
+  "members": {
+    "findPlaceholder": "সদস্য খুঁজুন...",
+    "organizer": "আয়োজক",
+    "member": "সদস্য",
+    "pending": "অপেক্ষমাণ",
+    "invitationSent": "আমন্ত্রণ পাঠানো হয়েছে"
+  },
+  "chat": {
+    "messagePlaceholder": "বার্তা লিখুন..."
+  }
+}
