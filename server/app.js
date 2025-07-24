@@ -18,11 +18,10 @@ const chatRoutes = require('./routes/chatRoutes');
 const app = express();
 
 // --- CORS Setup ---
-const cors = require('cors');
 
 const allowedOrigins = [
-  process.env.CLIENT_URL, // Production
-  'http://localhost:5173' // Development
+  process.env.CLIENT_URL, 
+  'http://localhost:5173' 
 ];
 
 const corsOptions = {
