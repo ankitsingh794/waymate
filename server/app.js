@@ -63,9 +63,15 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/chat', chatRoutes);
 
 // --- Health Check ---
-app.get('/', (req, res) => {
-  res.json({ status: 'WayMate API is running 🚀' });
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    service: 'WayMate API',
+    uptime: process.uptime(),
+    timestamp: new Date(),
+  });
 });
+
 
 // --- Error Handling Middleware ---
 app.use(errorHandler);
