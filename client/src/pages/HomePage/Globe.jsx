@@ -53,7 +53,7 @@ class GlobeSpinnerControl {
   spinGlobe = () => {
     if (this.spinEnabled && !this.userInteracting && this._map) {
       const center = this._map.getCenter();
-      center.lng -= 0.1; 
+      center.lng -= 0; 
       this._map.easeTo({ center, duration: 1, easing: (n) => n });
     }
     this.animationFrameId = requestAnimationFrame(this.spinGlobe);
