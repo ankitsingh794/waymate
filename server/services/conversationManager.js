@@ -1,6 +1,6 @@
-const redis = require('../config/redis');
+const { getCache, setCache, deleteCache } = require('../config/redis');
 const { flows } = require('../config/conversationFlows');
-const aiParser = require('./aiParsingService'); 
+const aiParser = require('./aiParsingService');
 const logger = require('../utils/logger');
 
 class ConversationManager {
@@ -9,7 +9,6 @@ class ConversationManager {
     this.stateKey = `conversation:${this.userId}`;
     this.ttl = 600; // 10 minutes
   }
-
   /**
    * ENHANCED: Handles incoming messages by checking the current state and
    * intelligently deciding whether to ask for the next piece of missing information
@@ -18,20 +17,18 @@ class ConversationManager {
   async handleMessage(message, initialDetails = {}) {
     let state = await this.getState();
 
-    // If no active conversation, start a new one with any pre-filled details.
     if (!state) {
       state = await this.startConversation('create_trip', initialDetails);
     } else {
-      // An active conversation exists, so we process the user's message as an answer.
       const flow = flows[state.intent];
       const currentSlotName = this.getCurrentSlot(state);
       const slotDefinition = flow.definition[currentSlotName];
 
-      // Use AI to parse the user's message into structured data for the current question.
       const extractedData = await aiParser.extractEntityForSlot(message, slotDefinition);
-      
-      // Merge the extracted data into our collected data object.
-      state.collectedData[currentSlotName] = extractedData;
+
+      if (extractedData !== null && extractedData !== undefined) {
+        state.collectedData[currentSlotName] = extractedData;
+      }
     }
 
     // Now, find the next *missing* slot to ask about.
@@ -44,7 +41,7 @@ class ConversationManager {
       // All information has been collected.
       state.status = 'complete';
     }
-    
+
     await this.saveState(state);
 
     // --- Respond to the user ---
@@ -86,40 +83,43 @@ class ConversationManager {
     // Find the first slot from the flow's defined sequence that does NOT exist in the collectedData.
     return flow.slots.find(slot => !state.collectedData.hasOwnProperty(slot));
   }
-  
+
   getQuestionForSlot(slotName) {
     const flow = flows['create_trip']; // Assuming one flow for now
     return flow.definition[slotName].question;
   }
-  
+
   getCurrentSlot(state) {
     return state.status.replace('pending_', '');
   }
 
   mapDataForService(collectedData) {
-      const { budget, interests, ...rest } = collectedData;
-      return {
-          ...rest,
-          preferences: {
-              accommodationType: budget,
-              interests: interests
-          }
-      };
+    const { budget, interests, ...rest } = collectedData;
+    return {
+      ...rest,
+      preferences: {
+        accommodationType: budget,
+        interests: interests
+      }
+    };
   }
 
   async getState() {
-    const state = await redis.get(this.stateKey);
-    return state ? JSON.parse(state) : null;
+    const state = await getCache(this.stateKey);
+    return state;
   }
 
   async saveState(state) {
-    await redis.set(this.stateKey, JSON.stringify(state), 'EX', this.ttl);
+    // Use setCache instead of redis.set
+    await setCache(this.stateKey, state, this.ttl);
   }
 
   async endConversation() {
-    await redis.del(this.stateKey);
+    // Use deleteCache instead of redis.del
+    await deleteCache(this.stateKey);
     logger.info(`Ended conversation for user ${this.userId}`);
   }
+
 }
 
 module.exports = ConversationManager;

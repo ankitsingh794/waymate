@@ -1,6 +1,6 @@
 const express = require('express');
 const { protect } = require('../middlewares/authMiddleware');
-const { handleChatMessage } = require('../controllers/chatController');
+const { handleChatMessage, findOrCreateAiSession } = require('../controllers/chatController');
 
 const router = express.Router();
 
@@ -12,5 +12,7 @@ router.use(protect);
  * @route   POST /api/chat/message
  */
 router.post('/message', handleChatMessage);
+
+router.post('/sessions/ai', findOrCreateAiSession);
 
 module.exports = router;

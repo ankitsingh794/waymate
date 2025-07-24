@@ -1,5 +1,3 @@
-// FILE: redis.js
-
 const redis = require('redis');
 const logger = require('../utils/logger');
 
@@ -8,10 +6,16 @@ const logger = require('../utils/logger');
 const ONE_HOUR_IN_SECONDS = 3600;
 const THIRTY_DAYS_IN_SECONDS = 30 * 24 * 60 * 60;
 const TOKEN_BLACKLIST_PREFIX = 'bl_';
-// --- Enhancements End ---
+
 
 const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
-const redisClient = redis.createClient({ url: REDIS_URL });
+const redisClient = redis.createClient({
+  url: REDIS_URL,
+  socket: {
+    reconnectStrategy: retries => Math.min(retries * 50, 2000), 
+  },
+});
+
 
 redisClient.on('connect', () => logger.info('✅ Redis connected successfully'));
 redisClient.on('error', (err) => logger.error('❌ Redis client error', { error: err }));
@@ -19,17 +23,27 @@ redisClient.on('error', (err) => logger.error('❌ Redis client error', { error:
 (async () => {
   try {
     await redisClient.connect();
+    await redisClient.ping();
+    logger.info('✅ Redis ping successful');
   } catch (error) {
     logger.error('❌ Redis initial connection failed', { error: error.message });
   }
 })();
 
+
+
+
 const setCache = async (key, data, ttl = ONE_HOUR_IN_SECONDS) => {
   try {
-    await redisClient.set(key, JSON.stringify(data), { EX: ttl });
+    const dataString = JSON.stringify(data);
+    await redisClient.set(key, dataString, { EX: ttl });
     logger.debug(`✅ Redis SET key: ${key} (TTL: ${ttl}s)`);
   } catch (error) {
-    logger.error('Redis setCache error', { key, error: error.message });
+    logger.error('Redis setCache error', { 
+      key, 
+      error: error.message,
+      stack: error.stack 
+    });
   }
 };
 

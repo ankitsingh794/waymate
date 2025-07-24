@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const messageController = require('../controllers/messageController');
 const { protect } = require('../middlewares/authMiddleware');
-const { isGroupMember } = require('../middlewares/isGroupMember'); // Corrected path
+const { isGroupMember } = require('../middlewares/isGroupMember'); 
 const { messageLimiter } = require('../middlewares/rateLimiter');
 const upload = require('../middlewares/multer');
 

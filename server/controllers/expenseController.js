@@ -21,7 +21,8 @@ exports.addExpense = async (req, res) => {
             return sendResponse(res, 404, false, 'Trip not found or you are not a member.');
         }
 
-        // 2. Validate the paidBy user exists in the trip's members.const memberIds = new Set(trip.group.members.map(m => m.userId.toString()));
+        // 2. Validate the paidBy user exists in the trip's members.
+        const memberIds = new Set(trip.group.members.map(m => m.userId.toString()));
         for (const p of participants) {
             if (!memberIds.has(p.userId.toString())) {
                 return sendResponse(res, 400, false, `User with ID ${p.userId} is not a member of this trip.`);
@@ -187,7 +188,7 @@ exports.updateExpense = async (req, res) => {
                 return sendResponse(res, 400, false, 'The sum of participant shares must equal the total expense amount.');
             }
         }
-        
+
         // 4. Update the expense fields
         expense.description = description || expense.description;
         expense.amount = amount || expense.amount;
@@ -205,7 +206,7 @@ exports.updateExpense = async (req, res) => {
                 message: `An expense was updated by ${req.user.name}.`
             });
         });
-        
+
         logger.info(`Expense ${expenseId} on trip ${tripId} updated by ${req.user.email}`);
         return sendResponse(res, 200, true, 'Expense updated successfully.', expense);
 
@@ -258,7 +259,7 @@ exports.deleteExpense = async (req, res) => {
                 message: `An expense was deleted by ${req.user.name}.`
             });
         });
-        
+
         logger.info(`Expense ${expenseId} on trip ${tripId} deleted by ${req.user.email}`);
         return sendResponse(res, 200, true, 'Expense deleted successfully.');
 

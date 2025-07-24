@@ -1,6 +1,5 @@
 const axios = require('axios');
 const Parser = require('rss-parser');
-// ✅ Increased timeout to 15 seconds for better resilience
 const parser = new Parser({ timeout: 15000 });
 const logger = require('../utils/logger');
 const { getCache, setCache } = require('../config/redis');

@@ -93,27 +93,32 @@ async function getCasualResponse(userMessage, history = []) {
       role: 'system',
       content: 'You are WayMate, a friendly, enthusiastic, and helpful AI travel assistant. Keep your responses concise, fun, and use emojis where appropriate. Do not answer questions unrelated to travel.'
     },
-    ...history, // Add previous turns for context if available
+    ...history,
     { role: 'user', content: userMessage }
   ];
 
+  logger.info('Attempting to call OpenRouter API for casual chat...');
   try {
     const response = await axios.post(
       'https://openrouter.ai/api/v1/chat/completions',
       {
-        model: CASUAL_CHAT_MODEL, // Use a faster, cheaper model for simple chat
+        model: CASUAL_CHAT_MODEL,
         messages: prompt,
       },
       {
         headers: {
-          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-          'Content-Type': 'application/json'
-        }
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+          // ✅ ADDING A USER-AGENT HEADER
+          'User-Agent': 'Node.js-WayMate-Client/1.0'
+        },
+        timeout: 10000 // Fail after 10 seconds
       }
     );
+    logger.info('Successfully received response from OpenRouter API.');
     return response.data.choices[0].message.content || "I'm not sure how to respond to that. Can you ask another way?";
   } catch (error) {
-    logger.error(`Casual chat AI call failed: ${error.message}`);
+    logger.error(`Casual chat AI call failed: ${error.message}`, { code: error.code, details: error.response?.data });
     return "I'm having a little trouble connecting right now. Please try again in a moment!";
   }
 }
@@ -341,9 +346,31 @@ const getAiResponse = async (sessionId, userId, text) => {
     return aiMessage;
 };
 
+
+/**
+ * Gets a structured JSON response from a complex prompt using the main AI model.
+ * @param {string} prompt The detailed prompt for the AI.
+ * @returns {Promise<object>} The parsed JSON object from the AI's response.
+ */
+async function getFilteredResponse(prompt) {
+    const response = await axios.post(
+      'https://openrouter.ai/api/v1/chat/completions',
+      {
+        model: OPENROUTER_MODEL, // Use your powerful model for this reasoning task
+        messages: [{ role: 'user', content: prompt }],
+        response_format: { type: "json_object" }
+      },
+      { headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}` } }
+    );
+    const content = JSON.parse(response.data.choices[0].message.content);
+    const key = Object.keys(content)[0];
+    return content[key] || content;
+}
+
 module.exports = {
   generateItinerary,
   getCasualResponse,
   getAiResponse,
   extractJsonBlocks,
+  getFilteredResponse
 };

@@ -50,7 +50,6 @@ const INDIAN_LOCATION_COST_TIERS = {
   'Ladakh': 'himalayan-peak',
   'Rajasthan': 'tier-2-city',
   'Uttar Pradesh': 'tier-2-city',
-  // Specific Cities (override state-level)
   'Mumbai': 'metro-luxury',
   'Bangalore': 'tier-1-city',
   'Hyderabad': 'tier-1-city',
@@ -352,9 +351,6 @@ const aggregateTripData = async ({
   if (!destination || !startDate || !endDate) {
     throw new Error('Destination, startDate, and endDate are required');
   }
-  if (new Date(endDate) < new Date(startDate)) {
-    throw new Error('End date must be after start date');
-  }
 
   const {
     language = 'English',
@@ -363,48 +359,44 @@ const aggregateTripData = async ({
     accommodationType = 'budget'
   } = preferences;
 
-  const apiLangCode = API_LANGUAGE_CODES[language.toLowerCase()] || 'en';
-  // ✅ NEW: Logic to build personalized query parameters
+  const apiLangCode = 'en';
   const personalizedParams = {};
 
-  // Build a dynamic keyword from user interests
-  if (interests && interests.length > 0 && interests[0] !== 'General sightseeing') {
-    personalizedParams.keyword = interests.join('|'); // e.g., "history|art gallery|museum"
+  let interestsArray = Array.isArray(interests) ? interests : [interests];
+  if (interestsArray.length > 0 && interestsArray[0] !== 'General sightseeing') {
+    personalizedParams.keyword = interestsArray.join('|');
   } else {
-    // Fallback to a general but effective keyword
     personalizedParams.keyword = 'tourist attraction|landmark|point of interest';
   }
 
-  // Map budget preference to Google's price levels (0-4)
-  if (accommodationType === 'budget') {
-    personalizedParams.maxprice = 2;
-  } else if (accommodationType === 'luxury') {
+  if (accommodationType === 'luxury') {
     personalizedParams.minprice = 3;
+  } else {
+    personalizedParams.maxprice = 2;
   }
 
-  let destinationCoords = null;
-  let destinationName = '';
-  let destinationState = '';
-
   try {
-    // --- Geocoding Logic ---
+    let destinationCoords = {};
+    let destinationName = '';
+    let destinationState = '';
+
+    // --- Geocoding logic (simplified) ---
     if (typeof destination === 'string') {
       const geoCacheKey = `geo:${destination.toLowerCase()}`;
       const geoCached = await getCache(geoCacheKey);
       if (geoCached) {
         destinationCoords = geoCached.coords;
         destinationName = geoCached.name;
-        destinationState = geoCached.state; // ✅ Get from cache
+        destinationState = geoCached.state;
       } else {
-        const geoRes = await retry(() => axios.get(`${OPENTRIPMAP_BASE}/geoname`, { params: { name: destination, country: 'in', apikey: process.env.OPENTRIPMAP_API_KEY } }), 'OpenTripMap Geocoding');
+        const geoRes = await retry(() => axios.get(`${OPENTRIPMAP_BASE}/geoname`, { params: { name: destination, country: 'in', apikey: OPENTRIPMAP_API_KEY } }), 'OpenTripMap Geocoding');
         if (geoRes?.data?.lat && geoRes?.data?.lon) {
           destinationCoords = { lat: geoRes.data.lat, lon: geoRes.data.lon };
           destinationName = geoRes.data.name || destination;
-          destinationState = geoRes.data.state?.name || ''; // ✅ Get state from geocoding API
+          destinationState = geoRes.data.state?.name || '';
           await setCache(geoCacheKey, { coords: destinationCoords, name: destinationName, state: destinationState }, 86400);
         } else {
-          destinationCoords = { lat: 18.5204, lon: 73.8567 }; // Fallback
-          destinationName = destination;
+          throw new Error(`Could not find coordinates for destination: ${destination}`);
         }
       }
     } else if (destination?.lat && destination?.lon) {
@@ -414,7 +406,6 @@ const aggregateTripData = async ({
       throw new Error('Invalid destination format: must be string or {lat, lon}');
     }
 
-
     const cacheKey = `v3:trip:${destinationName.replace(/\s+/g, '_')}:${startDate}:${endDate}:${travelers}`;
     const cached = await getCache(cacheKey);
     if (cached) {
@@ -422,8 +413,8 @@ const aggregateTripData = async ({
       return cached;
     }
 
+    // --- Parallel API calls with Promise.allSettled ---
     const [attractionsRes, foodRes, weatherRes, unsplashRes, routeRes, accommodationRes, eventsRes] = await Promise.allSettled([
-      // ✅ NEW: Google Places is now the primary source for attractions
       retry(() => axios.get(GOOGLE_PLACES_BASE, {
         params: {
           location: `${destinationCoords.lat},${destinationCoords.lon}`,
@@ -456,25 +447,22 @@ const aggregateTripData = async ({
       fetchLocalEvents(destinationName, startDate, endDate)
     ]);
 
-    // ✅ NEW: Cascading fallback logic for attractions
-    let attractions;
+    // --- Attractions with fallback ---
+    let attractions = [];
     if (attractionsRes.status === 'fulfilled' && attractionsRes.value.data?.results?.length > 0) {
       attractions = attractionsRes.value.data.results.slice(0, 10).map(g => ({
         name: g.name,
         kinds: g.types.join(', '),
         description: `Rating: ${g.rating || 'N/A'} (${g.user_ratings_total || 0} reviews) - ${g.vicinity}`,
         image: g.photos ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${g.photos[0].photo_reference}&key=${GOOGLE_API_KEY}` : null,
-        website: g.website || null // ADDED THIS LINE
+        website: g.website || null
       }));
-      logger.info('✅ Successfully fetched attractions from Google Places API.');
     } else {
-      // Primary source failed, try fallback (OpenTripMap)
-      logger.warn('Google Places attractions search failed. Trying OpenTripMap fallback...');
+      // Fallback to OpenTripMap
       try {
         const otmRes = await retry(() => axios.get(`${OPENTRIPMAP_BASE}/radius`, {
           params: { lat: destinationCoords.lat, lon: destinationCoords.lon, radius: 5000, rate: 3, limit: 10, apikey: OPENTRIPMAP_API_KEY }
         }), 'OpenTripMap Attractions Fallback');
-
         if (otmRes.data?.features?.length > 0) {
           attractions = otmRes.data.features.map(p => ({
             name: p.properties.name || 'Unnamed place',
@@ -482,16 +470,15 @@ const aggregateTripData = async ({
             description: p.properties.wikipedia_extracts?.text || null,
             image: p.properties.preview?.source || null,
           }));
-          logger.info('✅ Successfully fetched attractions from OpenTripMap fallback.');
         } else {
-          throw new Error('OpenTripMap fallback returned no results.');
+          attractions = [{ name: 'City Museum' }, { name: 'Top Local Park' }];
         }
-      } catch (err) {
-        logger.error(`OpenTripMap attractions fallback also failed: ${err.message}`);
+      } catch {
         attractions = [{ name: 'City Museum' }, { name: 'Top Local Park' }];
       }
     }
 
+    // --- Accommodation suggestions ---
     let accommodationSuggestions = [];
     if (accommodationRes.status === 'fulfilled' && accommodationRes.value.data?.results?.length > 0) {
       accommodationSuggestions = accommodationRes.value.data.results.slice(0, 5).map(place => ({
@@ -500,15 +487,12 @@ const aggregateTripData = async ({
         user_ratings_total: place.user_ratings_total || 0,
         vicinity: place.vicinity,
         photoUrl: place.photos ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${place.photos[0].photo_reference}&key=${GOOGLE_API_KEY}` : null,
-        website: place.website || null // ADDED THIS LINE
+        website: place.website || null
       }));
-      logger.info('✅ Successfully fetched accommodations from Google Places.');
-    } else {
-      logger.warn('Could not fetch accommodation suggestions.');
     }
 
-    // Cascading fallback logic for food recommendations
-    let foodRecommendations;
+    // --- Food recommendations with fallback ---
+    let foodRecommendations = [];
     if (foodRes.status === 'fulfilled' && foodRes.value.data?.features?.length > 0) {
       foodRecommendations = foodRes.value.data.features.map(p => ({
         name: p.properties.name || 'Unnamed eatery',
@@ -516,7 +500,7 @@ const aggregateTripData = async ({
         description: p.properties.wikipedia_extracts?.text || null,
       }));
     } else {
-      logger.warn('OpenTripMap food search failed. Trying Google Places API fallback...');
+      // Fallback to Google Places
       try {
         if (!GOOGLE_API_KEY) throw new Error('GOOGLE_API_KEY is not configured.');
         const googleRes = await axios.get(GOOGLE_PLACES_BASE, {
@@ -527,17 +511,18 @@ const aggregateTripData = async ({
             name: g.name,
             kinds: g.types.join(', '),
             description: `Rating: ${g.rating} (${g.user_ratings_total} reviews) - ${g.vicinity}`,
-            website: g.website || null // ADDED THIS LINE
+            website: g.website || null
           }));
-          logger.info('✅ Successfully fetched food data from Google Places API.');
+        } else {
+          foodRecommendations = [{ name: 'Local Café' }, { name: 'Street Food Corner' }];
         }
-      } catch (err) {
-        logger.error(`Google Places API fallback also failed: ${err.message}`);
+      } catch {
         foodRecommendations = [{ name: 'Local Café' }, { name: 'Street Food Corner' }];
       }
     }
 
-    // ... (Weather, coverImage, route, budget, and alerts logic remains unchanged)
+    // --- Weather ---
+    let weather = {};
     const forecast = [];
     if (weatherRes.status === 'fulfilled' && weatherRes.value.data?.list) {
       const daysMap = {};
@@ -553,13 +538,20 @@ const aggregateTripData = async ({
       const uniqueDays = Object.values(daysMap).slice(0, 5);
       uniqueDays.forEach((dayData, index) => forecast.push({ day: index + 1, ...dayData }));
     }
-    const weather = { forecast: forecast.length > 0 ? forecast : [{ day: 1, date: 'N/A', temp: 'N/A', condition: 'No forecast available' }] };
-    const coverImage = (unsplashRes.status === 'fulfilled' && unsplashRes.value.data.results?.[0]?.urls?.regular) ? unsplashRes.value.data.results[0].urls.regular : DEFAULT_IMAGE_URL;
+    weather = { forecast: forecast.length > 0 ? forecast : [{ day: 1, date: 'N/A', temp: 'N/A', condition: 'No forecast available' }] };
+
+    // --- Cover image ---
+    const coverImage = (unsplashRes.status === 'fulfilled' && unsplashRes.value.data.results?.[0]?.urls?.regular)
+      ? unsplashRes.value.data.results[0].urls.regular
+      : DEFAULT_IMAGE_URL;
+
+    // --- Route ---
     const route = routeRes.status === 'fulfilled' ? routeRes.value : {};
+
+    // --- Budget calculation ---
     const nights = Math.max(1, Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)));
     const costTier = INDIAN_LOCATION_COST_TIERS[destinationName] || INDIAN_LOCATION_COST_TIERS[destinationState] || 'default';
     const regionalCosts = INDIA_ACCOMMODATION_COSTS[costTier];
-    const accommodationType = preferences.accommodationType || 'standard';
     const accommodationCost = (regionalCosts[accommodationType] || regionalCosts.standard) * nights;
     const travelCost = route?.cheapest?.cost || 0;
     const activityCost = attractions.length * 20;
@@ -571,13 +563,15 @@ const aggregateTripData = async ({
       food: foodCost,
       total: (travelCost + accommodationCost + activityCost + foodCost)
     };
+
+    // --- Alerts & Events ---
     const alerts = await fetchThreatAlertsForDestination(destinationName);
-     const localEvents = eventsRes.status === 'fulfilled' ? eventsRes.value : [];
+    const localEvents = eventsRes.status === 'fulfilled' ? eventsRes.value : [];
 
-
-    const aggregatedData = {
+    // --- Final clean object ---
+    const tripData = {
       destinationName, origin, destinationCoords, startDate, endDate, travelers,
-      preferences: { language, currency, interests, accommodationType },
+      preferences: { language, currency, interests: interestsArray, accommodationType },
       attractions,
       foodRecommendations,
       accommodationSuggestions,
@@ -585,13 +579,13 @@ const aggregateTripData = async ({
       coverImage,
       route,
       budget,
-      alerts: alerts.length > 0 ? alerts : ['No critical alerts found. Always check local travel guidelines.'],
+      alerts,
       localEvents
     };
 
-    await setCache(cacheKey, aggregatedData, 600);
+    await setCache(cacheKey, tripData, 600);
     logger.info(`✅ Trip data aggregated successfully for ${destinationName}`);
-    return aggregatedData;
+    return tripData;
 
   } catch (error) {
     logger.error('❌ Trip aggregation failed', { error: error.message, stack: error.stack });

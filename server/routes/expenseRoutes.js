@@ -8,6 +8,8 @@ const {
     updateExpense,
     deleteExpense
 } = require('../controllers/expenseController');
+const { mongoIdValidation } = require('../utils/validationHelpers');
+
 
 // Using mergeParams: true allows us to access :tripId from the parent router (tripRoutes.js)
 const router = express.Router({ mergeParams: true });
@@ -17,9 +19,6 @@ router.use(protect);
 
 // --- Validation Chains ---
 
-const mongoIdValidation = (idName) => [
-  param(idName).isMongoId().withMessage(`Invalid ${idName} format.`)
-];
 
 const addExpenseValidation = [
     body('description').notEmpty().withMessage('Description is required.'),

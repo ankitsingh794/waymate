@@ -2,7 +2,7 @@ const rateLimit = require('express-rate-limit');
 const { RedisStore } = require('rate-limit-redis');
 const logger = require('../utils/logger');
 const { redisClient } = require('../config/redis');
-const { ipKeyGenerator } = require('express-rate-limit'); // ✅ Safe IP generator
+const ipKeyGenerator = (req, res) => req.ip; 
 
 // ✅ Custom handler for logging
 const rateLimitHandler = (req, res, next, options) => {
@@ -106,5 +106,6 @@ module.exports = {
     tripCreationLimiter, 
     globalLimiter,
     groupCreationLimiter, 
-    messageLimiter,       
+    messageLimiter,      
+    customKeyGenerator 
 };

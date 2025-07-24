@@ -13,8 +13,8 @@ const chatSessionSchema = new mongoose.Schema(
     tripId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Trip',
-      required: true,
-      unique: true
+      // required: true,
+      // unique: true
     },
     name: {
         type: String,
@@ -31,6 +31,5 @@ const chatSessionSchema = new mongoose.Schema(
 );
 
 chatSessionSchema.index({ participants: 1 });
-chatSessionSchema.index({ tripId: 1 });
 
 module.exports = mongoose.model('ChatSession', chatSessionSchema);

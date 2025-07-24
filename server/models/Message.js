@@ -10,7 +10,9 @@ const messageSchema = new mongoose.Schema(
     sender: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true
+      required: function () {
+        return this.type === 'user';
+      }
     },
     text: { type: String, trim: true },
 
