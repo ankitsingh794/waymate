@@ -12,7 +12,7 @@ import { IoMdChatbubbles, IoMdSend } from "react-icons/io";
 import { IoPeopleSharp } from "react-icons/io5";
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import api from '../../utils/axiosInstance';
-import Dock from '../../components/dock';
+import Dock from '../../components/Dock';
 import './Details.css';
 
 const COLORS = {
