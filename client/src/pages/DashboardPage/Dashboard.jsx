@@ -45,7 +45,7 @@ const TripCarousel = ({ title, subtitle, trips }) => {
         }
     };
     
-    if (trips.length === 0) {
+    if (!trips || trips.length === 0) {
         return null; 
     }
 
@@ -70,10 +70,11 @@ const TripCarousel = ({ title, subtitle, trips }) => {
                 onMouseMove={onMouseMove}
             >
                 {trips.map(trip => (
-                    <Link to={`/trip/${trip._id}`} className="trip-card-link" key={trip._id}>
+                    <Link to={`/trip/${trip._id || trip.tripId}`} className="trip-card-link" key={trip._id || trip.tripId}>
                         <div className="trip-card">
                             <div className="trip-image-wrapper">
-                                <img src={trip.imageUrl || `https://images.unsplash.com/photo-1502602898657-3e91760c0337?w=500&q=80`} alt={trip.destination} draggable="false" />
+                                {/* FIX: Changed trip.imageUrl to trip.coverImage to match backend data */}
+                                <img src={trip.coverImage || `https://images.unsplash.com/photo-1502602898657-3e91760c0337?w=500&q=80`} alt={trip.destination} draggable="false" />
                             </div>
                             <div className="trip-info">
                                 <h4>{trip.destination}</h4>
@@ -101,20 +102,18 @@ export default function Dashboard() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [userResponse, tripsResponse] = await Promise.all([
-                    api.get('/users/profile'),
-                    api.get('/trips')
+                // --- UPDATED: More efficient data fetching ---
+                // Instead of fetching all trips and filtering on the client,
+                // we now use specific endpoints for upcoming and past trips.
+                const [userResponse, upcomingResponse, pastResponse] = await Promise.all([
+                    api.get('/users/profile'), // Fetches user profile
+                    api.get('/trips/upcoming'), // Use the dedicated endpoint for upcoming trips
+                    api.get('/trips?status=completed') // Use a query param for past trips
                 ]);
 
-                setCurrentUser(userResponse.data.data.user);
-
-                const now = new Date();
-                const allTrips = tripsResponse.data.data.data;
-                const upcoming = allTrips.filter(trip => new Date(trip.endDate) >= now);
-                const past = allTrips.filter(trip => new Date(trip.endDate) < now);
-                
-                setUpcomingTrips(upcoming);
-                setPastTrips(past);
+                setCurrentUser(userResponse.data.user);
+                setUpcomingTrips(upcomingResponse.data.data.data);
+                setPastTrips(pastResponse.data.data.data);
 
             } catch (err) {
                 setError('Could not fetch dashboard data. Please try again later.');

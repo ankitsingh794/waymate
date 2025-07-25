@@ -3,15 +3,15 @@ import { VscAccount, VscBell, VscArrowLeft, VscKey, VscSettingsGear, VscTrash } 
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { LiaUserEditSolid } from "react-icons/lia";
-import api from '../../utils/axiosInstance'; 
+import api from '../../utils/axiosInstance';
 import './Profile.css';
 
 const COLORS = {
-  primary: '#edafb8',
-  secondary: '#f7e1d7',
-  background: '#dedbd2',
-  accent: '#b0c4b1',
-  text: '#4a5759',
+    primary: '#edafb8',
+    secondary: '#f7e1d7',
+    background: '#dedbd2',
+    accent: '#b0c4b1',
+    text: '#4a5759',
 };
 
 
@@ -24,9 +24,9 @@ const Navbar = ({ user, t }) => (
             </Link>
             <div className="nav-actions">
                 <button className="nav-icon-button" aria-label={t('common:notifications')}><VscBell /></button>
-                <img 
+                <img
                     src={user?.profileImage || `https://placehold.co/100x100/EDAFB8/4A5759?text=${user?.name?.charAt(0)}`}
-                    alt={t('profile:userAvatarAlt')} 
+                    alt={t('profile:userAvatarAlt')}
                     className="nav-avatar"
                 />
             </div>
@@ -54,13 +54,13 @@ const ProfileForm = ({ user, onUpdate, t }) => {
             <h3><VscAccount /> {t('profile:publicProfile.title')}</h3>
             <div className="profile-form-content">
                 <div className="avatar-section">
-                    <img 
+                    <img
                         src={user.profileImage || `https://placehold.co/100x100/EDAFB8/4A5759?text=${user.name.charAt(0)}`}
-                        alt={t('profile:userAvatarAlt')} 
+                        alt={t('profile:userAvatarAlt')}
                         className="profile-page-avatar"
                     />
                     <button type="button" className="edit-avatar-button" style={{ backgroundColor: COLORS.primary }} aria-label={t('profile:publicProfile.editAvatar')}>
-                        <LiaUserEditSolid style={{zIndex: 5}}/>
+                        <LiaUserEditSolid style={{ zIndex: 5 }} />
                     </button>
                 </div>
                 <div className="form-fields">
@@ -89,7 +89,7 @@ const UpdatePasswordForm = ({ onUpdate, t }) => {
     const handleChange = (e) => {
         setPasswords({ ...passwords, [e.target.name]: e.target.value });
     };
-    
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setMessage('');
@@ -102,7 +102,7 @@ const UpdatePasswordForm = ({ onUpdate, t }) => {
             setMessage(t('profile:alerts.passwordUpdated'));
             setPasswords({ currentPassword: '', newPassword: '', confirm: '' });
         } catch (error) {
-             setMessage(error.response?.data?.message || 'Error updating password.');
+            setMessage(error.response?.data?.message || 'Error updating password.');
         }
     };
 
@@ -122,7 +122,7 @@ const UpdatePasswordForm = ({ onUpdate, t }) => {
                 <input type="password" id="confirm" name="confirm" value={passwords.confirm} onChange={handleChange} />
             </div>
             <div className="card-footer">
-                 {message && <p className="form-message">{message}</p>}
+                {message && <p className="form-message">{message}</p>}
                 <button type="submit" className="save-button" style={{ backgroundColor: COLORS.primary }}>{t('profile:updatePassword.button')}</button>
             </div>
         </form>
@@ -209,12 +209,13 @@ export default function UserProfile() {
     const [error, setError] = useState('');
     const navigate = useNavigate();
 
-    // Fetch user profile on component moun
+    // Fetch user profile on component mount
     useEffect(() => {
         const fetchUserProfile = async () => {
             try {
                 const { data } = await api.get('/users/profile');
-                setUser(data);
+                // FIX: Access the nested user object correctly.
+                setUser(data.data.user);
             } catch (err) {
                 setError('Could not fetch profile. Please try again later.');
             } finally {
@@ -226,11 +227,13 @@ export default function UserProfile() {
 
     const handleProfileUpdate = async (updateData) => {
         const { data } = await api.put('/users/profile', updateData);
-        setUser(data); 
+        // FIX: Access the nested user object correctly here as well.
+        setUser(data.data.user);
     };
-    
+
     const handlePasswordUpdate = async (passwordData) => {
         await api.put('/auth/update-password', passwordData);
+        alert(t('profile:alerts.passwordUpdated'));
     };
 
     const handleLogout = async () => {
@@ -242,7 +245,7 @@ export default function UserProfile() {
             setError('Logout failed. Please try again.');
         }
     };
-    
+
     if (loading) return <div className="loading-screen">Loading Profile...</div>;
     if (error) return <div className="error-screen">{error}</div>;
 

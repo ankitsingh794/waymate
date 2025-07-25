@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import Map, { Marker } from 'react-map-gl/mapbox';
+import Map, { Marker, Popup, NavigationControl } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import {
     VscHome, VscAdd, VscArrowLeft, VscMail, VscOrganization, VscShare, VscSignOut,
@@ -21,9 +21,59 @@ const COLORS = {
 };
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
+const HomeView = ({ trip, t, setActiveModal }) => {
+    const getDaysRemaining = () => {
+        if (!trip?.startDate) return 'N/A';
+        const tripDate = new Date(trip.startDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        tripDate.setHours(0, 0, 0, 0);
+
+        const diffTime = tripDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays < 0) return 'Trip Over';
+        if (diffDays === 0) return 'Today!';
+        return `${diffDays} days`;
+    };
+
+    const currentWeather = trip?.weather?.forecast?.[0];
+
+    return (
+        <div className="overview-grid">
+            <div className="overview-card">
+                <h4>{t('tripDetails:overview.countdownTitle')}</h4>
+                <div className="countdown">
+                    <span>{getDaysRemaining()}</span>
+                </div>
+            </div>
+            <div className="overview-card">
+                <h4>{t('tripDetails:overview.weatherTitle')}{trip?.destination}</h4>
+                {currentWeather ? (
+                    <div className="weather">
+                        <div className="weather-temp">{Math.round(currentWeather.temp)}°C</div>
+                        <p>{currentWeather.condition}</p>
+                    </div>
+                ) : (
+                    <p>Weather data not available.</p>
+                )}
+            </div>
+            <div className="overview-card full-width">
+                <h4>{t('tripDetails:overview.quickActionsTitle')}</h4>
+                <div className="quick-actions">
+                    <button className="action-button" style={{ backgroundColor: COLORS.accent }} onClick={() => setActiveModal('itinerary')}>{t('tripDetails:overview.viewItinerary')}</button>
+                    <button className="action-button" style={{ backgroundColor: COLORS.accent }} onClick={() => setActiveModal('budget')}>{t('tripDetails:overview.manageBudget')}</button>
+                    <button className="action-button" style={{ backgroundColor: COLORS.accent }} onClick={() => setActiveModal('checklist')}>{t('tripDetails:overview.seeChecklist')}</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
 export default function TripDetails() {
     const { t } = useTranslation(['tripDetails', 'common']);
-    const { tripId } = useParams(); 
+    const { id } = useParams();
     const navigate = useNavigate();
 
     const [trip, setTrip] = useState(null);
@@ -31,36 +81,40 @@ export default function TripDetails() {
     const [error, setError] = useState('');
     const [activeModal, setActiveModal] = useState(null);
 
+    // In Details.jsx, replace your existing fetchTripData with this corrected version.
+
     const fetchTripData = useCallback(async () => {
         const mongoIdRegex = /^[0-9a-fA-F]{24}$/;
-        if (!mongoIdRegex.test(tripId)) {
+        if (!id || !mongoIdRegex.test(id)) {
             setError('Invalid Trip ID format. Please check the URL.');
             setLoading(false);
-            return; 
+            return;
         }
 
         setLoading(true);
         try {
-            const { data } = await api.get(`/trips/${tripId}`);
-            setTrip(data);
+            const response = await api.get(`/trips/${id}`);
+
+            setTrip(response.data.data.trip);
+
             setError('');
         } catch (err) {
             if (err.response && err.response.status === 401) {
-                 navigate('/login'); 
+                navigate('/login');
             } else {
-                setError('Failed to fetch trip details. The trip may not exist or you may not have permission to view it.');
+                setError(err.response?.data?.message || 'Failed to fetch trip details.');
             }
             console.error(err);
         } finally {
             setLoading(false);
         }
-    }, [tripId, navigate]);
+    }, [id, navigate]);
 
     useEffect(() => {
-        if (tripId) {
+        if (id) {
             fetchTripData();
         }
-    }, [tripId, fetchTripData]);
+    }, [id, fetchTripData]);
 
     const Modal = ({ children, onClose, title, size = 'medium' }) => (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="modal-backdrop" onClick={onClose}>
@@ -80,30 +134,16 @@ export default function TripDetails() {
         </motion.div>
     );
 
-    const HomeView = () => (
-        <div className="overview-grid">
-            <div className="overview-card"><h4>{t('tripDetails:overview.countdownTitle')}</h4><p>Details coming soon.</p></div>
-            <div className="overview-card"><h4>{t('tripDetails:overview.weatherTitle')}</h4><p>Weather data coming soon.</p></div>
-            <div className="overview-card full-width">
-                <h4>{t('tripDetails:overview.quickActionsTitle')}</h4>
-                <div className="quick-actions">
-                    <button className="action-button" style={{ backgroundColor: COLORS.accent }} onClick={() => setActiveModal('itinerary')}>{t('tripDetails:overview.viewItinerary')}</button>
-                    <button className="action-button" style={{ backgroundColor: COLORS.accent }} onClick={() => setActiveModal('budget')}>{t('tripDetails:overview.manageBudget')}</button>
-                    <button className="action-button" style={{ backgroundColor: COLORS.accent }} onClick={() => setActiveModal('checklist')}>{t('tripDetails:overview.seeChecklist')}</button>
-                </div>
-            </div>
-        </div>
-    );
 
     const ItineraryView = ({ itinerary = [] }) => (
         <div className="itinerary-container">
             <div className="timeline">
-                {itinerary.length > 0 ? itinerary.map(item => (
-                    <div className="timeline-item" key={item._id}>
-                        <div className="timeline-icon"><VscMilestone /></div>
+                {itinerary.length > 0 ? itinerary.map((item, index) => (
+                    <div className="timeline-item" key={item._id || index}>
+                        <div className="timeline-icon" style={{ backgroundColor: COLORS.accent }}><VscMilestone /></div>
                         <div className="timeline-card">
-                            <div className="card-header"><strong>{item.title}</strong><span className="card-time">{new Date(item.startTime).toLocaleTimeString()}</span></div>
-                            <div className="card-body"><p>{item.description}</p></div>
+                            <div className="card-header"><strong>{item.title}</strong></div>
+                            <div className="card-body"><p>{item.activities.join(', ')}</p></div>
                         </div>
                     </div>
                 )) : <p>No itinerary items yet.</p>}
@@ -131,28 +171,28 @@ export default function TripDetails() {
                     setLoadingExpenses(false);
                 }
             };
-            fetchExpenses();
-        }, [trip._id]);
-        
+            if (trip?._id) fetchExpenses();
+        }, [trip?._id]);
+
         const handleAddExpense = async (e) => {
             e.preventDefault();
             if (!newExpense.description || !newExpense.amount) {
                 setMessage('Please fill out all fields.');
                 return;
             }
-            const organizer = trip.members.find(m => m.role === 'organizer');
-            if (!organizer) {
+            const paidByUser = trip.group.members.find(m => m.userId._id === trip.group.members[0].userId._id); // Simple logic: first member pays
+            if (!paidByUser) {
                 setMessage('Cannot add expense: No organizer found for this trip.');
                 return;
             }
             try {
                 const payload = {
                     ...newExpense,
-                    paidBy: organizer.userId._id,
-                    participants: trip.members.map(m => ({ userId: m.userId._id, share: parseFloat(newExpense.amount) / trip.members.length }))
+                    paidBy: paidByUser.userId._id,
+                    participants: trip.group.members.map(m => ({ userId: m.userId._id, share: parseFloat(newExpense.amount) / trip.group.members.length }))
                 };
-                const { data } = await api.post(`/trips/${trip._id}/expenses`, payload);
-                setExpenses(prev => [...prev, data]);
+                const response = await api.post(`/trips/${trip._id}/expenses`, payload); //
+                setExpenses(prev => [...prev, response.data]);
                 setNewExpense({ description: '', amount: '' });
                 setMessage('Expense added successfully!');
             } catch (err) {
@@ -169,8 +209,8 @@ export default function TripDetails() {
                 </div>
                 <h4 className="section-title">{t('tripDetails:budget.addExpenseTitle')}</h4>
                 <form className="expense-form" onSubmit={handleAddExpense}>
-                    <input type="text" placeholder={t('tripDetails:budget.expenseNamePlaceholder')} value={newExpense.description} onChange={e => setNewExpense({...newExpense, description: e.target.value})} />
-                    <input type="number" placeholder={t('tripDetails:budget.amountPlaceholder')} value={newExpense.amount} onChange={e => setNewExpense({...newExpense, amount: e.target.value})} />
+                    <input type="text" placeholder={t('tripDetails:budget.expenseNamePlaceholder')} value={newExpense.description} onChange={e => setNewExpense({ ...newExpense, description: e.target.value })} />
+                    <input type="number" placeholder={t('tripDetails:budget.amountPlaceholder')} value={newExpense.amount} onChange={e => setNewExpense({ ...newExpense, amount: e.target.value })} />
                     <button type="submit" className="action-button" style={{ backgroundColor: COLORS.accent }}>{t('common:general.add')}</button>
                 </form>
                 {message && <p>{message}</p>}
@@ -184,47 +224,99 @@ export default function TripDetails() {
         );
     };
 
-    const MapView = ({ destination }) => {
-        const [viewport, setViewport] = useState({ latitude: 48.8566, longitude: 2.3522, zoom: 11 });
-        const [marker, setMarker] = useState({ latitude: 48.8566, longitude: 2.3522 });
-        const [mapError, setMapError] = useState('');
+    // MapView remains the same as it was generally correct
+    const MapView = ({ trip }) => {
+        const [selectedPin, setSelectedPin] = useState(null);
 
-        useEffect(() => {
-            if (!destination) return;
-            const fetchCoordinates = async () => {
-                setMapError('');
-                try {
-                    const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(destination)}.json?access_token=${MAPBOX_TOKEN}`);
-                    if (!response.ok) throw new Error('Network response was not ok.');
-                    const data = await response.json();
-                    if (data.features && data.features.length > 0) {
-                        const [longitude, latitude] = data.features[0].center;
-                        setViewport(vp => ({ ...vp, longitude, latitude, zoom: 14 }));
-                        setMarker({ longitude, latitude });
-                    } else {
-                        throw new Error(`Could not find location: ${destination}`);
-                    }
-                } catch (err) {
-                    setMapError(err.message);
-                    console.error("Failed to fetch coordinates:", err);
-                }
-            };
-            fetchCoordinates();
-        }, [destination]);
-
+        // Guard against missing data
         if (!MAPBOX_TOKEN) return <div className="map-container">Mapbox token missing.</div>;
-        if (mapError) return <div className="map-container">Error: {mapError}</div>;
+        if (!trip?.destinationCoordinates?.lat) return <div className="map-container">Destination coordinates not available.</div>;
+
+        // Create a list of all points of interest: the main destination + all attractions
+        // Note: This assumes attractions have a 'geometry.location' object with lat/lng.
+        // You may need to adjust this based on your exact data structure.
+        const pointsOfInterest = useMemo(() => {
+            const allPoints = [
+                { ...trip.destinationCoordinates, name: trip.destination }
+            ];
+
+            if (trip.attractions) {
+                trip.attractions.forEach(attraction => {
+                    if (attraction.geometry?.location) {
+                        allPoints.push({
+                            lat: attraction.geometry.location.lat,
+                            lon: attraction.geometry.location.lng,
+                            name: attraction.name
+                        });
+                    }
+                });
+            }
+            return allPoints;
+        }, [trip]);
+
+        // Calculate the bounding box to fit all points of interest
+        const bounds = useMemo(() => {
+            if (pointsOfInterest.length === 0) return null;
+
+            const longitudes = pointsOfInterest.map(p => p.lon);
+            const latitudes = pointsOfInterest.map(p => p.lat);
+
+            return [
+                [Math.min(...longitudes), Math.min(...latitudes)],
+                [Math.max(...longitudes), Math.max(...latitudes)]
+            ];
+        }, [pointsOfInterest]);
 
         return (
-            <div className="map-container" style={{ width: '100%', height: '400px', borderRadius: '0.75rem' }}>
-                <Map {...viewport} mapboxAccessToken={MAPBOX_TOKEN} onMove={evt => setViewport(evt.viewState)} mapStyle="mapbox://styles/mapbox/streets-v11">
-                    <Marker longitude={marker.longitude} latitude={marker.latitude} color={COLORS.primary} />
+            <div className="map-container" style={{ width: '100%', height: '50vh', minHeight: '400px', borderRadius: '0.75rem', overflow: 'hidden' }}>
+                <Map
+                    mapboxAccessToken={MAPBOX_TOKEN}
+                    initialViewState={{
+                        bounds: bounds,
+                        fitBoundsOptions: {
+                            padding: 60 // Add some padding around the edges
+                        }
+                    }}
+                    mapStyle="mapbox://styles/mapbox/outdoors-v12" // A more scenic map style
+                    style={{ width: '100%', height: '100%' }}
+                >
+                    {/* Add zoom and rotation controls */}
+                    <NavigationControl position="top-right" />
+
+                    {/* Map over all points to create a marker for each */}
+                    {pointsOfInterest.map((point, index) => (
+                        <Marker key={`marker-${index}`} longitude={point.lon} latitude={point.lat}>
+                            <button
+                                className="marker-btn"
+                                onClick={e => {
+                                    e.preventDefault();
+                                    setSelectedPin(point);
+                                }}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                            >
+                                <VscLocation size={30} color={COLORS.primary} />
+                            </button>
+                        </Marker>
+                    ))}
+
+                    {/* If a pin is selected, show a popup */}
+                    {selectedPin && (
+                        <Popup
+                            longitude={selectedPin.lon}
+                            latitude={selectedPin.lat}
+                            onClose={() => setSelectedPin(null)}
+                            anchor="top"
+                            closeOnClick={false}
+                        >
+                            <div>{selectedPin.name}</div>
+                        </Popup>
+                    )}
                 </Map>
             </div>
         );
     };
 
-    const MembersView = ({ members = [], tripId, onUpdate }) => {
+    const MembersView = ({ members = [], id, onUpdate }) => {
         const [inviteEmail, setInviteEmail] = useState('');
         const [isInviting, setIsInviting] = useState(false);
         const [message, setMessage] = useState('');
@@ -234,10 +326,10 @@ export default function TripDetails() {
             setMessage('');
             setIsInviting(true);
             try {
-                await api.post(`/trips/${tripId}/invite`, { email: inviteEmail });
+                await api.post(`/trips/${id}/invite`, { email: inviteEmail }); //
                 setMessage(`Invitation sent to ${inviteEmail}`);
                 setInviteEmail('');
-                onUpdate(); 
+                onUpdate();
             } catch (err) {
                 setMessage(err.response?.data?.message || 'Failed to send invitation.');
             } finally {
@@ -248,51 +340,59 @@ export default function TripDetails() {
         return (
             <div className="members-container">
                 <form className="members-header" onSubmit={handleInvite}>
-                    <div className="search-members"><VscMail /><input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder={t('tripDetails:members.invitePlaceholder')} required/></div>
+                    <div className="search-members"><VscMail /><input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder={t('tripDetails:members.invitePlaceholder')} required /></div>
                     <button type="submit" className="action-button primary-outline" style={{ borderColor: COLORS.primary, color: COLORS.primary }} disabled={isInviting}>
                         {isInviting ? 'Inviting...' : <><VscAdd /> {t('common:general.invite')}</>}
                     </button>
                 </form>
-                {message && <p style={{textAlign: 'center', margin: '10px 0'}}>{message}</p>}
+                {message && <p style={{ textAlign: 'center', margin: '10px 0' }}>{message}</p>}
+
                 <ul className="members-list">
-                    {members.map(member => (
-                        <li className="member-item" key={member.userId._id}>
-                            <img src={member.userId.profileImage || `https://placehold.co/50x50/B0C4B1/4A5759?text=${member.userId.name.charAt(0)}`} alt={member.userId.name} />
-                            <div className="member-info"><strong>{member.userId.name}</strong><p>{member.userId.email}</p></div>
-                            <div className="member-role"><VscOrganization /> {member.role}</div>
-                        </li>
-                    ))}
+                    {members
+                        .filter(member => member.userId && member.userId.name)
+                        .map(member => (
+                            <li className="member-item" key={member.userId._id}>
+                                <img src={member.userId.profileImage || `https://placehold.co/50x50/B0C4B1/4A5759?text=${member.userId.name.charAt(0)}`} alt={member.userId.name} />
+                                <div className="member-info"><strong>{member.userId.name}</strong><p>{member.userId.email}</p></div>
+                                <div className="member-role"><VscOrganization /> {member.role}</div>
+                            </li>
+                        ))}
                 </ul>
             </div>
         );
     };
 
-    const ChatView = ({ tripId }) => {
+    const ChatView = ({ id }) => {
         const [messages, setMessages] = useState([]);
         const [newMessage, setNewMessage] = useState('');
 
         const fetchMessages = useCallback(async () => {
             try {
-                const { data } = await api.get(`/messages/session/${tripId}`);
-                setMessages(data);
+                const response = await api.get(`/messages/session/${id}`); //
+                setMessages(response.data.messages);
             } catch (err) {
                 console.error("Failed to fetch messages", err);
             }
-        }, [tripId]);
+        }, [id]);
 
         useEffect(() => {
-            fetchMessages();
-            const interval = setInterval(fetchMessages, 5000); 
-            return () => clearInterval(interval); 
-        }, [fetchMessages]);
+            if (id) {
+                fetchMessages();
+                // A real app would use WebSockets here, but polling is a fallback
+                const interval = setInterval(fetchMessages, 5000);
+                return () => clearInterval(interval);
+            }
+        }, [id, fetchMessages]);
 
         const handleSendMessage = async (e) => {
             e.preventDefault();
             if (!newMessage.trim()) return;
             try {
-                await api.post('/chat/message', { tripId, content: newMessage });
+                // FIX: This now points to the correct endpoint for sending group text messages,
+                // not the AI chat endpoint.
+                await api.post(`/messages/session/${id}/text`, { content: newMessage });
                 setNewMessage('');
-                fetchMessages();
+                fetchMessages(); // Re-fetch immediately after sending
             } catch (err) {
                 console.error("Failed to send message", err);
             }
@@ -302,9 +402,9 @@ export default function TripDetails() {
             <div className="chat-container">
                 <div className="chat-messages">
                     {messages.length > 0 ? messages.map(msg => (
-                         <div key={msg._id} className="chat-message">
-                             <strong>{msg.sender?.name || 'User'}: </strong>{msg.content}
-                         </div>
+                        <div key={msg._id} className="chat-message">
+                            <strong>{msg.sender?.name || 'User'}: </strong>{msg.text}
+                        </div>
                     )) : <p>No messages yet. Start the conversation!</p>}
                 </div>
                 <form className="chat-input-area" onSubmit={handleSendMessage}>
@@ -314,7 +414,7 @@ export default function TripDetails() {
             </div>
         );
     };
-    
+
     const dockItems = useMemo(() => [
         { id: 'home', icon: <VscHome size={22} />, label: t('tripDetails:dock.overview'), onClick: () => setActiveModal('home') },
         { id: 'itinerary', icon: <GiWavyItinerary size={22} />, label: t('tripDetails:dock.itinerary'), onClick: () => setActiveModal('itinerary') },
@@ -329,15 +429,18 @@ export default function TripDetails() {
     const renderModalContent = () => {
         if (!activeModal || !trip) return null;
         const activeItem = dockItems.find(item => item.id === activeModal);
-        
+
         let content, size;
         switch (activeModal) {
-            case 'home': content = <HomeView />; size = 'large'; break;
+            case 'home': content = <HomeView trip={trip} t={t} setActiveModal={setActiveModal} />; size = 'large'; break;
             case 'itinerary': content = <ItineraryView itinerary={trip.itinerary} />; break;
             case 'budget': content = <BudgetView trip={trip} />; break;
-            case 'map': content = <MapView destination={trip.destination} />; size = 'large'; break;
-            case 'members': content = <MembersView members={trip.members} tripId={trip._id} onUpdate={fetchTripData} />; break;
-            case 'chat': content = <ChatView tripId={trip._id} />; break;
+            case 'map':
+                content = <MapView trip={trip} />; // Pass the full trip object
+                size = 'large';
+                break;
+            case 'members': content = <MembersView members={trip.group.members} id={trip._id} onUpdate={fetchTripData} />; break;
+            case 'chat': content = <ChatView id={trip._id} />; break;
             case 'documents': content = <div>Document management coming soon.</div>; break;
             case 'checklist': content = <div>Checklist coming soon.</div>; break;
             default: content = <div>Content for {activeItem.label}</div>;
@@ -354,7 +457,7 @@ export default function TripDetails() {
             <Link to="/dashboard" className="back-to-dash"><VscArrowLeft /> {t('tripDetails:backToDashboard')}</Link>
             {trip && (
                 <header className="trip-hero">
-                    <img src={trip.imageUrl || 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=800&q=80'} alt={trip.destination} className="hero-bg-image" />
+                    <img src={trip.coverImage || 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=800&q=80'} alt={trip.destination} className="hero-bg-image" />
                     <div className="hero-overlay"></div>
                     <div className="hero-content">
                         <h1 className="trip-title">{trip.destination}</h1>
@@ -368,7 +471,7 @@ export default function TripDetails() {
             )}
 
             <AnimatePresence>
-                {activeModal && renderModalContent()}
+                {renderModalContent()}
             </AnimatePresence>
 
             <Dock items={dockItems} baseItemSize={50} magnification={70} />

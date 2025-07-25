@@ -18,7 +18,7 @@ const Message = require('../models/Message');
 
 function createTripSummary(trip) {
     return {
-        tripId: trip._id,
+        _id: trip._id,
         destination: trip.destination,
         dates: {
             start: trip.startDate,

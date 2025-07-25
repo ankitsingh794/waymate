@@ -23,12 +23,15 @@ const { getSocketIO } = require('../utils/socket');
  * @returns {Promise<{trip: object, member: object}>} - The trip document and the member object.
  */
 async function getTripAndVerifyPermission(tripId, userId, requiredRoles = ['viewer', 'editor', 'owner']) {
-    const trip = await Trip.findById(tripId);
+    const trip = await Trip.findById(tripId).populate(
+        'group.members.userId', 
+        'name email profileImage' 
+    );
     if (!trip) {
         throw { statusCode: 404, message: 'Trip not found.' };
     }
 
-    const member = trip.group.members.find(m => m.userId.toString() === userId.toString());
+     const member = trip.group.members.find(m => m.userId._id.toString() === userId.toString());
     if (!member) {
         throw { statusCode: 403, message: 'Access denied. You are not a member of this trip.' };
     }
