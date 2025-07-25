@@ -42,6 +42,7 @@ exports.updateUserProfile = async (req, res, next) => {
     logger.error(`Error updating profile: ${error.message}`);
     next(error);
   }
+  
 };
 
 
