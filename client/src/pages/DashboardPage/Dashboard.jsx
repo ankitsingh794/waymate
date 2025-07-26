@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { VscSearch, VscChevronLeft, VscChevronRight, VscCompass, VscLocation } from "react-icons/vsc";
 import DashboardNavbar from '../../components/DashboardNavbar';
 import api from '../../utils/axiosInstance';
+import socket from '../../utils/socket';
 import './Dashboard.css';
 
 const TripCarousel = ({ title, subtitle, trips }) => {
@@ -124,6 +125,23 @@ export default function Dashboard() {
         };
 
         fetchData();
+
+        
+        fetchData();
+        
+        socket.connect();
+
+        const handleNewTrip = (data) => {
+            console.log('New trip received via WebSocket:', data);
+            setUpcomingTrips(prevTrips => [data.summary, ...prevTrips]);
+        };
+
+        socket.on('tripCreated', handleNewTrip);
+
+        return () => {
+            socket.off('tripCreated', handleNewTrip);
+            socket.disconnect();
+        };
     }, []);
 
     if (loading) {
