@@ -3,8 +3,7 @@ const http = require('http');
 const app = require('./app');
 const connectDB = require('./config/db');
 const logger = require('./utils/logger');
-const { initSocket } = require('./socketHandler');
-const { setSocketIO } = require('./utils/socket');
+const { initSocketIO } = require('./utils/socket');
 const { closeRedisConnection } = require('./config/redis');
 
 const PORT = process.env.PORT || 5000;
@@ -35,9 +34,10 @@ const server = http.createServer(app);
 
 /**
  * ✅ Initialize Socket.IO and attach it to the server
+ * FIX: This now calls the single, correct function.
  */
-const io = initSocket(server);
-setSocketIO(io);
+initSocketIO(server);
+
 
 /**
  * ✅ Connect to Database and Start Server

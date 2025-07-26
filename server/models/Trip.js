@@ -5,59 +5,39 @@
 
 const mongoose = require('mongoose');
 
+const placeSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  description: { type: String },
+  image: { type: String },
+  website: { type: String },
+  vicinity: { type: String }
+}, { _id: false });
+
 // Sub-schema for richer weather data
 const weatherForecastSchema = new mongoose.Schema({
   day: { type: Number, required: true },
   date: { type: String },
   temp: { type: String },
-  temp_min: { type: String },
-  temp_max: { type: String },
   condition: { type: String },
-  icon: { type: String },
-  chance_of_rain: { type: Number },
-  wind_speed: { type: Number },
 }, { _id: false });
 
-// Sub-schema for richer attraction data
-const attractionSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  kinds: { type: String },
-  description: { type: String },
-  image: { type: String },
-  wikidata: { type: String },
-}, { _id: false });
-
-// Sub-schema for food recommendations
-const foodSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  kinds: { type: String },
-  description: { type: String },
-}, { _id: false });
-
-// Sub-schema for the structured budget
 const budgetSchema = new mongoose.Schema({
     total: { type: Number, required: true },
     travel: { type: Number },
     accommodation: { type: Number },
     activities: { type: Number },
     food: { type: Number },
+    breakdown: { type: mongoose.Schema.Types.Mixed }
 }, { _id: false });
 
-const routeSchema = new mongoose.Schema({
-    mode: { type: String, enum: ['flight', 'train', 'car', 'bus'], required: true },
-    provider: { type: String },
-    details: { type: mongoose.Schema.Types.Mixed } // Can be flexible for different route types
+const routeInfoSchema = new mongoose.Schema({
+  fastest: { type: Object },
+  cheapest: { type: Object },
+  details: { type: mongoose.Schema.Types.Mixed },
+  staticMap: { type: String }
 }, { _id: false });
 
-// FIX: Defined a specific sub-schema for accommodation
-const accommodationSchema = new mongoose.Schema({
-    name: { type: String, required: true },
-    type: { type: String }, // e.g., Hotel, Airbnb
-    rating: { type: Number },
-    link: { type: String }
-}, { _id: false });
-
-// FIX: Defined a specific sub-schema for local events
+// Specific sub-schema for local events
 const localEventSchema = new mongoose.Schema({
     name: { type: String, required: true },
     date: { type: Date },
@@ -67,10 +47,6 @@ const localEventSchema = new mongoose.Schema({
 
 
 const TripSchema = new mongoose.Schema({
-  /**
-   * ✅ FINALIZED: Using a robust group object with roles.
-   * This is the single source of truth for trip membership and permissions.
-   */
   group: {
     isGroup: { type: Boolean, default: false },
     members: [{
@@ -111,23 +87,20 @@ const TripSchema = new mongoose.Schema({
   coverImage: {
     type: String,
   },
-  routes: [routeSchema],
-  
+  // --- Fields Updated for New Enhancements ---
+  routeInfo: routeInfoSchema,
   weather: { forecast: [weatherForecastSchema] },
-  attractions: [attractionSchema],
-  foodRecommendations: [foodSchema],
-  accommodationSuggestions: [accommodationSchema],
-  alerts: [String],
+  attractions: [placeSchema], 
+  foodRecommendations: [placeSchema], 
+  accommodationSuggestions: [placeSchema], 
   budget: budgetSchema,
+  localEvents: [localEventSchema],
+  alerts: [String],
   itinerary: [{
     day: { type: Number, required: true },
     title: { type: String, required: true },
     activities: [String],
   }],
-  accommodationSuggestions: {
-      type: [Object],
-      default: [],
-  },
   formattedPlan: {
     type: String,
   },
@@ -135,7 +108,6 @@ const TripSchema = new mongoose.Schema({
   mustEats: [String],
   highlights: [String],
   packingChecklist: [String],
-  localEvents: [localEventSchema],
   favorite: {
     type: Boolean,
     default: false,
@@ -148,7 +120,6 @@ const TripSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 TripSchema.index({ 'group.members.userId': 1, startDate: -1 });
-
 TripSchema.index({ destination: 'text' });
 
 module.exports = mongoose.model('Trip', TripSchema);

@@ -3,11 +3,33 @@ const axios = require('axios');
 const logger = require('../utils/logger');
 
 /**
+ * Validates if a string is a well-formed http or https URL.
+ * @param {string} urlString The string to validate.
+ * @returns {boolean} True if the URL is valid, false otherwise.
+ */
+function isValidHttpUrl(urlString) {
+  if (!urlString) return false;
+  try {
+    const url = new URL(urlString);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch (_) {
+    return false;
+  }
+}
+
+/**
  * Fetches an image from a URL and returns it as a buffer.
  * @param {string} url The URL of the image to fetch.
  * @returns {Promise<Buffer|null>} A buffer of the image data or null if fetching fails.
  */
 async function fetchImage(url) {
+  // FIX: Add a validation check before attempting to fetch the image.
+  // This prevents the "Invalid URL" error from crashing the service.
+  if (!isValidHttpUrl(url)) {
+    logger.warn(`Invalid or missing URL provided for PDF image: "${url}"`);
+    return null;
+  }
+
   try {
     const response = await axios.get(url, { responseType: 'arraybuffer' });
     return response.data;
@@ -42,7 +64,7 @@ function generateTripPdf(trip) {
       .text(`Your Trip to ${trip.destination}`, { align: 'center' });
     doc.moveDown(2);
 
-    // Cover Image
+    // Cover Image (will now safely skip if the URL is invalid)
     if (trip.coverImage) {
       const imageBuffer = await fetchImage(trip.coverImage);
       if (imageBuffer) {

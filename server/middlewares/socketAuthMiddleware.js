@@ -20,7 +20,6 @@ const authenticateSocket = async (socket, next) => {
             return next(new Error('Authentication error: User not found or inactive.'));
         }
 
-        // 3. Attach the user object to the socket for use in event handlers
         socket.user = user;
         next();
 

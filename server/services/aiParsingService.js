@@ -1,73 +1,38 @@
+
+
 const axios = require('axios');
 const logger = require('../utils/logger');
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const PARSING_MODEL = process.env.PARSING_MODEL || 'mistralai/mistral-7b-instruct:free';
 
-/**
- * Detects the user's primary intent and extracts all relevant details in a single pass.
- * This is the first point of AI contact in a conversation.
- * @param {string} userMessage The initial message from the user.
- * @returns {object} An object containing the detected 'intent' and any extracted 'details'.
- */
 async function detectIntentAndExtractEntity(userMessage) {
   const prompt = `
     You are an expert travel assistant AI that functions as an intelligent router. Your primary function is to analyze the user's message, classify it into ONE of the defined intents, and extract all available entities into a single, minified JSON object. Your output must ONLY be this JSON object.
 
     ### Intents & Entities
-
-    1.  **create_trip**: The user wants to plan a new multi-day trip to a KNOWN destination.
-        - Entities: "destination" (string), "dates" (object with startDate, endDate), "interests" (array), "budget" (string: "budget", "standard", or "luxury"), "travelers" (number).
-
-    2.  **find_place**: The user wants to find a specific type of local spot for a short-term activity.
-        - Entities: "query" (string), "location" (string), "date_context" (string, e.g., "next wednesday", "tonight").
-
-    3.  **get_trip_detail**: The user wants specific information about an EXISTING trip.
-        - Entities: "trip_identifier" (string, e.g., "my trip to Goa"), "request" (string, e.g., "budget", "itinerary").
-
-    4.  **edit_trip**: The user wants to modify an EXISTING trip.
-        - Entities: "trip_identifier" (string), "command" (string: the specific edit instruction).
-    
-    5.  **convert_budget**: The user wants to convert the budget of an EXISTING trip to another currency.
-        - Entities: "trip_identifier" (string), "currency" (string: e.g., "USD", "Euros").
-
-    6.  **casual_chat**: A general conversation, greeting, or a query you cannot otherwise classify. No entities needed.
+    1.  **create_trip**: The user wants to plan a new multi-day trip.
+        - Entities: "destination", "dates", "interests", "budget", "travelers".
+    2.  **suggest_destination**: The user is asking for ideas or doesn't know where to go.
+        - Entities: "interests", "budget", "duration".
+    3.  **casual_chat**: A general conversation or a query you cannot otherwise classify.
 
     ---
     ### 🧠 Core Logic & Rules (Follow these strictly)
-
+    - **CRITICAL RULE: Do NOT infer, invent, or hallucinate any details** that are not explicitly provided in the user's message. If a detail (like dates, budget, interests) is missing, OMIT it entirely from the JSON output.
     - **Current Date for Reference:** ${new Date().toISOString()}
-    - **Suggestion vs. Creation:** If the user asks "where should I go" or for ideas, the intent is ALWAYS \`suggest_destination\`. If they provide a destination, the intent is \`create_trip\`.
-    - **Day Trip vs. Multi-Day Trip**: If a request is for a single local spot (cafe, park), it is 'find_place'. Extract any time information like "tonight" or "next weekend" as 'date_context'.
-    - **Context is Key:** For \`get_trip_detail\`, \`edit_trip\`, and \`convert_budget\`, the user MUST provide a way to identify the trip (e.g., "my trip to Goa," "the Delhi plan"). If no trip identifier is present, the intent is \`casual_chat\`.
-    - **Entity Inference:**
-        - Infer dates from relative terms ("next weekend", "in two weeks", "around Christmas").
-        - Infer travelers from phrases ("for me and my family" -> 4, "a couple's trip" -> 2).
+    - **Suggestion vs. Creation:** If the user asks "where should I go," the intent is \`suggest_destination\`. If they provide a destination, the intent is \`create_trip\`.
+    - **Incomplete Information:** If a user says "plan a trip" but gives no destination, the intent is \`create_trip\`, and the "details" object will be empty.
     - **Output:** Respond ONLY with the minified JSON object. No explanations.
 
     ---
     ### 📚 Examples
-
     1.  **User:** "Plan a budget trip to Goa next weekend for 2 people. We like beaches."
         **AI:** \`{"intent":"create_trip","details":{"destination":"Goa","dates":{"startDate":"2025-08-01","endDate":"2025-08-03"},"budget":"budget","travelers":2,"interests":["beaches"]}}\`
-    
-    2.  **User:** "Find me a quiet romantic restaurant in Jamshedpur"
-        **AI:** \`{"intent":"find_place","details":{"query":"a quiet romantic restaurant","location":"Jamshedpur"}}\`
-
-    3.  **User:** "What's the weather forecast for my trip to Delhi?"
-        **AI:** \`{"intent":"get_trip_detail","details":{"trip_identifier":"trip to Delhi","request":"weather"}}\`
-    
-    4.  **User:** "Add a visit to the Louvre to my Paris plan."
-        **AI:** \`{"intent":"edit_trip","details":{"trip_identifier":"Paris plan","command":"add a visit to the Louvre"}}\`
-    
-    5.  **User:** "What's the budget for that trip in dollars?"
-        **AI:** \`{"intent":"convert_budget","details":{"trip_identifier":"that trip","currency":"dollars"}}\`
-    
-    6.  **User:** "What's the budget?" (No trip mentioned)
-        **AI:** \`{"intent":"casual_chat","details":{}}\`
-    
-    7.  **User:** "Hi how are you"
-        **AI:** \`{"intent":"casual_chat","details":{}}\`
+    2.  **User:** "Plan a trip to Shimla"
+        **AI:** \`{"intent":"create_trip","details":{"destination":"Shimla"}}\`
+    3.  **User:** "plan a trip"
+        **AI:** \`{"intent":"create_trip","details":{}}\`
 
     ---
     ### User Message
@@ -87,28 +52,38 @@ async function detectIntentAndExtractEntity(userMessage) {
       },
       {
         headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}` },
-        timeout: 5000 // Add a timeout for reliability
+        timeout: 5000
       }
     );
-    const aiResponseText = response.data.choices[0].message.content;
+    let aiResponseText = response.data.choices[0].message.content;
+    let jsonString = null;
 
-    // Use a regular expression to find the first valid JSON object in the response text.
-    const jsonMatch = aiResponseText.match(/\{[\s\S]*\}/);
+    const match = aiResponseText.match(/\{[\s\S]*\}/);
 
-    if (!jsonMatch) {
-      throw new Error('No valid JSON object found in AI response.');
+    if (match && match[0]) {
+      // If a JSON-like structure is found, extract it.
+      jsonString = match[0];
+    } else {
+      // If no JSON object is found, the response is invalid.
+      logger.error('AI intent detection failed: No JSON object found in the AI response.', {
+        query: userMessage,
+        aiResponse: aiResponseText // Log the bad response for debugging
+      });
+      return { intent: 'casual_chat', details: {} };
     }
 
-    const result = JSON.parse(jsonMatch[0]);
+    // Attempt to parse the extracted string.
+    const result = JSON.parse(jsonString);
 
     logger.info(`Intent detected: ${result.intent}`, { details: result.details });
     return result;
-  } catch (error) {
-    logger.error('AI intent detection failed:', { errorMessage: error.message, query: userMessage });
-    return { intent: 'casual_chat', details: { message: userMessage } };
-  }
-}
 
+  } catch (error) {
+    // This will catch final parsing errors or network issues.
+    logger.error('AI intent detection failed:', { errorMessage: error.message, query: userMessage });
+    return { intent: 'casual_chat', details: {} };
+  }
+};
 /**
  * Extracts a specific piece of information from a user's message when the bot is in a
  * slot-filling conversation (i.e., after asking a direct question).
@@ -121,67 +96,86 @@ async function extractEntityForSlot(userMessage, slotDefinition) {
     return userMessage;
   }
 
-  const schemas = {
-    date_range: {
-      type: 'object',
-      properties: {
-        startDate: { type: 'string', format: 'date', description: 'The start date in YYYY-MM-DD format.' },
-        endDate: { type: 'string', format: 'date', description: 'The end date in YYYY-MM-DD format.' }
-      },
-      required: ['startDate', 'endDate']
-    },
-    list: {
-      type: 'array',
-      items: { type: 'string', description: 'A user interest or preference.' }
-    },
-    choice: {
-      type: 'string',
-      enum: slotDefinition.validation.options
-    }
-  };
+  const { type, options } = slotDefinition.validation;
+  let prompt;
 
-  const schema = schemas[slotDefinition.validation.type];
-  if (!schema) {
-    return userMessage;
+  switch (type) {
+    case 'date_range':
+      prompt = `
+        You are a date extraction expert. The user's message is: "${userMessage}".
+        Your reference date is: "${new Date().toISOString()}".
+        You MUST return a JSON object with exactly two keys: "startDate" and "endDate" in "YYYY-MM-DD" format.
+        For example, for "next weekend", you would return {"startDate": "2025-08-01", "endDate": "2025-08-03"}.
+        For "August 10th", assume it's a single-day trip and return {"startDate": "2025-08-10", "endDate": "2025-08-10"}.
+        JSON Output:`;
+      break;
+
+    case 'choice':
+      prompt = `
+        You are a classification expert. The user's response is: "${userMessage}".
+        The valid options are: ${options.join(', ')}.
+        Your task is to respond with ONLY the single best-matching option from the list.
+        For example, if the user says "I want to save money", and the options are "budget", "standard", "luxury", you must respond with "budget".
+        Do not add any other text.
+        Matching Option:`;
+      break;
+
+    case 'list': // Primarily for interests
+      prompt = `
+        You are an activity extraction expert. The user's stated interest is: "${userMessage}".
+        Extract the core activity or theme.
+        CRITICAL: If the user's message is a day of the week (like Sunday, Monday, etc.), you MUST respond with the word "invalid".
+        Otherwise, respond with the extracted interest.
+        Extracted Interest:`;
+      break;
+
+    default:
+      return userMessage; // Fallback for unknown types
   }
-  const prompt = `
-    You are a data extraction expert. Analyze the user's message to extract the requested information based on the provided JSON schema.
-    Respond with a single, minified JSON object containing the extracted data. Do not include any other text.
-    Cases can be overview, itinerary,budget,
 
-    ---
-    ### Context
-    // ✅ MODIFIED: Added the day of the week for better relative date understanding.
-    - Current Date: "${new Date().toISOString().split('T')[0]} (Today is a ${new Date().toLocaleString('en-US', { weekday: 'long' })})"
-    - User's Message: "${userMessage}"
-    ---
-    ### Extraction Schema
-    ${JSON.stringify(schema)}
-    ---
-
-    JSON Output:`;
   try {
     const response = await axios.post(
       'https://openrouter.ai/api/v1/chat/completions',
       {
         model: PARSING_MODEL,
         messages: [{ role: 'user', content: prompt }],
-        response_format: { type: "json_object" }
+        // Use JSON format only for the date_range, as others are simple strings
+        ...(type === 'date_range' && { response_format: { type: "json_object" } })
       },
       { headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}` } }
     );
-    const result = JSON.parse(response.data.choices[0].message.content);
-    if (slotDefinition.validation.type === 'date_range') {
-      return result;
+
+    let content = response.data.choices[0].message.content.trim();
+
+    // Post-processing and validation
+    if (type === 'list' && (content.toLowerCase() === 'invalid' || /sunday|monday|tuesday|wednesday|thursday|friday|saturday/i.test(content))) {
+      logger.warn(`AI parsing rejected invalid interest: "${content}"`);
+      return null; // Reject the invalid interest
     }
-    const key = Object.keys(result)[0];
-    return result[key] || result;
+    
+    if (type === 'date_range') {
+        // Ensure the JSON response is clean before parsing
+        const match = content.match(/\{[\s\S]*\}/);
+        if (match) content = match[0];
+        const parsedDate = JSON.parse(content);
+        // Final validation for the date object structure
+        if (parsedDate.startDate && parsedDate.endDate) {
+            return parsedDate;
+        }
+        // Handle single date response by making it a one-day trip
+        if (parsedDate.date) {
+            return { startDate: parsedDate.date, endDate: parsedDate.date };
+        }
+        throw new Error('Invalid date structure returned by AI');
+    }
+
+    return content; // For 'choice' and 'list' types
+    
   } catch (error) {
-    logger.error(`AI slot extraction failed for slot type ${slotDefinition.validation.type}:`, error.message);
+    logger.error(`AI slot extraction failed for slot type ${type}:`, error.message);
     return null;
   }
 }
-
 
 module.exports = {
   detectIntentAndExtractEntity,

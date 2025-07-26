@@ -2,7 +2,6 @@ const logger = require('../utils/logger');
 const Message = require('../models/Message');
 const ChatSession = require('../models/ChatSession');
 const Trip = require('../models/Trip');
-const { getSocketIO } = require('../utils/socket');
 const axios = require('axios');
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
@@ -31,6 +30,7 @@ function validateItinerary(itinerary) {
  * @param {string} command - The edit command (e.g., "add a visit to the Eiffel Tower on day 2").
  */
 const handleTripEditRequest = async (sessionId, user, command) => {
+    const { getSocketIO } = require('../utils/socket');
     const io = getSocketIO();
     try {
         // 1. Find the associated trip

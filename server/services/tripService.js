@@ -1,8 +1,10 @@
 const axios = require('axios');
 const logger = require('../utils/logger');
 const { setCache, getCache, incrCache } = require('../config/redis');
-const { fetchThreatAlertsForDestination } = require('../services/alertService');
+const { fetchThreatAlertsForDestination } = require('./alertService');
 const { fetchLocalEvents } = require('./eventService');
+const currencyService = require('./currencyService');
+const { BUDGET_CONFIG } = require('../config/budgetConfig');
 
 const OPENTRIPMAP_BASE = 'https://api.opentripmap.com/0.1/en/places';
 const OPENWEATHER_FORECAST_BASE = 'https://api.openweathermap.org/data/2.5/forecast'; // ✅ Correct endpoint for forecast
@@ -21,44 +23,6 @@ const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 const DEFAULT_IMAGE_URL =
   'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80';
 
-
-const INDIA_ACCOMMODATION_COSTS = {
-  'metro-luxury': { budget: 3500, standard: 7000, luxury: 15000 }, // e.g., South Mumbai, Lutyens' Delhi
-  'tier-1-resort': { budget: 4000, standard: 8000, luxury: 20000 }, // e.g., Goa, Andaman, Premium Kerala resorts
-  'tier-1-city': { budget: 2500, standard: 5000, luxury: 10000 }, // e.g., Bangalore, Hyderabad, Pune
-  'himalayan-peak': { budget: 3000, standard: 6000, luxury: 12000 }, // e.g., Leh, Manali (peak season)
-  'himalayan-off': { budget: 1500, standard: 3500, luxury: 8000 }, // e.g., Himachal, Uttarakhand (off season)
-  'tier-2-city': { budget: 1200, standard: 2500, luxury: 6000 }, // e.g., Jaipur, Lucknow, Kochi
-  'remote': { budget: 800, standard: 1800, luxury: 4000 }, // e.g., Northeast, smaller towns
-  'default': { budget: 1500, standard: 3000, luxury: 7000 }  // A general fallback
-};
-
-/**
- * A mapping of major Indian cities and states to their cost tiers.
- * This allows for more granular budget estimation.
- */
-const INDIAN_LOCATION_COST_TIERS = {
-  // States
-  'Goa': 'tier-1-resort',
-  'Andaman and Nicobar Islands': 'tier-1-resort',
-  'Kerala': 'tier-1-resort',
-  'Maharashtra': 'tier-1-city',
-  'Karnataka': 'tier-1-city',
-  'Delhi': 'metro-luxury',
-  'Himachal Pradesh': 'himalayan-peak',
-  'Uttarakhand': 'himalayan-peak',
-  'Ladakh': 'himalayan-peak',
-  'Rajasthan': 'tier-2-city',
-  'Uttar Pradesh': 'tier-2-city',
-  'Mumbai': 'metro-luxury',
-  'Bangalore': 'tier-1-city',
-  'Hyderabad': 'tier-1-city',
-  'Pune': 'tier-1-city',
-  'Jaipur': 'tier-2-city',
-  'Shimla': 'himalayan-peak',
-  'Manali': 'himalayan-peak',
-  'Leh': 'himalayan-peak',
-};
 
 // Free tier limits
 const LIMITS = {
@@ -82,6 +46,25 @@ const API_LANGUAGE_CODES = {
   'gujarati': 'gu',
   'malayalam': 'ml',
   'punjabi': 'pa',
+};
+
+const PREFERENCE_TO_API_MAP = {
+  interests: {
+    param: 'keyword',
+    // Default keywords if no specific interests are provided by the user.
+    default: 'tourist attraction|landmark|point of interest',
+    // Joins multiple interests with a pipe for the 'keyword' parameter.
+    formatter: (values) => (Array.isArray(values) ? values.join('|') : values),
+  },
+  accommodationType: {
+    param: 'keyword',
+    // Maps user-friendly terms to more specific API keywords.
+    mappings: {
+      budget: 'hostel|guesthouse|budget hotel',
+      standard: 'hotel|lodging|inn',
+      luxury: 'luxury hotel|5-star hotel|resort',
+    },
+  },
 };
 
 
@@ -278,47 +261,17 @@ const getRouteData = async (origin, destination, includeStaticMap = false) => {
       destination
     });
 
-    // Fallback: calculate distances and durations with estimated costs for all modes
     const distanceKm = haversineDistance(origin, destination);
+    const fallbackDetails = {};
 
-    const fallbackDetails = {
-      driving: {
-        mode: 'Car',
-        duration: `${Math.max(1, Math.ceil(distanceKm / SPEEDS_KMH.driving))}h`,
-        cost: Math.round(distanceKm * COSTS_PER_KM.driving),
+    for (const mode in SPEEDS_KMH) {
+      fallbackDetails[mode] = {
+        mode: mode.charAt(0).toUpperCase() + mode.slice(1), 
+        duration: `${Math.max(1, Math.ceil(distanceKm / SPEEDS_KMH[mode]))}h`,
+        cost: Math.round(distanceKm * (COSTS_PER_KM[mode] || 0)),
         distance: `${Math.round(distanceKm)} km`
-      },
-      bus: {
-        mode: 'Bus',
-        duration: `${Math.max(1, Math.ceil(distanceKm / SPEEDS_KMH.bus))}h`,
-        cost: Math.round(distanceKm * COSTS_PER_KM.bus),
-        distance: `${Math.round(distanceKm)} km`
-      },
-      flight: {
-        mode: 'Flight',
-        duration: `${Math.max(1, Math.ceil(distanceKm / SPEEDS_KMH.flight))}h`,
-        cost: Math.round(distanceKm * COSTS_PER_KM.flight),
-        distance: `${Math.round(distanceKm)} km`
-      },
-      train: {
-        mode: 'Train',
-        duration: `${Math.max(1, Math.ceil(distanceKm / SPEEDS_KMH.train))}h`,
-        cost: Math.round(distanceKm * COSTS_PER_KM.train),
-        distance: `${Math.round(distanceKm)} km`
-      },
-      cycling: {
-        mode: 'Cycling',
-        duration: `${Math.max(1, Math.ceil(distanceKm / SPEEDS_KMH.cycling))}h`,
-        cost: Math.round(distanceKm * COSTS_PER_KM.cycling),
-        distance: `${Math.round(distanceKm)} km`
-      },
-      walking: {
-        mode: 'Walking',
-        duration: `${Math.max(1, Math.ceil(distanceKm / SPEEDS_KMH.walking))}h`,
-        cost: 0,
-        distance: `${Math.round(distanceKm)} km`
-      }
-    };
+      };
+    }
 
     // Choose fallback fastest and cheapest
     const fallbackFastest = Object.values(fallbackDetails).reduce((a, b) =>
@@ -337,259 +290,296 @@ const getRouteData = async (origin, destination, includeStaticMap = false) => {
   }
 };
 
+//geocoding logic
+async function getGeocodedLocation(destination) {
+  if (typeof destination === 'object' && destination.lat && destination.lon) {
+    return {
+      coords: destination,
+      name: `Custom Location (${destination.lat.toFixed(2)}, ${destination.lon.toFixed(2)})`,
+      state: ''
+    };
+  }
+
+  if (typeof destination !== 'string') {
+    throw new Error('Invalid destination format: must be string or {lat, lon}');
+  }
+
+  const geoCacheKey = `geo:${destination.toLowerCase()}`;
+  const cached = await getCache(geoCacheKey);
+  if (cached) return cached;
+
+  const geoRes = await retry(() => axios.get(`${OPENTRIPMAP_BASE}/geoname`, { params: { name: destination, country: 'in', apikey: OPENTRIPMAP_API_KEY } }), 'OpenTripMap Geocoding');
+
+  if (geoRes?.data?.lat && geoRes?.data?.lon) {
+    const locationInfo = {
+      coords: { lat: geoRes.data.lat, lon: geoRes.data.lon },
+      name: geoRes.data.name || destination,
+      state: geoRes.data.state?.name || ''
+    };
+    await setCache(geoCacheKey, locationInfo, 86400); // Cache for 1 day
+    return locationInfo;
+  }
+
+  throw new Error(`Could not find coordinates for destination: ${destination}`);
+}
+
+//api fetching function
+async function fetchAllApiData(destinationInfo, params) {
+  const { startDate, endDate, origin, personalizedParams, apiLangCode } = params;
+  const { coords: destinationCoords, name: destinationName } = destinationInfo;
+
+  const [
+    attractionsRes,
+    accommodationRes,
+    foodRes,
+    weatherRes,
+    unsplashRes,
+    routeRes,
+    eventsRes
+  ] = await Promise.allSettled([
+    retry(() => axios.get(GOOGLE_PLACES_BASE, { params: { location: `${destinationCoords.lat},${destinationCoords.lon}`, radius: 5000, ...personalizedParams, language: apiLangCode, key: GOOGLE_API_KEY } }), 'Google Places Attractions'),
+    retry(() => axios.get(GOOGLE_PLACES_BASE, { params: { location: `${destinationCoords.lat},${destinationCoords.lon}`, radius: 5000, keyword: 'hotel|lodging', ...personalizedParams, language: apiLangCode, key: GOOGLE_API_KEY } }), 'Google Places Accommodations'),
+    retry(() => axios.get(GOOGLE_PLACES_BASE, { params: { location: `${destinationCoords.lat},${destinationCoords.lon}`, radius: 5000, type: 'restaurant', keyword: 'restaurant|cafe|food', language: apiLangCode, key: GOOGLE_API_KEY } }), 'Google Places Food'),
+    retry(() => axios.get(OPENWEATHER_FORECAST_BASE, { params: { lat: destinationCoords.lat, lon: destinationCoords.lon, appid: OPENWEATHER_API_KEY, units: 'metric' } }), 'OpenWeatherMap Forecast'),
+    retry(() => axios.get(UNSPLASH_BASE, { params: { query: destinationName, per_page: 1, client_id: UNSPLASH_ACCESS_KEY } }), 'Unsplash Image'),
+    getRouteData(origin, destinationCoords),
+    fetchLocalEvents(destinationName, startDate, endDate)
+  ]);
+
+  return { attractionsRes, accommodationRes, foodRes, weatherRes, unsplashRes, routeRes, eventsRes };
+}
+
+function processAttractions(response) {
+  if (response.status === 'fulfilled' && response.value.data?.results?.length > 0) {
+    return response.value.data.results.slice(0, 10).map(g => ({
+      name: g.name,
+      description: `Rating: ${g.rating || 'N/A'} (${g.user_ratings_total || 0} reviews)`,
+      image: g.photos ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${g.photos[0].photo_reference}&key=${GOOGLE_API_KEY}` : null
+    }));
+  }
+  return [{ name: 'City Museum' }, { name: 'Local Park' }];
+}
+
+function processAccommodations(response) {
+  if (response.status === 'fulfilled' && response.value.data?.results?.length > 0) {
+    return response.value.data.results.slice(0, 5).map(place => ({
+      name: place.name,
+      rating: place.rating || 'N/A',
+      vicinity: place.vicinity
+    }));
+  }
+  return [];
+}
+
+function processFood(response) {
+  if (response.status === 'fulfilled' && response.value.data?.results?.length > 0) {
+    return response.value.data.results.slice(0, 8).map(g => ({
+      name: g.name,
+      description: `Rating: ${g.rating || 'N/A'} (${g.user_ratings_total || 0} reviews)`,
+      image: g.photos ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${g.photos[0].photo_reference}&key=${GOOGLE_API_KEY}` : null
+    }));
+  }
+  return [{ name: 'Local Café' }, { name: 'Street Food Corner' }]; // Simple fallback
+}
+
+function processWeather(response) {
+  const forecast = [];
+  if (response.status === 'fulfilled' && response.value.data?.list) {
+    const daysMap = {};
+    response.value.data.list.forEach(entry => {
+      const dayString = entry.dt_txt.split(' ')[0];
+      if (!daysMap[dayString]) {
+        daysMap[dayString] = {
+          date: dayString,
+          temp: entry.main.temp,
+          condition: entry.weather[0].description,
+        };
+      }
+    });
+    const uniqueDays = Object.values(daysMap).slice(0, 5);
+    uniqueDays.forEach((dayData, index) => forecast.push({ day: index + 1, ...dayData }));
+  }
+  return { forecast: forecast.length > 0 ? forecast : [{ day: 1, date: 'N/A', temp: 'N/A', condition: 'No forecast available' }] };
+}
+
+function processCoverImage(response) {
+  return (response.status === 'fulfilled' && response.value.data.results?.[0]?.urls?.regular)
+    ? response.value.data.results[0].urls.regular
+    : DEFAULT_IMAGE_URL;
+}
+
+
+function calculateTripBudget(params, route, attractions) {
+  const { startDate, endDate, travelers, preferences, destinationName } = params;
+  const { accommodationType } = preferences;
+
+  const nights = Math.max(1, Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)));
+
+  const costTier = BUDGET_CONFIG.LOCATION_TIERS[destinationName] || BUDGET_CONFIG.LOCATION_TIERS['default'];
+  const regionalCosts = BUDGET_CONFIG.ACCOMMODATION_COSTS[costTier];
+
+  const accommodationCost = (regionalCosts[accommodationType] || regionalCosts.standard) * nights;
+  const travelCost = route?.cheapest?.cost || 0;
+
+  const foodCost = (BUDGET_CONFIG.FOOD_COSTS_PER_DAY[accommodationType] || BUDGET_CONFIG.FOOD_COSTS_PER_DAY.standard) * travelers * nights;
+
+  const activityCost = attractions.length * BUDGET_CONFIG.ACTIVITY_COSTS.AVG_COST_PER_ATTRACTION_PERSON * travelers;
+
+  const total = travelCost + accommodationCost + activityCost + foodCost;
+
+  return {
+    travel: travelCost,
+    accommodation: accommodationCost,
+    activities: activityCost,
+    food: foodCost,
+    total,
+    breakdown: {
+      nights,
+      costTier,
+      accommodationPerNight: regionalCosts[accommodationType] || regionalCosts.standard
+    }
+  };
+}
+
 /**
- * Aggregate Trip Data from multiple APIs with caching and fallbacks
+ * Builds a personalized API parameter object based on user preferences.
+ * @param {object} preferences - The user's preferences object.
+ * @returns {object} An object containing API parameters for Google Places.
  */
-const aggregateTripData = async ({
-  destination,
-  origin = { lat: 28.6139, lon: 77.2090 },
-  startDate,
-  endDate,
-  travelers = 1,
-  preferences = {}
-}) => {
+function buildPersonalizedApiParams(preferences = {}) {
+  const personalizedParams = {};
+
+  for (const key in PREFERENCE_TO_API_MAP) {
+    const config = PREFERENCE_TO_API_MAP[key];
+    const userValue = preferences[key];
+
+    let apiValue;
+
+    if (userValue && config.mappings) {
+      apiValue = config.mappings[userValue];
+    } else if (userValue) {
+      apiValue = config.formatter ? config.formatter(userValue) : userValue;
+    } else {
+      apiValue = config.default;
+    }
+
+    if (apiValue) {
+      if (personalizedParams[config.param]) {
+        personalizedParams[config.param] += `|${apiValue}`;
+      } else {
+        personalizedParams[config.param] = apiValue;
+      }
+    }
+  }
+
+  return personalizedParams;
+}
+
+async function convertAllCosts(tripData, targetCurrency, currencyService) {
+  const baseCurrency = 'INR';
+  if (targetCurrency.toUpperCase() === baseCurrency) {
+    tripData.budget.currency = baseCurrency;
+    return tripData;
+  }
+
+  const safeConvert = async (amount) => {
+    const result = await currencyService.convertCurrency(amount, baseCurrency, targetCurrency);
+    return result ? result.convertedAmount : amount;
+  };
+
+  const budgetPromises = Object.keys(tripData.budget).map(async (key) => {
+    if (typeof tripData.budget[key] === 'number') {
+      tripData.budget[key] = await safeConvert(tripData.budget[key]);
+    }
+  });
+  
+  await Promise.all(budgetPromises);
+  tripData.budget.currency = targetCurrency;
+
+  if (tripData.routeInfo && tripData.routeInfo.details) {
+    const routePromises = Object.values(tripData.routeInfo.details).map(async (mode) => {
+        if(mode.cost) {
+            mode.cost = await safeConvert(mode.cost);
+        }
+    });
+    await Promise.all(routePromises);
+
+    if(tripData.routeInfo.fastest?.cost) tripData.routeInfo.fastest.cost = await safeConvert(tripData.routeInfo.fastest.cost);
+    if(tripData.routeInfo.cheapest?.cost) tripData.routeInfo.cheapest.cost = await safeConvert(tripData.routeInfo.cheapest.cost);
+  }
+
+  return tripData;
+}
+
+const aggregateTripData = async ({ destination, origin, startDate, endDate, travelers, preferences }) => {
   if (!destination || !startDate || !endDate) {
     throw new Error('Destination, startDate, and endDate are required');
   }
 
-  const {
-    language = 'English',
-    currency = 'USD',
-    interests = ['General sightseeing'],
-    accommodationType = 'budget'
-  } = preferences;
-
-  const apiLangCode = 'en';
-  const personalizedParams = {};
-
-  let interestsArray = Array.isArray(interests) ? interests : [interests];
-  if (interestsArray.length > 0 && interestsArray[0] !== 'General sightseeing') {
-    personalizedParams.keyword = interestsArray.join('|');
-  } else {
-    personalizedParams.keyword = 'tourist attraction|landmark|point of interest';
-  }
-
-  if (accommodationType === 'luxury') {
-    personalizedParams.minprice = 3;
-  } else {
-    personalizedParams.maxprice = 2;
-  }
-
   try {
-    let destinationCoords = {};
-    let destinationName = '';
-    let destinationState = '';
+    const destinationInfo = await getGeocodedLocation(destination);
 
-    // --- Geocoding logic (simplified) ---
-    if (typeof destination === 'string') {
-      const geoCacheKey = `geo:${destination.toLowerCase()}`;
-      const geoCached = await getCache(geoCacheKey);
-      if (geoCached) {
-        destinationCoords = geoCached.coords;
-        destinationName = geoCached.name;
-        destinationState = geoCached.state;
-      } else {
-        const geoRes = await retry(() => axios.get(`${OPENTRIPMAP_BASE}/geoname`, { params: { name: destination, country: 'in', apikey: OPENTRIPMAP_API_KEY } }), 'OpenTripMap Geocoding');
-        if (geoRes?.data?.lat && geoRes?.data?.lon) {
-          destinationCoords = { lat: geoRes.data.lat, lon: geoRes.data.lon };
-          destinationName = geoRes.data.name || destination;
-          destinationState = geoRes.data.state?.name || '';
-          await setCache(geoCacheKey, { coords: destinationCoords, name: destinationName, state: destinationState }, 86400);
-        } else {
-          throw new Error(`Could not find coordinates for destination: ${destination}`);
-        }
-      }
-    } else if (destination?.lat && destination?.lon) {
-      destinationCoords = destination;
-      destinationName = `Custom Location (${destination.lat.toFixed(2)}, ${destination.lon.toFixed(2)})`;
-    } else {
-      throw new Error('Invalid destination format: must be string or {lat, lon}');
-    }
-
-    const cacheKey = `v3:trip:${destinationName.replace(/\s+/g, '_')}:${startDate}:${endDate}:${travelers}`;
+    const cacheKey = `v4:trip:${destinationInfo.name.replace(/\s+/g, '_')}:${startDate}:${endDate}:${travelers}`;
     const cached = await getCache(cacheKey);
     if (cached) {
-      logger.info(`✅ Returning cached trip for ${destinationName}`);
+      logger.info(`✅ Returning cached trip for ${destinationInfo.name}`);
       return cached;
     }
 
-    // --- Parallel API calls with Promise.allSettled ---
-    const [attractionsRes, foodRes, weatherRes, unsplashRes, routeRes, accommodationRes, eventsRes] = await Promise.allSettled([
-      retry(() => axios.get(GOOGLE_PLACES_BASE, {
-        params: {
-          location: `${destinationCoords.lat},${destinationCoords.lon}`,
-          radius: 5000,
-          ...personalizedParams,
-          language: apiLangCode,
-          key: GOOGLE_API_KEY,
-        }
-      }), 'Google Places Attractions'),
-      retry(() => axios.get(GOOGLE_PLACES_BASE, {
-        params: {
-          location: `${destinationCoords.lat},${destinationCoords.lon}`,
-          radius: 5000,
-          keyword: 'hotel|lodging|inn|hostel',
-          ...personalizedParams,
-          language: apiLangCode,
-          key: GOOGLE_API_KEY,
-        }
-      }), 'Google Places Accommodations'),
-      retry(() => axios.get(`${OPENTRIPMAP_BASE}/${apiLangCode}/places/radius`, {
-        params: { lat: destinationCoords.lat, lon: destinationCoords.lon, radius: 5000, kinds: 'restaurants,cafes,food,bar', rate: 3, limit: 8, apikey: OPENTRIPMAP_API_KEY }
-      }), 'OpenTripMap Food'),
-      retry(() => axios.get(OPENWEATHER_FORECAST_BASE, {
-        params: { lat: destinationCoords.lat, lon: destinationCoords.lon, appid: OPENWEATHER_API_KEY, units: 'metric' }
-      }), 'OpenWeatherMap Forecast'),
-      retry(() => axios.get(UNSPLASH_BASE, {
-        params: { query: destinationName, per_page: 1, client_id: UNSPLASH_ACCESS_KEY }
-      }), 'Unsplash Image'),
-      getRouteData(origin, destinationCoords),
-      fetchLocalEvents(destinationName, startDate, endDate)
-    ]);
+    const { language = 'English' } = preferences;
 
-    // --- Attractions with fallback ---
-    let attractions = [];
-    if (attractionsRes.status === 'fulfilled' && attractionsRes.value.data?.results?.length > 0) {
-      attractions = attractionsRes.value.data.results.slice(0, 10).map(g => ({
-        name: g.name,
-        kinds: g.types.join(', '),
-        description: `Rating: ${g.rating || 'N/A'} (${g.user_ratings_total || 0} reviews) - ${g.vicinity}`,
-        image: g.photos ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${g.photos[0].photo_reference}&key=${GOOGLE_API_KEY}` : null,
-        website: g.website || null
-      }));
-    } else {
-      // Fallback to OpenTripMap
-      try {
-        const otmRes = await retry(() => axios.get(`${OPENTRIPMAP_BASE}/radius`, {
-          params: { lat: destinationCoords.lat, lon: destinationCoords.lon, radius: 5000, rate: 3, limit: 10, apikey: OPENTRIPMAP_API_KEY }
-        }), 'OpenTripMap Attractions Fallback');
-        if (otmRes.data?.features?.length > 0) {
-          attractions = otmRes.data.features.map(p => ({
-            name: p.properties.name || 'Unnamed place',
-            kinds: p.properties.kinds || '',
-            description: p.properties.wikipedia_extracts?.text || null,
-            image: p.properties.preview?.source || null,
-          }));
-        } else {
-          attractions = [{ name: 'City Museum' }, { name: 'Top Local Park' }];
-        }
-      } catch {
-        attractions = [{ name: 'City Museum' }, { name: 'Top Local Park' }];
-      }
-    }
+    const apiLangCode = API_LANGUAGE_CODES[language.toLowerCase()] || 'en';
 
-    // --- Accommodation suggestions ---
-    let accommodationSuggestions = [];
-    if (accommodationRes.status === 'fulfilled' && accommodationRes.value.data?.results?.length > 0) {
-      accommodationSuggestions = accommodationRes.value.data.results.slice(0, 5).map(place => ({
-        name: place.name,
-        rating: place.rating || 'N/A',
-        user_ratings_total: place.user_ratings_total || 0,
-        vicinity: place.vicinity,
-        photoUrl: place.photos ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${place.photos[0].photo_reference}&key=${GOOGLE_API_KEY}` : null,
-        website: place.website || null
-      }));
-    }
+    const personalizedParams = buildPersonalizedApiParams(preferences);
+    const apiParams = { startDate, endDate, origin, personalizedParams, destinationName: destinationInfo.name, apiLangCode };
 
-    // --- Food recommendations with fallback ---
-    let foodRecommendations = [];
-    if (foodRes.status === 'fulfilled' && foodRes.value.data?.features?.length > 0) {
-      foodRecommendations = foodRes.value.data.features.map(p => ({
-        name: p.properties.name || 'Unnamed eatery',
-        kinds: p.properties.kinds || '',
-        description: p.properties.wikipedia_extracts?.text || null,
-      }));
-    } else {
-      // Fallback to Google Places
-      try {
-        if (!GOOGLE_API_KEY) throw new Error('GOOGLE_API_KEY is not configured.');
-        const googleRes = await axios.get(GOOGLE_PLACES_BASE, {
-          params: { location: `${destinationCoords.lat},${destinationCoords.lon}`, radius: 5000, keyword: 'restaurant|cafe|coffee shop|street food|local cuisine|diner|bistro|brunch spot|fast food|food court|bakery|dessert shop|ice cream|barbecue|buffet|grill|fine dining|gastropub|brewery|winery|pub|food festival', key: GOOGLE_API_KEY, }
-        });
-        if (googleRes.data.results && googleRes.data.results.length > 0) {
-          foodRecommendations = googleRes.data.results.slice(0, 8).map(g => ({
-            name: g.name,
-            kinds: g.types.join(', '),
-            description: `Rating: ${g.rating} (${g.user_ratings_total} reviews) - ${g.vicinity}`,
-            website: g.website || null
-          }));
-        } else {
-          foodRecommendations = [{ name: 'Local Café' }, { name: 'Street Food Corner' }];
-        }
-      } catch {
-        foodRecommendations = [{ name: 'Local Café' }, { name: 'Street Food Corner' }];
-      }
-    }
+    const apiResults = await fetchAllApiData(destinationInfo, apiParams);
 
-    // --- Weather ---
-    let weather = {};
-    const forecast = [];
-    if (weatherRes.status === 'fulfilled' && weatherRes.value.data?.list) {
-      const daysMap = {};
-      weatherRes.value.data.list.forEach(entry => {
-        const dayString = entry.dt_txt.split(' ')[0];
-        if (!daysMap[dayString]) {
-          daysMap[dayString] = {
-            date: dayString, temp: entry.main.temp, temp_min: entry.main.temp_min, temp_max: entry.main.temp_max,
-            condition: entry.weather[0].description, icon: entry.weather[0].icon, chance_of_rain: entry.pop, wind_speed: entry.wind.speed,
-          };
-        }
-      });
-      const uniqueDays = Object.values(daysMap).slice(0, 5);
-      uniqueDays.forEach((dayData, index) => forecast.push({ day: index + 1, ...dayData }));
-    }
-    weather = { forecast: forecast.length > 0 ? forecast : [{ day: 1, date: 'N/A', temp: 'N/A', condition: 'No forecast available' }] };
+    const attractions = processAttractions(apiResults.attractionsRes);
+    const accommodationSuggestions = processAccommodations(apiResults.accommodationRes);
+    const foodRecommendations = processFood(apiResults.foodRes);
+    const weather = processWeather(apiResults.weatherRes);
+    const coverImage = processCoverImage(apiResults.unsplashRes);
+    const route = apiResults.routeRes.status === 'fulfilled' ? apiResults.routeRes.value : {};
+    const localEvents = apiResults.eventsRes.status === 'fulfilled' ? apiResults.eventsRes.value : [];
 
-    // --- Cover image ---
-    const coverImage = (unsplashRes.status === 'fulfilled' && unsplashRes.value.data.results?.[0]?.urls?.regular)
-      ? unsplashRes.value.data.results[0].urls.regular
-      : DEFAULT_IMAGE_URL;
+    const budget = calculateTripBudget({ ...apiParams, travelers, preferences }, route, attractions);
+    const alerts = await fetchThreatAlertsForDestination(destinationInfo.name);
 
-    // --- Route ---
-    const route = routeRes.status === 'fulfilled' ? routeRes.value : {};
-
-    // --- Budget calculation ---
-    const nights = Math.max(1, Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)));
-    const costTier = INDIAN_LOCATION_COST_TIERS[destinationName] || INDIAN_LOCATION_COST_TIERS[destinationState] || 'default';
-    const regionalCosts = INDIA_ACCOMMODATION_COSTS[costTier];
-    const accommodationCost = (regionalCosts[accommodationType] || regionalCosts.standard) * nights;
-    const travelCost = route?.cheapest?.cost || 0;
-    const activityCost = attractions.length * 20;
-    const foodCost = nights * 1500 * travelers;
-    const budget = {
-      travel: travelCost,
-      accommodation: accommodationCost,
-      activities: activityCost,
-      food: foodCost,
-      total: (travelCost + accommodationCost + activityCost + foodCost)
-    };
-
-    // --- Alerts & Events ---
-    const alerts = await fetchThreatAlertsForDestination(destinationName);
-    const localEvents = eventsRes.status === 'fulfilled' ? eventsRes.value : [];
-
-    // --- Final clean object ---
     const tripData = {
-      destinationName, origin, destinationCoords, startDate, endDate, travelers,
-      preferences: { language, currency, interests: interestsArray, accommodationType },
+      destinationName: destinationInfo.name,
+      origin,
+      destinationCoords: destinationInfo.coords,
+      startDate,
+      endDate,
+      travelers,
+      preferences,
       attractions,
       foodRecommendations,
       accommodationSuggestions,
       weather,
       coverImage,
-      route,
+      routeInfo: route,
       budget,
       alerts,
       localEvents
     };
 
+    const { currency = 'USD' } = preferences;
+    tripData = await convertAllCosts(tripData, currency, currencyService);
+
     await setCache(cacheKey, tripData, 600);
-    logger.info(`✅ Trip data aggregated successfully for ${destinationName}`);
+    logger.info(`✅ Trip data aggregated successfully for ${destinationInfo.name}`);
     return tripData;
 
   } catch (error) {
     logger.error('❌ Trip aggregation failed', { error: error.message, stack: error.stack });
-    throw new Error('Failed to aggregate trip data');
+    
+    const userMessage = "We're sorry, but we couldn't create your trip plan at this moment as our systems are undergoing maintenance. 🛠️\n\nIf you'd like to report this issue directly to the developer, you can reach out here: https://www.linkedin.com/in/ankitsingh794/";
+
+    const userFacingError = new Error('Failed to aggregate trip data');
+    userFacingError.userMessage = userMessage; 
+    throw userFacingError;
   }
 };
 
