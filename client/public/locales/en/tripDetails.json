@@ -41,11 +41,12 @@
     "upload": "Upload Document"
   },
   "members": {
-    "findPlaceholder": "Find a member...",
-    "organizer": "Organizer",
-    "member": "Member",
-    "pending": "Pending",
-    "invitationSent": "Invitation Sent"
+    "title": "Trip Members",
+    "inviteDescription": "Share this link to invite others to join and collaborate on this trip.",
+    "generateLink": "Generate Invite Link",
+    "generating": "Generating...",
+    "copyLink": "Copy",
+    "invitePlaceholder": "Invite by email..."
   },
   "chat": {
     "messagePlaceholder": "Type a message..."

@@ -111,7 +111,7 @@ export default function Dashboard() {
                     api.get('/trips?status=completed') // Use a query param for past trips
                 ]);
 
-                setCurrentUser(userResponse.data.user);
+                setCurrentUser(userResponse.data.data.user);
                 setUpcomingTrips(upcomingResponse.data.data.data);
                 setPastTrips(pastResponse.data.data.data);
 

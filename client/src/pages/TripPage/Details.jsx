@@ -70,6 +70,53 @@ const HomeView = ({ trip, t, setActiveModal }) => {
     );
 };
 
+// A new component for the summary bar
+const TripSummaryBar = ({ trip, t }) => {
+    const fastestRoute = trip?.routeInfo?.fastest
+        ? `${trip.routeInfo.fastest.mode} (${trip.routeInfo.fastest.duration})`
+        : 'N/A';
+
+    const budgetValue = trip?.budget?.total
+        ? `${trip.budget.currency || 'USD'} ${trip.budget.total.toLocaleString()}`
+        : 'N/A';
+    const summaryItems = [
+        {
+            icon: <IoPeopleSharp />,
+            label: t('tripDetails:summary.travelers'),
+            value: trip.travelers
+        },
+        {
+            icon: <GiTakeMyMoney />,
+            label: t('tripDetails:summary.budget'),
+            value: budgetValue
+        },
+        {
+            icon: <VscMilestone />,
+            label: t('tripDetails:summary.fastestRoute'),
+            value: fastestRoute
+        },
+        {
+            icon: <VscChecklist />,
+            label: t('tripDetails:summary.alerts'),
+            value: trip.alerts.length > 0 ? `${trip.alerts.length} Active` : 'None'
+        }
+    ];
+
+    return (
+        <div className="trip-summary-bar">
+            {summaryItems.map((item, index) => (
+                <div className="summary-item" key={index}>
+                    <div className="summary-icon">{item.icon}</div>
+                    <div className="summary-text">
+                        <span className="summary-label">{item.label}</span>
+                        <span className="summary-value">{item.value}</span>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+};
+
 
 export default function TripDetails() {
     const { t } = useTranslation(['tripDetails', 'common']);
@@ -81,7 +128,6 @@ export default function TripDetails() {
     const [error, setError] = useState('');
     const [activeModal, setActiveModal] = useState(null);
 
-    // In Details.jsx, replace your existing fetchTripData with this corrected version.
 
     const fetchTripData = useCallback(async () => {
         const mongoIdRegex = /^[0-9a-fA-F]{24}$/;
@@ -232,9 +278,6 @@ export default function TripDetails() {
         if (!MAPBOX_TOKEN) return <div className="map-container">Mapbox token missing.</div>;
         if (!trip?.destinationCoordinates?.lat) return <div className="map-container">Destination coordinates not available.</div>;
 
-        // Create a list of all points of interest: the main destination + all attractions
-        // Note: This assumes attractions have a 'geometry.location' object with lat/lng.
-        // You may need to adjust this based on your exact data structure.
         const pointsOfInterest = useMemo(() => {
             const allPoints = [
                 { ...trip.destinationCoordinates, name: trip.destination }
@@ -274,13 +317,12 @@ export default function TripDetails() {
                     initialViewState={{
                         bounds: bounds,
                         fitBoundsOptions: {
-                            padding: 60 // Add some padding around the edges
+                            padding: 60
                         }
                     }}
-                    mapStyle="mapbox://styles/mapbox/outdoors-v12" // A more scenic map style
+                    mapStyle="mapbox://styles/mapbox/outdoors-v12"
                     style={{ width: '100%', height: '100%' }}
                 >
-                    {/* Add zoom and rotation controls */}
                     <NavigationControl position="top-right" />
 
                     {/* Map over all points to create a marker for each */}
@@ -299,7 +341,6 @@ export default function TripDetails() {
                         </Marker>
                     ))}
 
-                    {/* If a pin is selected, show a popup */}
                     {selectedPin && (
                         <Popup
                             longitude={selectedPin.lon}
@@ -317,50 +358,69 @@ export default function TripDetails() {
     };
 
     const MembersView = ({ members = [], id, onUpdate }) => {
-        const [inviteEmail, setInviteEmail] = useState('');
-        const [isInviting, setIsInviting] = useState(false);
-        const [message, setMessage] = useState('');
+    const { t } = useTranslation('tripDetails');
+    const [inviteLink, setInviteLink] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [message, setMessage] = useState('');
 
-        const handleInvite = async (e) => {
-            e.preventDefault();
-            setMessage('');
-            setIsInviting(true);
-            try {
-                await api.post(`/trips/${id}/invite`, { email: inviteEmail }); //
-                setMessage(`Invitation sent to ${inviteEmail}`);
-                setInviteEmail('');
-                onUpdate();
-            } catch (err) {
-                setMessage(err.response?.data?.message || 'Failed to send invitation.');
-            } finally {
-                setIsInviting(false);
-            }
-        };
-
-        return (
-            <div className="members-container">
-                <form className="members-header" onSubmit={handleInvite}>
-                    <div className="search-members"><VscMail /><input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder={t('tripDetails:members.invitePlaceholder')} required /></div>
-                    <button type="submit" className="action-button primary-outline" style={{ borderColor: COLORS.primary, color: COLORS.primary }} disabled={isInviting}>
-                        {isInviting ? 'Inviting...' : <><VscAdd /> {t('common:general.invite')}</>}
-                    </button>
-                </form>
-                {message && <p style={{ textAlign: 'center', margin: '10px 0' }}>{message}</p>}
-
-                <ul className="members-list">
-                    {members
-                        .filter(member => member.userId && member.userId.name)
-                        .map(member => (
-                            <li className="member-item" key={member.userId._id}>
-                                <img src={member.userId.profileImage || `https://placehold.co/50x50/B0C4B1/4A5759?text=${member.userId.name.charAt(0)}`} alt={member.userId.name} />
-                                <div className="member-info"><strong>{member.userId.name}</strong><p>{member.userId.email}</p></div>
-                                <div className="member-role"><VscOrganization /> {member.role}</div>
-                            </li>
-                        ))}
-                </ul>
-            </div>
-        );
+    const handleGenerateInvite = async () => {
+        setMessage('');
+        setIsLoading(true);
+        try {
+            const { data } = await api.post(`/trips/${id}/generate-invite`);
+            setInviteLink(data.data.inviteLink);
+            setMessage('Link generated! Copy and share it with your friends.');
+        } catch (err) {
+            setMessage(err.response?.data?.message || 'Failed to generate invite link.');
+        } finally {
+            setIsLoading(false);
+        }
     };
+
+    const handleCopyToClipboard = () => {
+        navigator.clipboard.writeText(inviteLink);
+        setMessage('Link copied to clipboard!');
+    };
+
+    return (
+        <div className="members-container">
+            <div className="members-header">
+                <p className="invite-description">{t('members.inviteDescription')}</p>
+                <button
+                    className="action-button primary-outline"
+                    style={{ borderColor: COLORS.primary, color: COLORS.primary }}
+                    onClick={handleGenerateInvite}
+                    disabled={isLoading}
+                >
+                    {isLoading ? t('members.generating') : <><VscShare /> {t('members.generateLink')}</>}
+                </button>
+            </div>
+
+            {/* Display the generated link and copy button */}
+            {inviteLink && (
+                <div className="invite-link-container">
+                    <input type="text" readOnly value={inviteLink} className="invite-link-input" />
+                    <button onClick={handleCopyToClipboard} className="action-button">{t('members.copyLink')}</button>
+                </div>
+            )}
+
+            {message && <p className="invite-message">{message}</p>}
+
+            <h4 className="section-title">{t('members.title')}</h4>
+            <ul className="members-list">
+                {members
+                    .filter(member => member.userId && member.userId.name)
+                    .map(member => (
+                        <li className="member-item" key={member.userId._id}>
+                            <img src={member.userId.profileImage || `https://placehold.co/50x50/B0C4B1/4A5759?text=${member.userId.name.charAt(0)}`} alt={member.userId.name} />
+                            <div className="member-info"><strong>{member.userId.name}</strong><p>{member.userId.email}</p></div>
+                            <div className="member-role"><VscOrganization /> {member.role}</div>
+                        </li>
+                    ))}
+            </ul>
+        </div>
+    );
+};
 
     const ChatView = ({ id }) => {
         const [messages, setMessages] = useState([]);
@@ -378,7 +438,6 @@ export default function TripDetails() {
         useEffect(() => {
             if (id) {
                 fetchMessages();
-                // A real app would use WebSockets here, but polling is a fallback
                 const interval = setInterval(fetchMessages, 5000);
                 return () => clearInterval(interval);
             }
@@ -388,8 +447,6 @@ export default function TripDetails() {
             e.preventDefault();
             if (!newMessage.trim()) return;
             try {
-                // FIX: This now points to the correct endpoint for sending group text messages,
-                // not the AI chat endpoint.
                 await api.post(`/messages/session/${id}/text`, { content: newMessage });
                 setNewMessage('');
                 fetchMessages(); // Re-fetch immediately after sending
@@ -456,18 +513,21 @@ export default function TripDetails() {
         <div className="trip-details-page" style={{ backgroundColor: COLORS.background }}>
             <Link to="/dashboard" className="back-to-dash"><VscArrowLeft /> {t('tripDetails:backToDashboard')}</Link>
             {trip && (
-                <header className="trip-hero">
-                    <img src={trip.coverImage || 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=800&q=80'} alt={trip.destination} className="hero-bg-image" />
-                    <div className="hero-overlay"></div>
-                    <div className="hero-content">
-                        <h1 className="trip-title">{trip.destination}</h1>
-                        <p className="trip-dates"><VscCalendar /> {new Date(trip.startDate).toLocaleDateString()} - {new Date(trip.endDate).toLocaleDateString()}</p>
-                        <div className="hero-actions">
-                            <button className="hero-button"><VscShare /> {t('tripDetails:shareTrip')}</button>
-                            <button className="hero-button primary" style={{ backgroundColor: COLORS.primary }}><VscSignOut style={{ transform: 'rotate(90deg)' }} /> {t('tripDetails:getDirections')}</button>
+                <>
+                    <header className="trip-hero">
+                        <img src={trip.coverImage || 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=800&q=80'} alt={trip.destination} className="hero-bg-image" />
+                        <div className="hero-overlay"></div>
+                        <div className="hero-content">
+                            <h1 className="trip-title">{trip.destination}</h1>
+                            <p className="trip-dates"><VscCalendar /> {new Date(trip.startDate).toLocaleDateString()} - {new Date(trip.endDate).toLocaleDateString()}</p>
+                            <div className="hero-actions">
+                                <button className="hero-button"><VscShare /> {t('tripDetails:shareTrip')}</button>
+                                <button className="hero-button primary" style={{ backgroundColor: COLORS.primary }}><VscSignOut style={{ transform: 'rotate(90deg)' }} /> {t('tripDetails:getDirections')}</button>
+                            </div>
                         </div>
-                    </div>
-                </header>
+                    </header>
+                    <TripSummaryBar trip={trip} t={t} />
+                </>
             )}
 
             <AnimatePresence>
