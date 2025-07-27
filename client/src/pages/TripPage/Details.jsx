@@ -2,10 +2,11 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import Map, { Marker, Popup, NavigationControl } from 'react-map-gl/mapbox';
+import { useAuth } from '../../context/AuthContext';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import {
     VscHome, VscAdd, VscArrowLeft, VscMail, VscOrganization, VscShare, VscSignOut,
-    VscLocation, VscCalendar, VscMilestone, VscChecklist, VscFile, VscClose
+    VscLocation, VscCalendar, VscMilestone, VscChecklist, VscFile, VscClose, VscEdit, VscHeart, VscTrash, VscEllipsis
 } from "react-icons/vsc";
 import { GiWavyItinerary, GiTakeMyMoney } from "react-icons/gi";
 import { IoMdChatbubbles, IoMdSend } from "react-icons/io";
@@ -123,6 +124,7 @@ export default function TripDetails() {
     const { id } = useParams();
     const navigate = useNavigate();
 
+    const [isFavorite, setIsFavorite] = useState(false);
     const [trip, setTrip] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -142,6 +144,7 @@ export default function TripDetails() {
             const response = await api.get(`/trips/${id}`);
 
             setTrip(response.data.data.trip);
+            setIsFavorite(response.data.data.trip.favorite);
 
             setError('');
         } catch (err) {
@@ -179,6 +182,16 @@ export default function TripDetails() {
             </motion.div>
         </motion.div>
     );
+
+    const handleToggleFavorite = async () => {
+        setIsFavorite(prev => !prev);
+        try {
+            await api.patch(`/trips/${id}/favorite`);
+        } catch (err) {
+            setIsFavorite(prev => !prev);
+            console.error("Failed to update favorite status", err);
+        }
+    };
 
 
     const ItineraryView = ({ itinerary = [] }) => (
@@ -358,69 +371,111 @@ export default function TripDetails() {
     };
 
     const MembersView = ({ members = [], id, onUpdate }) => {
-    const { t } = useTranslation('tripDetails');
-    const [inviteLink, setInviteLink] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [message, setMessage] = useState('');
+        const { t } = useTranslation('tripDetails');
+        const { user } = useAuth();
+        const [inviteLink, setInviteLink] = useState('');
+        const [isLoading, setIsLoading] = useState(false);
+        const [message, setMessage] = useState('');
+        const [activeMenu, setActiveMenu] = useState(null);
 
-    const handleGenerateInvite = async () => {
-        setMessage('');
-        setIsLoading(true);
-        try {
-            const { data } = await api.post(`/trips/${id}/generate-invite`);
-            setInviteLink(data.data.inviteLink);
-            setMessage('Link generated! Copy and share it with your friends.');
-        } catch (err) {
-            setMessage(err.response?.data?.message || 'Failed to generate invite link.');
-        } finally {
-            setIsLoading(false);
-        }
-    };
+        const tripOwner = members.find(m => m.role === 'owner')?.userId;
+        const isOwner = user?.id === tripOwner?._id;
 
-    const handleCopyToClipboard = () => {
-        navigator.clipboard.writeText(inviteLink);
-        setMessage('Link copied to clipboard!');
-    };
+        const handleGenerateInvite = async () => {
+            setMessage('');
+            setIsLoading(true);
+            try {
+                const { data } = await api.post(`/trips/${id}/generate-invite`);
+                setInviteLink(data.data.inviteLink);
+                setMessage('Link generated! Copy and share it with your friends.');
+            } catch (err) {
+                setMessage(err.response?.data?.message || 'Failed to generate invite link.');
+            } finally {
+                setIsLoading(false);
+            }
+        };
 
-    return (
-        <div className="members-container">
-            <div className="members-header">
-                <p className="invite-description">{t('members.inviteDescription')}</p>
-                <button
-                    className="action-button primary-outline"
-                    style={{ borderColor: COLORS.primary, color: COLORS.primary }}
-                    onClick={handleGenerateInvite}
-                    disabled={isLoading}
-                >
-                    {isLoading ? t('members.generating') : <><VscShare /> {t('members.generateLink')}</>}
-                </button>
-            </div>
+        const handleCopyToClipboard = () => {
+            navigator.clipboard.writeText(inviteLink);
+            setMessage('Link copied to clipboard!');
+        };
 
-            {/* Display the generated link and copy button */}
-            {inviteLink && (
-                <div className="invite-link-container">
-                    <input type="text" readOnly value={inviteLink} className="invite-link-input" />
-                    <button onClick={handleCopyToClipboard} className="action-button">{t('members.copyLink')}</button>
+        const handleRemoveMember = async (memberId) => {
+            if (window.confirm('Are you sure you want to remove this member?')) {
+                try {
+                    await api.delete(`/trips/${id}/members/${memberId}`);
+                    onUpdate();
+                    setMessage('Member removed successfully.');
+                } catch (err) {
+                    setMessage(err.response?.data?.message || 'Failed to remove member.');
+                }
+            }
+        };
+
+        const handleUpdateRole = async (memberId, newRole) => {
+            try {
+                await api.patch(`/trips/${id}/members/${memberId}/role`, { role: newRole });
+                onUpdate();
+                setMessage('Member role updated.');
+            } catch (err) {
+                setMessage(err.response?.data?.message || 'Failed to update role.');
+            }
+        };
+
+        return (
+            <div className="members-container">
+                <div className="members-header">
+                    <p className="invite-description">{t('members.inviteDescription')}</p>
+                    <button
+                        className="action-button primary-outline"
+                        style={{ borderColor: COLORS.primary, color: COLORS.primary }}
+                        onClick={handleGenerateInvite}
+                        disabled={isLoading}
+                    >
+                        {isLoading ? t('members.generating') : <><VscShare /> {t('members.generateLink')}</>}
+                    </button>
                 </div>
-            )}
+                {inviteLink && (
+                    <div className="invite-link-container">
+                        <input type="text" readOnly value={inviteLink} className="invite-link-input" />
+                        <button onClick={handleCopyToClipboard} className="action-button">{t('members.copyLink')}</button>
+                    </div>
+                )}
 
-            {message && <p className="invite-message">{message}</p>}
+                {message && <p className="invite-message">{message}</p>}
 
-            <h4 className="section-title">{t('members.title')}</h4>
-            <ul className="members-list">
-                {members
-                    .filter(member => member.userId && member.userId.name)
-                    .map(member => (
-                        <li className="member-item" key={member.userId._id}>
-                            <img src={member.userId.profileImage || `https://placehold.co/50x50/B0C4B1/4A5759?text=${member.userId.name.charAt(0)}`} alt={member.userId.name} />
-                            <div className="member-info"><strong>{member.userId.name}</strong><p>{member.userId.email}</p></div>
-                            <div className="member-role"><VscOrganization /> {member.role}</div>
-                        </li>
-                    ))}
-            </ul>
-        </div>
-    );
-};
+                <h4 className="section-title">{t('members.title')}</h4>
+                <ul className="members-list">
+                    {members
+                        .filter(member => member.userId && member.userId.name)
+                        .map(member => (
+                            <li className="member-item" key={member.userId._id}>
+                                <img src={member.userId.profileImage || `https://placehold.co/50x50/B0C4B1/4A5759?text=${member.userId.name.charAt(0)}`} alt={member.userId.name} />
+                                <div className="member-info"><strong>{member.userId.name}</strong><p>{member.userId.email}</p></div>
+                                <div className="member-role"><VscOrganization /> {member.role}</div>
+                                {isOwner && member.role !== 'owner' && (
+                                    <div className="member-actions">
+                                        <button onClick={() => setActiveMenu(activeMenu === member.userId._id ? null : member.userId._id)}>
+                                            <VscEllipsis />
+                                        </button>
+                                        {activeMenu === member.userId._id && (
+                                            <div className="member-menu">
+                                                <button onClick={() => handleUpdateRole(member.userId._id, 'editor')}>Set as Editor</button>
+                                                <button onClick={() => handleUpdateRole(member.userId._id, 'viewer')}>Set as Viewer</button>
+                                                <div className="menu-divider"></div>
+                                                <button className="remove" onClick={() => handleRemoveMember(member.userId._id)}>
+                                                    <VscTrash /> Remove Member
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </li>
+                        ))}
+                </ul>
+            </div>
+        );
+    };
 
     const ChatView = ({ id }) => {
         const [messages, setMessages] = useState([]);
@@ -517,6 +572,17 @@ export default function TripDetails() {
                     <header className="trip-hero">
                         <img src={trip.coverImage || 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=800&q=80'} alt={trip.destination} className="hero-bg-image" />
                         <div className="hero-overlay"></div>
+                        <div className="hero-top-actions">
+                            <button
+                                className={`hero-favorite-button ${isFavorite ? 'active' : ''}`}
+                                onClick={handleToggleFavorite}
+                            >
+                                <VscHeart />
+                            </button>
+                            <Link to={`/trip/${trip._id}/edit`} className="hero-edit-button" style={{ backgroundColor: COLORS.primary }}>
+                                <VscEdit size={24} />
+                            </Link>
+                        </div>
                         <div className="hero-content">
                             <h1 className="trip-title">{trip.destination}</h1>
                             <p className="trip-dates"><VscCalendar /> {new Date(trip.startDate).toLocaleDateString()} - {new Date(trip.endDate).toLocaleDateString()}</p>

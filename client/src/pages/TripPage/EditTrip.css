@@ -1,0 +1,238 @@
+:root {
+    --primary-color: #edafb8;
+    --secondary-color: #f7e1d7;
+    --accent-color: #b0c4b1;
+    --text-color: #4a5759;
+    --background-color: #dedbd2;
+    --card-bg-color: #fcfaf9;
+    --border-color: #e0e0e0;
+}
+
+.edit-trip-page {
+    min-height: 100vh;
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-color);
+}
+
+/* --- Navigation Bar --- */
+.edit-trip-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 2rem;
+    background-color: rgba(252, 250, 249, 0.8); /* Semi-transparent card background */
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.edit-trip-title {
+    margin: 0;
+    font-size: 3rem;
+    font-weight: 600;
+}
+
+.nav-back-button, .save-button-nav {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+}
+
+.nav-back-button {
+    text-decoration: none;
+    color: var(--text-color);
+    justify-content: flex-start;
+}
+
+.save-button-nav {
+    padding: 0.6rem 1.2rem;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    justify-content: flex-end;
+    max-width: fit-content;
+    margin-left: 21vw;
+}
+
+.save-button-nav:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.save-button-nav:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* --- Main Form Container --- */
+.edit-trip-container {
+    max-width: 900px;
+    margin: 2.5rem auto;
+    padding: 2.5rem 3rem;
+    background-color: var(--card-bg-color);
+    border-radius: 1.5rem; /* More pronounced rounding */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    border: 1px solid #fff;
+}
+
+.edit-trip-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2.5rem;
+}
+
+.form-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-color);
+}
+
+.edit-trip-form input,
+.edit-trip-form select {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    font-size: 1rem;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    background-color: #fff;
+    box-sizing: border-box;
+    transition: all 0.2s ease-in-out;
+}
+
+.edit-trip-form input:focus,
+.edit-trip-form select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(237, 175, 184, 0.3);
+    outline: none;
+}
+
+/* --- Status Selector --- */
+.status-selector {
+    display: flex;
+    width: 100%;
+    background-color: #f0f0f0;
+    border-radius: 8px;
+    padding: 4px;
+    border: 1px solid var(--border-color);
+}
+
+.status-option {
+    flex: 1;
+    padding: 0.6rem;
+    border: none;
+    background-color: transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    color: #666;
+    transition: all 0.3s ease;
+    font-size: 0.85rem;
+}
+
+.status-option.active {
+    background-color: #fff;
+    color: var(--text-color);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+}
+
+/* --- Footer Message --- */
+.form-message-footer {
+    grid-column: 1 / -1;
+    text-align: center;
+    margin-top: 1rem;
+    font-weight: 500;
+    padding: 0.75rem;
+    border-radius: 8px;
+    background-color: rgba(176, 196, 177, 0.3);
+    color: var(--text-color);
+}
+
+.edit-trip-container h6{
+    color: red;
+}
+
+/* ... (all existing CSS styles) ... */
+
+/* --- NEW: Danger Zone Styles --- */
+.danger-zone {
+    margin-top: 2.5rem;
+    padding-top: 1.5rem;
+    border-top: 2px dashed rgba(231, 76, 60, 0.3);
+}
+
+.danger-zone-header h4 {
+    margin: 0 0 0.25rem 0;
+    color: #e74c3c; /* Red for danger */
+    font-size: 1.1rem;
+    padding: 0.625rem 1.25rem;
+}
+
+.danger-zone-header p {
+    margin: 0 0 1.5rem 0;
+    font-size: 0.9rem;
+    opacity: 0.8;
+    padding: 0.625rem 1.25rem;
+}
+
+.delete-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: auto;
+    padding: 0.7rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: white;
+    background-color: #e74c3c;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin:  0.625rem;
+}
+
+.delete-button:hover {
+    background-color: #c0392b;
+    box-shadow: 0 4px 10px rgba(231, 76, 60, 0.3);
+}
+
+.delete-button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* --- Responsive Design --- */
+@media (max-width: 768px) {
+    .edit-trip-form {
+        grid-template-columns: 1fr;
+    }
+
+    .edit-trip-nav {
+        padding: 0.75rem 1rem;
+    }
+
+    .edit-trip-container {
+        margin: 1.5rem;
+        padding: 1.5rem;
+    }
+}
