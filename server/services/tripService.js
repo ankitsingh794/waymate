@@ -546,7 +546,7 @@ const aggregateTripData = async ({ destination, origin, startDate, endDate, trav
     const budget = calculateTripBudget({ ...apiParams, travelers, preferences }, route, attractions);
     const alerts = await fetchThreatAlertsForDestination(destinationInfo.name);
 
-    const tripData = {
+    let tripData = {
       destinationName: destinationInfo.name,
       origin,
       destinationCoords: destinationInfo.coords,

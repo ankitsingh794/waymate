@@ -248,17 +248,25 @@ function formatDetailResponse(requestType, trip, options = {}) {
  * @param {object} collectedData The data gathered from the conversational flow.
  */
 async function processTripCreation(creatorId, collectedData) {
+    if (mongoose.connection.readyState !== 1) { 
+        logger.error('FATAL: Database is not connected. Aborting trip creation.');
+        const userMessage = "We're sorry, our database is currently under maintenance, and we can't create your trip right now. Please try again in a little while.";
+        notificationService.sendTripError(creatorId, userMessage);
+        return; 
+    }
     const io = getSocketIO();
 
+    let session;
     try {
         if (!collectedData || !collectedData.destination || !collectedData.dates?.startDate) {
             throw new Error('Incomplete data received for trip creation.');
         }
 
-        const session = await mongoose.startSession();
+        session = await mongoose.startSession();
         session.startTransaction();
         let trip;
 
+        
         try {
             logger.info('Starting background trip creation...', { creatorId, data: collectedData });
 
