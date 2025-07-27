@@ -118,32 +118,29 @@ exports.getTripById = async (req, res) => {
     }
 };
 
-/** *Updates a trip.
- * @desc    Update a trip.
- * @route   PATCH /api/trips/:id
+/**
+ * @desc    Update core trip details from the main edit page.
+ * @route   PATCH /api/trips/:id/details
  * @access  Private (Owner or Editor)
  */
-
-exports.updateTrip = async (req, res) => {
-    const allowedUpdateFields = ['destination', 'startDate', 'endDate', 'preferences', 'status', 'favorite'];
+exports.updateTripDetails = async (req, res) => {
     try {
         const { trip } = await getTripAndVerifyPermission(req.params.id, req.user._id, ['owner', 'editor']);
 
-        Object.keys(req.body).forEach(key => {
-            if (allowedUpdateFields.includes(key)) {
-                trip[key] = req.body[key];
-            }
-        });
+        trip.startDate = req.body.startDate;
+        trip.endDate = req.body.endDate;
+        trip.travelers = req.body.travelers;
+        trip.status = req.body.status;
+        trip.preferences.accommodationType = req.body.preferences.accommodationType;
 
         await trip.save();
 
-        // Invalidate cache for all members
         await Promise.all(trip.group.members.map(m => invalidateAllTripCachesForUser(m.userId)));
 
-        logger.info(`Trip updated: ${trip._id}`);
+        logger.info(`Trip details updated for: ${trip._id}`);
         return sendResponse(res, 200, true, 'Trip updated successfully', { trip });
     } catch (error) {
-        logger.error(`Error updating trip: ${error.message}`);
+        logger.error(`Error updating trip details: ${error.message}`);
         return sendResponse(res, error.statusCode || 500, false, error.message || 'Failed to update trip.');
     }
 };

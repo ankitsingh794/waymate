@@ -1,4 +1,3 @@
-const { getSocketIO } = require('../utils/socket');
 const logger = require('../utils/logger');
 // const emailService = require('./emailService');
 
@@ -12,6 +11,7 @@ const socketChannel = {
    */
   emitToUser(userId, event, payload) {
     try {
+      const { getSocketIO } = require('../utils/socket');
       const io = getSocketIO();
       if (io) {
         io.to(userId.toString()).emit(event, payload);
@@ -30,6 +30,7 @@ const socketChannel = {
    */
   broadcastToTrip(tripId, event, payload) {
     try {
+      const { getSocketIO } = require('../utils/socket');
       const io = getSocketIO();
       if (io) {
         io.to(tripId.toString()).emit(event, payload);

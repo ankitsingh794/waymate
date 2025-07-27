@@ -8,7 +8,7 @@ const {
   downloadTripPdf,
   getAllTrips,
   getTripById,
-  updateTrip,
+  updateTripDetails,
   deleteTrip,
   getUpcomingTrips,
   updateTripStatus,
@@ -34,9 +34,8 @@ router.get('/:id/download', mongoIdValidation('id'), validate, downloadTripPdf);
 
 router.get('/:id', mongoIdValidation('id'), validate, getTripById);
 
-router.put('/:id', mongoIdValidation('id'), /* other validations */ validate, updateTrip);
+router.patch('/:id/details', mongoIdValidation('id'), validate, updateTripDetails);
 
-// FIX: Correctly apply the validation middleware to the delete route
 router.delete('/:id', mongoIdValidation('id'), validate, deleteTrip);
 
 // Correct
@@ -55,7 +54,7 @@ router.delete('/:tripId/members/:memberId', [
 
 router.patch('/:id/favorite', mongoIdValidation('id'), validate, toggleFavoriteStatus);
 
-router.patch('/:id/status', mongoIdValidation('id'), /* other validations */ validate, updateTripStatus);
+router.patch('/:id/status', mongoIdValidation('id'), validate, updateTripStatus);
 
 // Nested expense routes
 router.use('/:tripId/expenses', mongoIdValidation('tripId'), validate, expenseRoutes);

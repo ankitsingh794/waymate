@@ -17,23 +17,25 @@ async function fetchLocalEvents(destinationName, startDate, endDate) {
     const tripEnd = new Date(endDate);
     const lowerCaseDestination = destinationName.toLowerCase();
 
-    let feedUrls = [];
-    const sourceKey = Object.keys(EVENT_FEED_SOURCES).find(key => lowerCaseDestination.includes(key));
+    const sourceKey = Object.keys(EVENT_FEED_SOURCES).find(key => 
+        key !== 'default' && lowerCaseDestination.includes(key)
+    );
 
-    if (sourceKey && typeof EVENT_FEED_SOURCES[sourceKey] === 'function') {
-        feedUrls.push(EVENT_FEED_SOURCES[sourceKey](destinationName));
+    let feedUrls;
+    if (sourceKey) {
+        feedUrls = EVENT_FEED_SOURCES[sourceKey];
     } else {
-        feedUrls = EVENT_FEED_SOURCES[sourceKey] || [EVENT_FEED_SOURCES.default(destinationName)];
+        const googleNewsUrl = EVENT_FEED_SOURCES.default(destinationName);
+        feedUrls = [googleNewsUrl];
     }
 
     const allEvents = [];
 
     for (const url of feedUrls) {
         try {
-            // FIX: Fetch with axios to set a User-Agent header, as some servers require it.
             const response = await axios.get(url, {
                 headers: { 'User-Agent': 'WayMateApp/1.0 (+http://yourapp.com/bot)' },
-                timeout: 10000 // 10 second timeout
+                timeout: 10000
             });
             
             const feed = await parser.parseString(response.data);
@@ -58,6 +60,7 @@ async function fetchLocalEvents(destinationName, startDate, endDate) {
     logger.info(`Found ${allEvents.length} relevant local events for ${destinationName}.`);
     return allEvents.slice(0, 5);
 }
+
 
 module.exports = { fetchLocalEvents };
 

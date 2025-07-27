@@ -5,6 +5,9 @@ const connectDB = require('./config/db');
 const logger = require('./utils/logger');
 const { initSocketIO } = require('./utils/socket');
 const { closeRedisConnection } = require('./config/redis');
+const { initScheduledJobs } = require('./services/cleanupService');
+
+
 
 const PORT = process.env.PORT || 5000;
 
@@ -37,6 +40,7 @@ const server = http.createServer(app);
  * FIX: This now calls the single, correct function.
  */
 initSocketIO(server);
+initScheduledJobs();
 
 
 /**

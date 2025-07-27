@@ -21,6 +21,11 @@ const messageSchema = new mongoose.Schema(
       enum: ['user', 'system', 'ai'],
       default: 'user'
     },
+    inReplyTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Message',
+      default: null
+    },
 
     media: {
       url: String,
