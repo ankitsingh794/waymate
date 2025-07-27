@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 const pdfService = require('../services/pdfService');
 const Trip = require('../models/Trip');
 const User = require('../models/User');
@@ -180,52 +181,6 @@ exports.deleteTrip = async (req, res) => {
 };
 
 
-/** Invite a user to a trip.
- * @desc    Invite a user to a trip.
- * @route   POST /api/trips/:tripId/invite
- * @access  Private (Owner only)
- */
-exports.inviteUserToTrip = async (req, res) => {
-    const { id: tripId } = req.params;
-    const { email: inviteeEmail } = req.body;
-
-    const session = await mongoose.startSession();
-    session.startTransaction();
-    try {
-        const { trip } = await getTripAndVerifyPermission(tripId, req.user._id, ['owner']);
-        const invitee = await User.findOne({ email: inviteeEmail });
-        if (!invitee) {
-            return sendResponse(res, 404, false, `User with email ${inviteeEmail} not found.`);
-        }
-        if (trip.group.members.some(m => m.userId.toString() === invitee._id.toString())) {
-            return sendResponse(res, 400, false, 'This user is already a member of the trip.');
-        }
-
-        trip.group.members.push({ userId: invitee._id, role: 'editor' });
-        trip.group.isGroup = true;
-        await trip.save({ session });
-        await ChatSession.updateOne({ tripId }, { $addToSet: { participants: invitee._id } }, { session });
-
-        await session.commitTransaction();
-
-        await invalidateAllTripCachesForUser(invitee._id);
-
-        const io = getSocketIO();
-        io.to(invitee._id.toString()).emit('newTripInvite', {
-            message: `You've been invited by ${req.user.username} to join a trip to ${trip.destination}!`,
-            tripId: trip._id,
-        });
-
-        logger.info(`User ${invitee.email} invited to trip ${trip._id}`);
-        return sendResponse(res, 200, true, 'User invited successfully.', { members: trip.group.members });
-    } catch (error) {
-        await session.abortTransaction();
-        logger.error(`Error inviting user to trip ${tripId}: ${error.message}`);
-        return sendResponse(res, error.statusCode || 500, false, error.message || 'Failed to invite user.');
-    } finally {
-        session.endSession();
-    }
-};
 
 /** * Removes a member from a trip.
  * @desc    Remove a member from a trip.
@@ -407,5 +362,82 @@ exports.updateTripStatus = async (req, res) => {
     } catch (error) {
         logger.error(`Error updating trip status for trip ${id}: ${error.message}`);
         return sendResponse(res, error.statusCode || 500, false, error.message || 'Failed to update trip status.');
+    }
+};
+
+exports.generateInviteLink = async (req, res) => {
+    try {
+        const { trip } = await getTripAndVerifyPermission(req.params.id, req.user._id, ['owner', 'editor']);
+
+        const inviteToken = crypto.randomBytes(20).toString('hex');
+        const inviteTokenExpires = Date.now() + 24 * 60 * 60 * 1000; 
+
+        trip.inviteTokens.push({
+            token: inviteToken,
+            expires: inviteTokenExpires
+        });
+        await trip.save();
+
+        const inviteLink = `${process.env.CLIENT_URL}/join-trip?token=${inviteToken}`;
+        
+        logger.info(`Invite link generated for trip ${trip._id} by ${req.user.email}`);
+        return sendResponse(res, 200, true, 'Invite link generated successfully', { inviteLink });
+
+    } catch (error) {
+        logger.error(`Error generating invite link: ${error.message}`);
+        return sendResponse(res, error.statusCode || 500, false, error.message || 'Failed to generate link.');
+    }
+};
+
+exports.acceptTripInvite = async (req, res) => {
+    const { token } = req.body;
+    const userId = req.user._id;
+
+    if (!token) {
+        return sendResponse(res, 400, false, 'Invite token is required.');
+    }
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+        const trip = await Trip.findOne({
+            'inviteTokens.token': token,
+            'inviteTokens.expires': { $gt: Date.now() }
+        });
+
+        if (!trip) {
+            return sendResponse(res, 400, false, 'Invalid or expired invite link.');
+        }
+        if (trip.group.members.some(m => m.userId.toString() === userId.toString())) {
+            return sendResponse(res, 400, false, 'You are already a member of this trip.');
+        }
+
+        // Add the user to the trip and chat
+        trip.group.members.push({ userId, role: 'editor' });
+        trip.group.isGroup = true;
+        // Optional: Remove the token after use to make it single-use
+        trip.inviteTokens = trip.inviteTokens.filter(t => t.token !== token);
+        await trip.save({ session });
+        await ChatSession.updateOne({ tripId: trip._id }, { $addToSet: { participants: userId } }, { session });
+        
+        await session.commitTransaction();
+
+        // Invalidate caches and notify the new member
+        await invalidateAllTripCachesForUser(userId);
+        
+        const io = getSocketIO();
+        io.to(userId.toString()).emit('newTripInvite', {
+             message: `Welcome! You've successfully joined the trip to ${trip.destination}.`,
+             tripId: trip._id,
+        });
+
+        logger.info(`User ${req.user.email} joined trip ${trip._id} via invite link.`);
+        return sendResponse(res, 200, true, 'Successfully joined the trip!', { tripId: trip._id });
+    } catch (error) {
+        await session.abortTransaction();
+        logger.error(`Error accepting trip invite: ${error.message}`);
+        return sendResponse(res, 500, false, 'Failed to join trip.');
+    } finally {
+        session.endSession();
     }
 };

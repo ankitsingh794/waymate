@@ -2,7 +2,7 @@ const express = require('express');
 const { protect } = require('../middlewares/authMiddleware');
 const validate = require('../middlewares/validateMiddleware');
 const expenseRoutes = require('./expenseRoutes');
-const { mongoIdValidation } = require('../utils/validationHelpers'); 
+const { mongoIdValidation } = require('../utils/validationHelpers');
 
 const {
   downloadTripPdf,
@@ -12,10 +12,11 @@ const {
   deleteTrip,
   getUpcomingTrips,
   updateTripStatus,
-  inviteUserToTrip,
   toggleFavoriteStatus,
   updateMemberRole,
-  removeMemberFromTrip
+  removeMemberFromTrip,
+  generateInviteLink,
+  acceptTripInvite
 } = require('../controllers/tripController');
 
 const router = express.Router();
@@ -39,16 +40,17 @@ router.put('/:id', mongoIdValidation('id'), /* other validations */ validate, up
 router.delete('/:id', mongoIdValidation('id'), validate, deleteTrip);
 
 // Correct
-router.post('/:tripId/invite', mongoIdValidation('tripId'), validate, inviteUserToTrip);
+router.post('/:id/generate-invite', mongoIdValidation('id'), validate, generateInviteLink);
+router.post('/accept-invite', acceptTripInvite);
 
 router.patch('/:tripId/members/:memberId/role', [
-    mongoIdValidation('tripId'),
-    mongoIdValidation('memberId')
+  mongoIdValidation('tripId'),
+  mongoIdValidation('memberId')
 ], validate, updateMemberRole);
 
 router.delete('/:tripId/members/:memberId', [
-    mongoIdValidation('tripId'),
-    mongoIdValidation('memberId')
+  mongoIdValidation('tripId'),
+  mongoIdValidation('memberId')
 ], validate, removeMemberFromTrip);
 
 router.patch('/:id/favorite', mongoIdValidation('id'), validate, toggleFavoriteStatus);
