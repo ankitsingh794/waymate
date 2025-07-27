@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../../utils/axiosInstance';
 import './AIAssistant.css';
+import socket from '../../utils/socket';
 
 const COLORS = {
     primary: '#edafb8',
@@ -64,6 +65,7 @@ const ChatWindow = ({ userLocation }) => {
     const { t } = useTranslation('aiAssistant');
     const [sessionId, setSessionId] = useState(null);
     const [messages, setMessages] = useState([]);
+    const [tripSummary, setTripSummary] = useState(null)
     const [inputValue, setInputValue] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
@@ -86,6 +88,38 @@ const ChatWindow = ({ userLocation }) => {
         };
         getAiSession();
     }, [t]);
+
+    useEffect(() => {
+        const handleTripCreated = (data) => {
+            setIsTyping(false);
+            const successMessage = {
+                id: crypto.randomUUID(),
+                text: data.reply,
+                sender: 'ai'
+            };
+            setMessages(prev => [...prev, successMessage]);
+            setTripSummary(data.summary);
+        };
+
+        const handleTripError = (data) => {
+            setIsTyping(false);
+            const errorMessage = {
+                id: crypto.randomUUID(),
+                text: data.reply,
+                sender: 'ai',
+                isError: true
+            };
+            setMessages(prev => [...prev, errorMessage]);
+        };
+
+        socket.on('tripCreated', handleTripCreated);
+        socket.on('tripCreationError', handleTripError);
+
+        return () => {
+            socket.off('tripCreated', handleTripCreated);
+            socket.off('tripCreationError', handleTripError);
+        };
+    }, []);
 
     useEffect(() => {
         if (!sessionId) return;
@@ -123,6 +157,7 @@ const ChatWindow = ({ userLocation }) => {
         const newUserMessage = {
             id: crypto.randomUUID(),
             text: inputValue,
+            sender: 'user', // Correctly identify the sender
             type: 'user'
         };
 
@@ -134,15 +169,23 @@ const ChatWindow = ({ userLocation }) => {
             const response = await api.post('/chat/message', {
                 message: inputValue,
                 sessionId: sessionId,
-                origin: userLocation 
+                origin: userLocation
             });
 
-            const aiResponse = {
-                id: crypto.randomUUID(),
-                text: response.data.data.reply,
-                sender: 'ai'
-            };
-            setMessages(prev => [...prev, aiResponse]);
+            const aiResponse = response.data.data;
+
+            // --- FIX ---
+            // Only add the AI's response to the chat if it's NOT a trip creation.
+            // For trip creations, the WebSocket listener will handle the final message.
+            if (aiResponse.reply.includes("Give me a moment") === false) {
+                const aiResponseMessage = {
+                    id: crypto.randomUUID(),
+                    text: aiResponse.reply,
+                    sender: 'ai'
+                };
+                setMessages(prev => [...prev, aiResponseMessage]);
+            }
+
         } catch (error) {
             console.error("Error sending message to AI:", error);
             const errorResponse = {
@@ -162,42 +205,69 @@ const ChatWindow = ({ userLocation }) => {
     }
 
     return (
-        <div className="chat-window">
-            <div className="messages-container">
-                {messages.map((msg, index) => (
-                    <div key={msg._id || msg.id || index} className={`message-bubble-wrapper ${msg.type === 'user' ? 'user-message' : 'ai-message'}`}>
-                        {msg.type !== 'user' && <VscSparkle className="ai-avatar" style={{ backgroundColor: msg.isError ? '#d9534f' : COLORS.primary }} />}
-                        <div className={`message-bubble ${msg.isError ? 'error-bubble' : ''}`}>
-                            <p>{msg.text}</p>
+    <div className="chat-window">
+        <div className="messages-container">
+            {messages.map((msg) => (
+                <div
+                    key={msg._id || msg.id}
+                    className={`message-bubble-wrapper ${msg.sender === 'user' || msg.type === 'user' ? 'user-message' : 'ai-message'}`}
+                >
+                    <div className={`message-bubble ${msg.isError ? 'error-bubble' : ''}`}>
+                        {msg.text}
+                    </div>
+                </div>
+            ))}
+
+            {/* Render the trip summary card if it exists */}
+            {tripSummary && (
+                <div className="message-bubble-wrapper ai-message">
+                    <div className="trip-summary-card">
+                        <img src={tripSummary.coverImage} alt={tripSummary.destination} className="trip-card-image" />
+                        <div className="trip-card-content">
+                            <h4>Your Trip to {tripSummary.destination}</h4>
+                            <p>{tripSummary.weatherSummary}</p>
+                            <Link to={`/trip/${tripSummary._id}`} className="view-trip-button">
+                                View Full Plan
+                            </Link>
                         </div>
                     </div>
-                ))}
-                {isTyping && (
-                    <div className="message-bubble-wrapper ai-message">
-                        <VscSparkle className="ai-avatar" style={{ backgroundColor: COLORS.primary }} />
-                        <div className="message-bubble typing-indicator">
-                            <span></span><span></span><span></span>
-                        </div>
+                </div>
+            )}
+
+            {/* Render the typing indicator when the AI is processing */}
+            {isTyping && (
+                <div className="message-bubble-wrapper ai-message">
+                    <div className="message-bubble typing-indicator">
+                        <span></span>
+                        <span></span>
+                        <span></span>
                     </div>
-                )}
-                <div ref={messagesEndRef} />
-            </div>
-            <form className="chat-input-form" onSubmit={handleSendMessage}>
-                <input
-                    type="text"
-                    className="chat-input"
-                    placeholder={t('inputPlaceholder')}
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    disabled={isTyping || isLoading}
-                />
-                <button type="submit" className="send-button" style={{ backgroundColor: COLORS.text }} disabled={isTyping || isLoading}>
-                    <IoMdSend />
-                </button>
-            </form>
+                </div>
+            )}
+            <div ref={messagesEndRef} />
         </div>
-    );
-};
+        
+        <form className="chat-input-form" onSubmit={handleSendMessage}>
+            <input
+                type="text"
+                className="chat-input"
+                placeholder={t('inputPlaceholder')}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                disabled={isTyping || isLoading}
+            />
+            <button
+                type="submit"
+                className="send-button"
+                style={{ backgroundColor: COLORS.text }}
+                disabled={isTyping || isLoading || inputValue.trim() === ''}
+            >
+                <IoMdSend />
+            </button>
+        </form>
+    </div>
+);
+}
 
 export default function AIAssistantPage() {
     const { location, error: geoError } = useGeolocation();

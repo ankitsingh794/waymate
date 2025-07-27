@@ -74,7 +74,6 @@ const TripCarousel = ({ title, subtitle, trips }) => {
                     <Link to={`/trip/${trip._id || trip.tripId}`} className="trip-card-link" key={trip._id || trip.tripId}>
                         <div className="trip-card">
                             <div className="trip-image-wrapper">
-                                {/* FIX: Changed trip.imageUrl to trip.coverImage to match backend data */}
                                 <img src={trip.coverImage || `https://images.unsplash.com/photo-1502602898657-3e91760c0337?w=500&q=80`} alt={trip.destination} draggable="false" />
                             </div>
                             <div className="trip-info">
