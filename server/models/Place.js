@@ -12,6 +12,7 @@ const placeSchema = new mongoose.Schema({
 
   photo_reference: { type: String },
   place_id: { type: String },
+  imageUrl: { type: String },
 
   location: {
     type: {

@@ -6,7 +6,7 @@ const { getCache, setCache } = require('../config/redis');
 
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 const GOOGLE_PLACES_BASE = 'https://maps.googleapis.com/maps/api/place';
-const CACHE_TTL_SECONDS = 3600; 
+const CACHE_TTL_SECONDS = 3600;
 
 async function findPlaces(query, location, userCoords) {
     if (!GOOGLE_API_KEY) {
@@ -18,7 +18,7 @@ async function findPlaces(query, location, userCoords) {
     const normalizedLocation = location.toLowerCase().trim();
     const cacheKey = `places:v3:${normalizedLocation}:${normalizedQuery}`;
 
-        const cachedResults = await getCache(cacheKey);
+    const cachedResults = await getCache(cacheKey);
     if (cachedResults) {
         logger.info(`Returning cached places from Redis for "${query}" in "${location}"`);
         return cachedResults;
@@ -32,9 +32,9 @@ async function findPlaces(query, location, userCoords) {
                 $nearSphere: {
                     $geometry: {
                         type: "Point",
-                        coordinates: [userCoords.lon, userCoords.lat] 
+                        coordinates: [userCoords.lon, userCoords.lat]
                     },
-                    $maxDistance: 5000 
+                    $maxDistance: 5000
                 }
             }
         }).limit(8);
@@ -67,7 +67,7 @@ async function findPlaces(query, location, userCoords) {
 
     if (candidatePlaces.length === 0) return [];
 
-     const candidatesMap = new Map(candidatePlaces.map(p => [p.name, p]));
+    const candidatesMap = new Map(candidatePlaces.map(p => [p.name, p]));
 
     const filteringPrompt = `
 You are a **witty and enthusiastic local food blogger** who knows all the hidden gems and popular spots in town.  
@@ -110,34 +110,39 @@ Return exactly **8 objects** in a **valid JSON array**, using this structure:
 
 ### 📍 CANDIDATE PLACES:
 ${JSON.stringify(
-  candidatePlaces.slice(0, 15).map((p) => ({
-    name: p.name,
-    address: p.vicinity,
-    rating: p.rating,
-  }))
-)}
+        candidatePlaces.slice(0, 15).map((p) => ({
+            name: p.name,
+            address: p.vicinity,
+            rating: p.rating,
+        }))
+    )}
 `;
 
-    
+
     try {
         const rankedResults = await getFilteredResponse(filteringPrompt);
-        
+
         const finalResults = rankedResults.map(rankedPlace => {
-             const originalPlace = candidatesMap.get(rankedPlace.name);
+            const originalPlace = candidatesMap.get(rankedPlace.name);
+            const photoRef = originalPlace?.photos?.[0]?.photo_reference || null;
+
             return {
                 ...rankedPlace,
                 photo_reference: originalPlace?.photos?.[0]?.photo_reference || null,
-                place_id: originalPlace?.place_id || null
+                place_id: originalPlace?.place_id || null,
+                imageUrl: photoRef
+                    ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photoRef}&key=${GOOGLE_API_KEY}`
+                    : null
             };
         });
-        
+
         const placesToSave = finalResults.map(place => {
             const originalPlace = candidatesMap.get(place.name);
             return {
                 ...place,
                 query: normalizedQuery,
                 city: normalizedLocation,
-                location: { 
+                location: {
                     type: 'Point',
                     coordinates: [
                         originalPlace?.geometry?.location?.lng,
