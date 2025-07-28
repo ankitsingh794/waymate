@@ -1,0 +1,97 @@
+.explore-page {
+    min-height: 100vh;
+    background-color: #dedbd2; /* Your theme background */
+}
+
+.explore-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.explore-header {
+    margin-bottom: 2.5rem;
+    text-align: center;
+}
+
+.explore-header h1 {
+    font-size: 2.5rem;
+    color: #4a5759; /* Your theme text color */
+}
+
+.explore-header h1 span {
+    color: #edafb8; /* Your theme primary color */
+    text-transform: capitalize;
+}
+
+.explore-header p {
+    font-size: 1.1rem;
+    opacity: 0.8;
+}
+.places-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+/* --- Updated Place Card Styles --- */
+.place-card-link {
+    text-decoration: none;
+    color: inherit; /* Ensures text inside the link inherits color */
+}
+/* ... (existing styles) ... */
+
+/* --- Updated Place Card Styles for Consistency --- */
+.place-card {
+    background-color: #fcfaf9;
+    border-radius: 1rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+    overflow: hidden;
+    display: flex; /* Use Flexbox for consistent layout */
+    flex-direction: column; /* Stack image and content vertically */
+}
+
+.place-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.place-card-image {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    background-color: #f0f0f0; /* Add a placeholder color */
+}
+
+.place-card-content {
+    padding: 1.5rem;
+    flex-grow: 1; /* Allow content to fill available space */
+    display: flex;
+    flex-direction: column;
+}
+
+.place-card h3 {
+    margin: 0 0 0.5rem 0;
+    color: #4a5759;
+    min-height: 48px; /* Set a minimum height for the title */
+}
+
+.place-reason {
+    font-style: italic;
+    opacity: 0.9;
+    border-left: 3px solid #b0c4b1;
+    padding-left: 1rem;
+    flex-grow: 1; /* Allow this to take up extra space, pushing the address down */
+    color: #4a5759;
+}
+
+.place-address {
+    font-size: 0.9rem;
+    opacity: 0.7;
+    margin-top: 1rem; /* Ensure consistent spacing */
+}
+
+.place-rating{
+    color: darkblue;
+}

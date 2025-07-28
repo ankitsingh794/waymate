@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }) => {
         };
         fetchUserProfile();
     }, [accessToken]);
-    
+
     const login = (userData, token) => {
         localStorage.setItem('accessToken', token);
         setAccessToken(token);
@@ -36,13 +36,13 @@ export const AuthProvider = ({ children }) => {
     };
 
     const logout = () => {
-        api.post('/auth/logout'); 
+        api.post('/auth/logout');
         localStorage.removeItem('accessToken');
         setAccessToken(null);
         setUser(null);
         navigate('/login');
     };
-    
+
     const value = useMemo(() => ({
         user,
         accessToken,
@@ -54,7 +54,7 @@ export const AuthProvider = ({ children }) => {
 
     return (
         <AuthContext.Provider value={value}>
-            {!loading && children}
+            {children}
         </AuthContext.Provider>
     );
 };

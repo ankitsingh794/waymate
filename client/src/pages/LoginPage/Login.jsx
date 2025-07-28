@@ -3,12 +3,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../../utils/axiosInstance';
 import './Register.css';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Login() {
     const { t } = useTranslation('auth');
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [message, setMessage] = useState('');
     const navigate = useNavigate();
+    const { login } = useAuth();
 
     const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -17,11 +19,8 @@ export default function Login() {
         setMessage('');
         try {
             const res = await api.post('/auth/login', formData);
-            localStorage.setItem('accessToken', res.data.data.accessToken);
-            setMessage('✅ Logged in successfully! Redirecting...');
-            setTimeout(() => {
-                navigate('/dashboard');
-            }, 1500);
+            login(res.data.data.user, res.data.data.accessToken);
+
         } catch (err) {
             setMessage(err.response?.data?.message || 'Invalid credentials. Please try again.');
         }

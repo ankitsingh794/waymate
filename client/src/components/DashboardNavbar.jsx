@@ -3,27 +3,21 @@ import { Link } from 'react-router-dom';
 import { VscBell, VscSettingsGear, VscAccount, VscSignOut } from "react-icons/vsc";
 import { useTranslation } from 'react-i18next';
 import Logo from '../assets/logo.png';
+import { useAuth } from '../context/AuthContext'; 
 import './DashboardNavbar.css';
-
-const currentUser = {
-    name: 'Alex',
-    avatarUrl: 'https://placehold.co/40x40/EDAFB8/4A5759?text=A'
-};
+import '../i18n.js'
 
 export default function DashboardNavbar() {
-    const { t } = useTranslation(['common', 'dashboard', 'profile', 'settings', 'auth']);
-    
+    const { t } = useTranslation(['common', 'dashboard']);
+    const { user, logout } = useAuth(); // 2. Get user and logout from the context
+
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [profileMenuOpen, setProfileMenuOpen] = useState(false);
     
-    const mobileMenuRef = useRef(null);
     const profileMenuRef = useRef(null);
 
     useEffect(() => {
         const handleClickOutside = (e) => {
-            if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target)) {
-                setMobileMenuOpen(false);
-            }
             if (profileMenuRef.current && !profileMenuRef.current.contains(e.target)) {
                 setProfileMenuOpen(false);
             }
@@ -32,9 +26,15 @@ export default function DashboardNavbar() {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
+    // 3. The handleLogout function now calls the logout function from the context
     const handleLogout = () => {
-        console.log('User logged out!');
+        logout();
     };
+    
+    // Show a loading state or nothing if the user data isn't available yet
+    if (!user) {
+        return null; // Or a loading skeleton navbar
+    }
 
     return (
         <header className="dashboard-navbar">
@@ -43,6 +43,7 @@ export default function DashboardNavbar() {
                     <img src={Logo} alt={t('common:logoAlt')} />
                 </Link>
 
+                {/* The mobile menu button can be simplified or removed depending on your mobile design */}
                 <button
                     className="hamburger-menu"
                     onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -51,10 +52,10 @@ export default function DashboardNavbar() {
                     ☰
                 </button>
 
-                <div ref={mobileMenuRef} className={`navbar-links ${mobileMenuOpen ? "is-open" : ""}`}>
+                <div className={`navbar-links ${mobileMenuOpen ? "is-open" : ""}`}>
                     <nav className="main-nav">
                         <Link to="/dashboard" className="nav-link">{t('common:publicNav.dashboard')}</Link>
-                        <Link to="/trip/1" className="nav-link">{t('common:dashboardNav.myTrips')}</Link> {/* Assuming a default trip id */}
+                        <Link to="/" className="nav-link">{t('common:dashboardNav.myTrips')}</Link>
                         <Link to="/assistant" className="nav-link">{t('common:dashboardNav.aiAssistant')}</Link>
                     </nav>
                     
@@ -67,15 +68,16 @@ export default function DashboardNavbar() {
                             <button 
                                 className="profile-trigger" 
                                 onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                                aria-label={t('common:profileMenu.myProfile')}
                             >
-                                <img src={currentUser.avatarUrl} alt={t('profile:userAvatarAlt')} />
+                                {/* 4. Use the user's data for the avatar */}
+                                <img src={user.profileImage || `https://placehold.co/40x40/EDAFB8/4A5759?text=${user.name.charAt(0)}`} alt={user.name} />
                             </button>
 
                             {profileMenuOpen && (
                                 <div className="profile-dropdown">
                                     <div className="dropdown-header">
-                                        <strong>{currentUser.name}</strong>
+                                        {/* 5. Use the user's name */}
+                                        <strong>{user.name}</strong>
                                         <p>{t('common:profileMenu.welcome')}</p>
                                     </div>
                                     <Link to="/profile" className="dropdown-item">
@@ -90,12 +92,6 @@ export default function DashboardNavbar() {
                                 </div>
                             )}
                         </div>
-                    </div>
-
-                     <div className="navbar-actions-mobile">
-                        <hr />
-                        <Link to="/profile" className="nav-link">{t('common:profileMenu.myProfile')}</Link>
-                        <button onClick={handleLogout} className="nav-link logout">{t('common:profileMenu.logout')}</button>
                     </div>
                 </div>
             </div>

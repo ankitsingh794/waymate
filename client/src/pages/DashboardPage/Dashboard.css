@@ -55,6 +55,11 @@
 
 .sidebar-profile {
   text-align: center;
+  justify-content: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .profile-avatar {
@@ -384,4 +389,92 @@
   .menu-toggle, .mobile-overlay {
     display: none;
   }
+}
+
+.loading-screen{
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+
+}
+.explore-container {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 280px; /* Width of each card */
+    gap: 1.5rem;
+    overflow-x: auto;
+    padding-bottom: 1rem;
+    scrollbar-width: none; /* For Firefox */
+}
+.explore-container::-webkit-scrollbar {
+    display: none; /* For Chrome, Safari, and Opera */
+}
+
+.explore-card-link {
+    text-decoration: none;
+    color: inherit;
+}
+
+.explore-card {
+    position: relative;
+    border-radius: 1rem;
+    overflow: hidden;
+    height: 350px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.explore-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.explore-image-wrapper {
+    position: absolute;
+    inset: 0;
+}
+
+.explore-image-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s ease;
+}
+
+.explore-card:hover .explore-image-wrapper img {
+    transform: scale(1.05);
+}
+
+.explore-card-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.7) 30%, transparent 100%);
+}
+
+.explore-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 1.5rem;
+    color: white;
+    z-index: 2;
+}
+
+.explore-info h4 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.25rem;
+}
+
+.explore-info p {
+    margin: 0;
+    font-size: 0.9rem;
+    opacity: 0.9;
 }
