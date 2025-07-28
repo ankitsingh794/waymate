@@ -14,6 +14,8 @@ const userRoutes = require('./routes/userRoutes');
 const tripRoutes = require('./routes/tripRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const chatRoutes = require('./routes/chatRoutes');
+const findPlacesRoutes = require('./routes/findPlacesRoutes');
+
 
 const app = express();
 
@@ -61,6 +63,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/trips', tripRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/find-places', findPlacesRoutes);
+
 
 // --- Health Check ---
 app.get('/health', (req, res) => {
