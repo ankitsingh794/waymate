@@ -28,6 +28,7 @@ const Navbar = ({ user, t }) => (
                     src={user?.profileImage || `https://placehold.co/100x100/EDAFB8/4A5759?text=${user?.name?.charAt(0)}`}
                     alt={t('profile:userAvatarAlt')}
                     className="nav-avatar"
+                     loading="lazy" decoding="async"
                 />
             </div>
         </div>
@@ -58,6 +59,7 @@ const ProfileForm = ({ user, onUpdate, t }) => {
                         src={user.profileImage || `https://placehold.co/100x100/EDAFB8/4A5759?text=${user.name.charAt(0)}`}
                         alt={t('profile:userAvatarAlt')}
                         className="profile-page-avatar"
+                         loading="lazy" decoding="async"
                     />
                     <button type="button" className="edit-avatar-button" style={{ backgroundColor: COLORS.primary }} aria-label={t('profile:publicProfile.editAvatar')}>
                         <LiaUserEditSolid style={{ zIndex: 5 }} />

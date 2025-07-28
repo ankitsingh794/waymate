@@ -77,7 +77,7 @@ const TripCarousel = ({ title, subtitle, trips }) => {
                     <Link to={`/trip/${trip._id || trip.tripId}`} className="trip-card-link" key={trip._id || trip.tripId}>
                         <div className="trip-card">
                             <div className="trip-image-wrapper">
-                                <img src={trip.coverImage || `https://images.unsplash.com/photo-1502602898657-3e91760c0337?w=500&q=80`} alt={trip.destination} draggable="false" />
+                                <img src={trip.coverImage || `https://images.unsplash.com/photo-1502602898657-3e91760c0337?w=500&q=80`} alt={trip.destination} draggable="false" loading="lazy" decoding="async"/>
                             </div>
                             <div className="trip-info">
                                 <h4>{trip.destination}</h4>
@@ -97,7 +97,7 @@ const ExploreCard = ({ suggestion }) => {
         <Link to={`/explore?q=${suggestion.query}`} className="explore-card-link">
             <div className="explore-card">
                 <div className="explore-image-wrapper">
-                    <img src={suggestion.image} alt={suggestion.title} draggable="false" />
+                    <img src={suggestion.image} alt={suggestion.title} draggable="false" loading="lazy" decoding="async"/>
                     <div className="explore-card-overlay"></div>
                 </div>
                 <div className="explore-info">
@@ -115,7 +115,7 @@ const exploreSuggestions = [
     title: 'Cozy Cafés to Kickstart Your Day ☕',
     description: 'Start your morning right with local brews, good vibes, and Wi-Fi-friendly corners.',
     query: 'cafes',
-    image: 'https://images.unsplash.com/photo-1511920170033-f8396924c348?w=500&auto=format&fit=crop',
+    image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725793/20250722_1251_Travel_Adventures_Await_simple_compose_01k0rg1d0yehrszrgy9c88r7vf_bgosht.png',
     category: 'morning'
   },
   {
@@ -123,7 +123,7 @@ const exploreSuggestions = [
     title: 'Top-Rated Restaurants for Lunch or Dinner 🍽️',
     description: 'From trending spots to timeless favorites, these places serve the best bites around.',
     query: 'restaurants',
-    image: 'https://images.unsplash.com/photo-1600891964599-f61ba0e24092?w=500&auto=format&fit=crop',
+    image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725793/20250728_2300_Elegant_Dining_Atmosphere_simple_compose_01k19184vsesyafa059embpznx_xkeqqv.png',
     category: 'midday'
   },
   {
@@ -131,7 +131,7 @@ const exploreSuggestions = [
     title: 'Scenic Parks & Trails to Unwind 🌿',
     description: 'Get some fresh air, stretch your legs, or plan a peaceful afternoon picnic.',
     query: 'parks',
-    image: 'https://images.unsplash.com/photo-1508606572321-901ea4437071?w=500&auto=format&fit=crop',
+    image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725793/20250728_2303_Serene_Afternoon_Stroll_simple_compose_01k191dxm4f8j8arabbf441xpg_k1umvv.png',
     category: 'afternoon'
   },
   {
@@ -139,7 +139,7 @@ const exploreSuggestions = [
     title: 'Late-Night Street Food Adventures 🌙',
     description: 'Explore sizzling stalls and bold local flavors under the city lights.',
     query: 'street food',
-    image: 'https://unsplash.com/photos/man-in-red-t-shirt-and-black-pants-standing-in-front-of-food-stall-during-daytime-N18PrG7k35o/download?force=true',
+    image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725792/20250728_2306_Vibrant_Indian_Night_Market_simple_compose_01k191k4jqfbarsb7va1jqakqy_gszieu.png',
     category: 'evening'
   },
   {
@@ -147,7 +147,7 @@ const exploreSuggestions = [
     title: 'Art Galleries & Exhibits 🎨',
     description: 'Feed your creative side with inspiring local art, design, and culture.',
     query: 'art gallery',
-    image: 'https://images.unsplash.com/photo-1504198453319-5ce911bafcde?w=500&auto=format&fit=crop',
+    image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725792/20250728_2307_Colorful_Abstract_Gallery_simple_compose_01k191q25zfy3s165671rgfrkc_tmhrrr.png',
     category: 'culture'
   },
   {
@@ -155,7 +155,7 @@ const exploreSuggestions = [
     title: 'Must-See Historical Spots 🏛️',
     description: 'Walk through time with these heritage sites and iconic landmarks.',
     query: 'historical places',
-    image: 'https://images.unsplash.com/photo-1559589689-577aabd1f3b0?w=500&auto=format&fit=crop',
+    image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725793/20250728_2310_Image_Generation_simple_compose_01k191sfwyej1s6xt058vmwey5_qxddwj.png',
     category: 'culture'
   },
   {
@@ -163,7 +163,7 @@ const exploreSuggestions = [
     title: 'Instagrammable Photo Spots 📸',
     description: 'Snap some stunning shots at the city’s most photogenic corners.',
     query: 'instagram spots',
-    image: 'https://images.unsplash.com/photo-1523413651479-597eb2da0ad6?w=500&auto=format&fit=crop',
+    image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725792/20250728_2314_Vibrant_Street_Art_Pose_simple_compose_01k1921f27fjgs9y2n1qk0kzgg_vwxxlo.png',
     category: 'chill'
   },
   {
@@ -171,7 +171,7 @@ const exploreSuggestions = [
     title: 'Shopping Streets & Bazaars 🛍️',
     description: 'Wander through colorful markets and local boutiques full of surprises.',
     query: 'shopping',
-    image: 'https://images.unsplash.com/photo-1555529771-35a38fb0c619?w=500&auto=format&fit=crop',
+    image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725791/20250728_2317_Vibrant_Market_Scene_simple_compose_01k1927swhfrv9e0q5sag4as4p_bmibuk.png',
     category: 'midday'
   },
   {
@@ -179,7 +179,7 @@ const exploreSuggestions = [
     title: 'Rooftop Bars & City Views 🌇',
     description: 'Sip cocktails with a view — perfect for sunsets and city lights.',
     query: 'rooftop bars',
-    image: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=500&auto=format&fit=crop',
+    image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725791/20250728_2320_Sunset_Rooftop_Cheers_simple_compose_01k192bm6befesyb03cp0jdsbt_zyrj2f.png',
     category: 'evening'
   },
   {
@@ -187,7 +187,7 @@ const exploreSuggestions = [
     title: 'Live Music & Nightlife 🎶',
     description: 'End your day with dancing, music, and vibrant local nightlife scenes.',
     query: 'live music',
-    image: 'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=500&auto=format&fit=crop',
+    image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725791/20250728_2322_Energetic_Live_Concert_simple_compose_01k192gqthfftvb27nr4dtkwk0_lwldsw.png',
     category: 'night'
   },
   {
@@ -195,7 +195,7 @@ const exploreSuggestions = [
     title: 'Peaceful Temples & Spiritual Spots 🕊️',
     description: 'Find your calm in these tranquil places of worship and reflection.',
     query: 'temples',
-    image: 'https://images.unsplash.com/photo-1523528283117-0ec22b4f58c1?w=500&auto=format&fit=crop',
+    image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725792/Gemini_Generated_Image_esbadkesbadkesba_rf3rz6.png',
     category: 'morning'
   },
   {
@@ -203,7 +203,7 @@ const exploreSuggestions = [
     title: 'Chill Bookstores & Libraries 📚',
     description: 'Cozy up with a book or get lost in quiet corners of the city.',
     query: 'bookstore',
-    image: 'https://images.unsplash.com/photo-1510626176961-4b37d0ef1c5b?w=500&auto=format&fit=crop',
+    image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725792/20250728_2327_Cozy_Indie_Bookstore_simple_compose_01k192s6c8fwpabeg0cmtw1cw7_ujvq7d.png',
     category: 'chill'
   }
 ];
@@ -283,7 +283,7 @@ export default function Dashboard() {
                     <div className="sidebar-content">
                         {currentUser && (
                             <div className="sidebar-profile">
-                                <img src={currentUser.profileImage || `https://placehold.co/100x100/EDAFB8/4A5759?text=${currentUser.name.charAt(0)}`} alt="User" className="profile-avatar" />
+                                <img src={currentUser.profileImage || `https://placehold.co/100x100/EDAFB8/4A5759?text=${currentUser.name.charAt(0)}`} alt="User" className="profile-avatar" loading="lazy" decoding="async"/>
                                 <h4>{currentUser.name}</h4>
                                 <p>{t('sidebar.traveler')}</p>
                             </div>

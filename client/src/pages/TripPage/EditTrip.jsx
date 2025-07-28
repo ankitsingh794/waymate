@@ -114,7 +114,7 @@ export default function EditTrip() {
                     accommodationType: formData.accommodationType
                 }
             };
-            await api.patch(`/trips/${id}`, payload);
+            await api.patch(`/trips/${id}/details`, payload);
             setMessage('✅ Trip updated successfully!');
             setTimeout(() => navigate(`/trip/${id}`), 1500);
         } catch (error) {

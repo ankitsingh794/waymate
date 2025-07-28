@@ -317,7 +317,7 @@ return (
             {tripSummary && (
                 <div className="message-bubble-wrapper ai-message">
                     <div className="trip-summary-card">
-                        <img src={tripSummary.coverImage} alt={tripSummary.destination} className="trip-card-image" />
+                        <img src={tripSummary.coverImage} alt={tripSummary.destination} className="trip-card-image"  loading="lazy" decoding="async"/>
                         <div className="trip-card-content">
                             <h4>Your Trip to {tripSummary.destination}</h4>
                             <p>{tripSummary.weatherSummary}</p>

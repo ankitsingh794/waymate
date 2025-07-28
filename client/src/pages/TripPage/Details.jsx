@@ -450,7 +450,7 @@ export default function TripDetails() {
                         .filter(member => member.userId && member.userId.name)
                         .map(member => (
                             <li className="member-item" key={member.userId._id}>
-                                <img src={member.userId.profileImage || `https://placehold.co/50x50/B0C4B1/4A5759?text=${member.userId.name.charAt(0)}`} alt={member.userId.name} />
+                                <img src={member.userId.profileImage || `https://placehold.co/50x50/B0C4B1/4A5759?text=${member.userId.name.charAt(0)}`} alt={member.userId.name}  loading="lazy" decoding="async"/>
                                 <div className="member-info"><strong>{member.userId.name}</strong><p>{member.userId.email}</p></div>
                                 <div className="member-role"><VscOrganization /> {member.role}</div>
                                 {isOwner && member.role !== 'owner' && (
@@ -570,7 +570,7 @@ export default function TripDetails() {
             {trip && (
                 <>
                     <header className="trip-hero">
-                        <img src={trip.coverImage || 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=800&q=80'} alt={trip.destination} className="hero-bg-image" />
+                        <img src={trip.coverImage || 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=800&q=80'} alt={trip.destination} className="hero-bg-image"  loading="lazy" decoding="async"/>
                         <div className="hero-overlay"></div>
                         <div className="hero-top-actions">
                             <button

@@ -19,6 +19,9 @@
     color: #4a5759; /* Your theme text color */
 }
 
+.explore-header h6{
+    color: red;
+}
 .explore-header h1 span {
     color: #edafb8; /* Your theme primary color */
     text-transform: capitalize;
@@ -90,6 +93,7 @@
     font-size: 0.9rem;
     opacity: 0.7;
     margin-top: 1rem; /* Ensure consistent spacing */
+    color: #4a5759;
 }
 
 .place-rating{

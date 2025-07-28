@@ -26,7 +26,7 @@ export default function Navbar() {
     return (
         <header className="navbar">
             <Link to={isAuthenticated ? "/dashboard" : "/"} className="logo">
-                <img src={Logo} alt="Logo" />
+                <img src={Logo} alt="Logo"  loading="lazy" decoding="async"/>
             </Link>
             
             <button

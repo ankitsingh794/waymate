@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { VscBell, VscSettingsGear, VscAccount, VscSignOut } from "react-icons/vsc";
 import { useTranslation } from 'react-i18next';
 import Logo from '../assets/logo.png';
-import { useAuth } from '../context/AuthContext'; 
+import { useAuth } from '../context/AuthContext';
 import './DashboardNavbar.css';
 import '../i18n.js'
 
@@ -13,7 +13,7 @@ export default function DashboardNavbar() {
 
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-    
+
     const profileMenuRef = useRef(null);
 
     useEffect(() => {
@@ -30,7 +30,7 @@ export default function DashboardNavbar() {
     const handleLogout = () => {
         logout();
     };
-    
+
     // Show a loading state or nothing if the user data isn't available yet
     if (!user) {
         return null; // Or a loading skeleton navbar
@@ -40,7 +40,7 @@ export default function DashboardNavbar() {
         <header className="dashboard-navbar">
             <div className="navbar-content">
                 <Link to="/dashboard" className="navbar-logo">
-                    <img src={Logo} alt={t('common:logoAlt')} />
+                    <img src={Logo} alt={t('common:logoAlt')} loading="lazy" decoding="async" />
                 </Link>
 
                 {/* The mobile menu button can be simplified or removed depending on your mobile design */}
@@ -54,23 +54,23 @@ export default function DashboardNavbar() {
 
                 <div className={`navbar-links ${mobileMenuOpen ? "is-open" : ""}`}>
                     <nav className="main-nav">
-                        <Link to="/dashboard" className="nav-link">{t('common:publicNav.dashboard')}</Link>
                         <Link to="/" className="nav-link">{t('common:dashboardNav.myTrips')}</Link>
+                        <Link to="/dashboard" className="nav-link">{t('common:publicNav.dashboard')}</Link>
                         <Link to="/assistant" className="nav-link">{t('common:dashboardNav.aiAssistant')}</Link>
                     </nav>
-                    
+
                     <div className="navbar-actions-desktop">
                         <button className="nav-icon-button" aria-label={t('common:notifications')}>
                             <VscBell />
                         </button>
 
                         <div className="profile-menu-container" ref={profileMenuRef}>
-                            <button 
-                                className="profile-trigger" 
+                            <button
+                                className="profile-trigger"
                                 onClick={() => setProfileMenuOpen(!profileMenuOpen)}
                             >
                                 {/* 4. Use the user's data for the avatar */}
-                                <img src={user.profileImage || `https://placehold.co/40x40/EDAFB8/4A5759?text=${user.name.charAt(0)}`} alt={user.name} />
+                                <img src={user.profileImage || `https://placehold.co/40x40/EDAFB8/4A5759?text=${user.name.charAt(0)}`} alt={user.name} loading="lazy" decoding="async" />
                             </button>
 
                             {profileMenuOpen && (
