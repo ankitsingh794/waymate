@@ -1,5 +1,6 @@
 # 🌍 WayMate - AI-Powered Collaborative Travel Planner
 
+[WayMate Deployed](https://waymate.vercel.app/)
 **WayMate** is a comprehensive, full-stack travel planning application designed to transform how users plan and experience their journeys.
 It leverages a powerful **AI core** to generate dynamic, personalized itineraries and fosters **real-time collaboration** among travelers.
 
