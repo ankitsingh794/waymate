@@ -1,62 +1,104 @@
 const express = require('express');
+const { body,query } = require('express-validator');
 const { protect } = require('../middlewares/authMiddleware');
 const validate = require('../middlewares/validateMiddleware');
-const expenseRoutes = require('./expenseRoutes');
+const { isTripMember, isTripOwner } = require('../middlewares/authMiddleware'); 
+const { generalLimiter, strictLimiter } = require('../middlewares/rateLimiter'); 
 const { mongoIdValidation } = require('../utils/validationHelpers');
-
-const {
-  downloadTripPdf,
-  getAllTrips,
-  getTripById,
-  updateTripDetails,
-  deleteTrip,
-  getUpcomingTrips,
-  updateTripStatus,
-  toggleFavoriteStatus,
-  updateMemberRole,
-  removeMemberFromTrip,
-  generateInviteLink,
-  acceptTripInvite
-} = require('../controllers/tripController');
+const expenseRoutes = require('./expenseRoutes');
+const tripController = require('../controllers/tripController');
+const { param } = require('express-validator');
 
 const router = express.Router();
+
+// Apply authentication to all routes in this file
 router.use(protect);
 
+const getAllTripsValidation = [
+    query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer.'),
+    query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100.'),
+    query('status').optional().isIn(['planned', 'ongoing', 'completed', 'canceled']).withMessage('Invalid status value.'),
+    query('destination').optional().isString().trim()
+];
 
+const updateDetailsValidation = [
+    body('name').optional().isString().trim().isLength({ min: 3 }),
+    body('startDate').optional().isISO8601().toDate(),
+    body('endDate').optional().isISO8601().toDate(),
+    body('travelers').optional().isInt({ min: 1 }),
+    body('status').optional().isIn(['planning', 'upcoming', 'active', 'completed', 'canceled']),
+    body('preferences.accommodationType').optional().isString()
+];
 
 
 // --- Main Trip Routes ---
+router.route('/')
+    .get(getAllTripsValidation, validate, tripController.getAllTrips)
 
-router.get('/', getAllTrips);
-router.get('/upcoming', getUpcomingTrips);
 
-router.get('/:id/download', mongoIdValidation('id'), validate, downloadTripPdf);
+router.get('/upcoming', tripController.getUpcomingTrips);
 
-router.get('/:id', mongoIdValidation('id'), validate, getTripById);
+// --- Routes for a Specific Trip ---
+// 🔒 All these routes now require the user to be a member of the trip.
+router.route('/:id')
+    .get(mongoIdValidation('id'), isTripMember, validate, tripController.getTripById)
+    .delete(mongoIdValidation('id'), isTripOwner, validate, tripController.deleteTrip);
 
-router.patch('/:id/details', mongoIdValidation('id'), validate, updateTripDetails);
+router.patch('/:id/details', mongoIdValidation('id'), isTripMember, updateDetailsValidation, validate, tripController.updateTripDetails);
 
-router.delete('/:id', mongoIdValidation('id'), validate, deleteTrip);
+router.get('/:id/download', strictLimiter, mongoIdValidation('id'), isTripMember, validate, tripController.downloadTripPdf);
 
-// Correct
-router.post('/:id/generate-invite', mongoIdValidation('id'), validate, generateInviteLink);
-router.post('/accept-invite', acceptTripInvite);
+router.patch('/:id/favorite', mongoIdValidation('id'), isTripMember, validate, tripController.toggleFavoriteStatus);
 
-router.patch('/:tripId/members/:memberId/role', [
-  mongoIdValidation('tripId'),
-  mongoIdValidation('memberId')
-], validate, updateMemberRole);
+router.patch('/:id/status',
+    mongoIdValidation('id'),
+    body('status').isIn(['planning', 'upcoming', 'active', 'completed']).withMessage('Invalid status provided.'),
+    isTripMember,
+    validate,
+    tripController.updateTripStatus
+);
 
-router.delete('/:tripId/members/:memberId', [
-  mongoIdValidation('tripId'),
-  mongoIdValidation('memberId')
-], validate, removeMemberFromTrip);
+// --- Invite Management ---
+router.post('/:id/generate-invite', generalLimiter, mongoIdValidation('id'), validate, isTripMember, tripController.generateInviteLink);
 
-router.patch('/:id/favorite', mongoIdValidation('id'), validate, toggleFavoriteStatus);
+router.post('/accept-invite',
+    generalLimiter,
+    body('token').isString().notEmpty().withMessage('An invite token is required.'),
+    validate,
+    tripController.acceptTripInvite
+);
 
-router.patch('/:id/status', mongoIdValidation('id'), validate, updateTripStatus);
+// --- Member Management ---
+router.patch('/:tripId/members/:memberId/role',
+    [mongoIdValidation('tripId'), mongoIdValidation('memberId')],
+    body('role').isIn(['editor', 'viewer']).withMessage('Invalid role. Must be "editor" or "viewer".'),
+    validate,
+    isTripOwner, // Only the owner can change roles
+    tripController.updateMemberRole
+);
 
-// Nested expense routes
-router.use('/:tripId/expenses', mongoIdValidation('tripId'), validate, expenseRoutes);
+router.delete('/:tripId/members/:memberId',
+    [mongoIdValidation('tripId'), mongoIdValidation('memberId')],
+    validate,
+    isTripOwner, // Only the owner can remove members
+    tripController.removeMemberFromTrip
+);
+
+// --- Nested Expense Routes ---
+router.use('/:tripId/expenses', mongoIdValidation('tripId'), validate, isTripMember, expenseRoutes);
+
+// --- Smart Schedule Upgrade ---
+router.post('/:id/smart-schedule', isTripMember, tripController.upgradeToSmartSchedule);
+
+// --- Itinerary Management (Day wise)---
+router.patch('/:id/itinerary/:day',
+    [
+        mongoIdValidation('id'),
+        param('day').isInt({ min: 1 }).withMessage('Day must be a valid number.'),
+        body('activities').isArray().withMessage('Activities must be an array of strings.')
+    ],
+    validate,
+    tripController.updateDayItinerary
+);
 
 module.exports = router;

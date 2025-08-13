@@ -1,35 +1,32 @@
 const multer = require('multer');
-const path = require('path');
-const logger = require('../utils/logger');
+const AppError = require('../utils/AppError');
 
-// ✅ Memory storage for Cloudinary/S3
-const storage = multer.memoryStorage();
-
-// ✅ File type filter
-const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|webp/;
-  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = allowedTypes.test(file.mimetype);
-
-  if (extname && mimetype) {
-    cb(null, true);
-  } else {
-    const errorMsg = `Invalid file type: ${file.originalname}. Only jpeg, jpg, png, webp allowed.`;
-    logger.warn(`Upload rejected | User: ${req.user ? req.user._id : 'Guest'} | IP: ${req.ip} | Reason: ${errorMsg}`);
-    
-    const err = new multer.MulterError('LIMIT_UNEXPECTED_FILE');
-    err.message = errorMsg;
-    cb(err);
-  }
-};
-
-// ✅ Multer config
-const upload = multer({
-  storage,
-  fileFilter,
-  limits: {
-    fileSize: 2 * 1024 * 1024 // 2MB
-  }
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const imageUploader = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit for photos
+  fileFilter: (req, file, cb) => {
+    if (ALLOWED_IMAGE_TYPES.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new AppError('Invalid file type. Only JPG, PNG, or WEBP images are allowed.', 400), false);
+    }
+  },
 });
 
-module.exports = upload;
+
+const ALLOWED_MEDIA_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'application/pdf'];
+const mediaUploader = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB limit for media
+  fileFilter: (req, file, cb) => {
+    if (ALLOWED_MEDIA_TYPES.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new AppError('This file type is not supported.', 400), false);
+    }
+  },
+});
+
+exports.uploadSingleImage = (fieldName) => imageUploader.single(fieldName);
+exports.uploadMedia = (fieldName) => mediaUploader.single(fieldName);

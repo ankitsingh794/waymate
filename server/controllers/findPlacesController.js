@@ -1,22 +1,25 @@
 const finderService = require('../services/finderService');
-const { sendResponse } = require('../utils/responseHelper');
+const { sendError, sendSuccess } = require('../utils/responseHelper');
 const logger = require('../utils/logger');
 
 exports.findPlaces = async (req, res) => {
-    const { query, location } = req.query;
+    const { query, location, lat, lon } = req.query;
 
     if (!query) {
-        return sendResponse(res, 400, false, 'A search query is required.');
+        return sendError(res, 400, 'A search query is required.');
     }
 
-    const searchLocation = location || req.user.location?.city || 'Jamshedpur';
+    const searchLocation = location || req.user.location?.city || 'current';
+    const userCoords = (lat && lon) ? { lat: parseFloat(lat), lon: parseFloat(lon) } : null;
 
     try {
-        const places = await finderService.findPlaces(query, searchLocation, req.user.location);
+        const places = await finderService.findPlaces(query, searchLocation, userCoords);
         logger.info(`Finder service returned ${places.length} places for query: "${query}"`);
-        return sendResponse(res, 200, true, 'Places found successfully.', { places });
+
+        return sendSuccess(res, 200, 'Places found successfully.', places);
+        
     } catch (error) {
         logger.error(`Error in findPlaces controller: ${error.message}`);
-        return sendResponse(res, 500, false, 'Failed to find places.');
+        return sendError(res, 500, 'Failed to find places.');
     }
 };

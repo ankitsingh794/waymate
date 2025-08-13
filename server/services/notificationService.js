@@ -1,122 +1,105 @@
 const logger = require('../utils/logger');
-// const emailService = require('./emailService');
+const sendEmail = require('../utils/sendEmail'); 
+const { generateTripReadyEmailHTML } = require('../utils/emailTemplates');
+const Message = require('../models/Message');
 
 
+let io = null;
+
+const initNotificationService = (socketIoInstance) => {
+    io = socketIoInstance;
+    logger.info('✅ Notification service initialized.');
+};
+
+// --- Socket.IO Channel ---
 const socketChannel = {
-  /**
-   * Emits a generic message to a user's private room.
-   * @param {string} userId - The ID of the user to notify.
-   * @param {string} event - The name of the socket event (e.g., 'tripCreated').
-   * @param {object} payload - The data to send with the event.
-   */
   emitToUser(userId, event, payload) {
-    try {
-      const { getSocketIO } = require('../utils/socket');
-      const io = getSocketIO();
-      if (io) {
-        io.to(userId.toString()).emit(event, payload);
-        logger.info(`Socket event '${event}' emitted to user ${userId}`);
-      }
-    } catch (error) {
-      logger.error('Socket emit failed', { event, userId, error: error.message });
+    if (!io) return logger.warn(`Socket.IO not initialized. Cannot emit '${event}'.`);
+    if (typeof payload !== 'object' || payload === null) {
+      return logger.error(`Invalid payload for socket event '${event}'. Must be an object.`);
     }
+    io.to(userId.toString()).emit(event, payload);
+    logger.info(`Socket event '${event}' emitted to user ${userId}`);
   },
-
-  /**
-   * Broadcasts a message to all members of a specific trip's chat room.
-   * @param {string} tripId - The ID of the trip/room.
-   * @param {string} event - The name of the socket event.
-   * @param {object} payload - The data to send.
-   */
   broadcastToTrip(tripId, event, payload) {
+    if (!io) return logger.warn(`Socket.IO not initialized. Cannot broadcast '${event}'.`);
+    if (typeof payload !== 'object' || payload === null) {
+      return logger.error(`Invalid payload for socket event '${event}'. Must be an object.`);
+    }
+    io.to(tripId.toString()).emit(event, payload);
+    logger.info(`Socket event '${event}' broadcast to trip ${tripId}`);
+  }
+};
+
+// --- Email Channel ---
+const emailChannel = {
+  async sendTripReadyEmail(user, tripSummary) {
     try {
-      const { getSocketIO } = require('../utils/socket');
-      const io = getSocketIO();
-      if (io) {
-        io.to(tripId.toString()).emit(event, payload);
-        logger.info(`Socket event '${event}' broadcast to trip ${tripId}`);
-      }
+        const html = generateTripReadyEmailHTML(user.name, tripSummary);
+        await sendEmail({
+            to: user.email,
+            subject: `Your Itinerary for ${tripSummary.destinationName} is Here!`,
+            html: html,
+            text: `Hi ${user.name}, your trip plan for ${tripSummary.destinationName} is ready! View it in the app.`
+        });
+        logger.info(`Trip ready confirmation email sent to ${user.email}`);
     } catch (error) {
-      logger.error('Socket broadcast failed', { event, tripId, error: error.message });
+        logger.error('Failed to send trip ready email', { error: error.message, userId: user._id });
     }
   }
 };
 
+// --- Public Notification Functions ---
 
-/**
- * =============================================================================
- * SECTION: Email Notification Channel (Future Placeholder)
- * =============================================================================
- * Placeholder for handling transactional emails.
- */
-const emailChannel = {
-  /**
-   * Sends a pre-formatted email.
-   * @param {string} userEmail - The recipient's email address.
-   * @param {string} templateId - The ID of the email template to use.
-   * @param {object} data - The data to populate the template with.
-   */
-  sendEmail(userEmail, templateId, data) {
-    logger.info(`[Email Placeholder] Sending email '${templateId}' to ${userEmail}`);
-    // In the future, this would call your actual email service:
-    // return emailService.send(userEmail, templateId, data);
-    return Promise.resolve();
-  }
-};
-
-
-/**
- * =============================================================================
- * SECTION: Public Notification Functions
- * =============================================================================
- * These are the functions that other services will call. They orchestrate
- * sending notifications across one or more channels.
- */
-
-/**
- * Notifies a user that a trip has been successfully created.
- * @param {string} userId - The ID of the user who created the trip.
- * @param {object} tripSummary - A summary object of the created trip.
- */
-const sendTripSuccess = (userId, tripSummary) => {
-  const payload = {
+const sendTripSuccess = (user, tripSummary) => {
+  socketChannel.emitToUser(user._id, 'tripCreated', {
     reply: "I've finished planning! Here is your new trip summary.",
     summary: tripSummary,
-  };
-  // Send the primary notification via WebSocket
-  socketChannel.emitToUser(userId, 'tripCreated', payload);
-  // In the future, you could also send a confirmation email
-  // emailChannel.sendEmail(user.email, 'trip-creation-success', { tripSummary });
+  });
+
+  emailChannel.sendTripReadyEmail(user, tripSummary);
 };
 
-/**
- * Notifies a user that a trip creation process has failed.
- * @param {string} userId - The ID of the user who initiated the process.
- * @param {string} customMessage - The user-friendly error message to send.
- */
 const sendTripError = (userId, customMessage) => {
-  const payload = {
-    reply: customMessage,
-  };
-  socketChannel.emitToUser(userId, 'tripCreationError', payload);
+  socketChannel.emitToUser(userId, 'tripCreationError', { reply: customMessage });
+};
+
+const sendItineraryUpdate = (tripId, newItinerary) => {
+    socketChannel.broadcastToTrip(tripId, 'itineraryUpdated', { tripId, itinerary: newItinerary });
+};
+
+const sendStatusUpdate = (userId, message) => {
+  socketChannel.emitToUser(userId, 'statusUpdate', { text: message });
 };
 
 /**
- * Notifies all members of a trip that the itinerary has been updated.
- * @param {string} tripId - The ID of the trip.
- * @param {object} newItinerary - The updated itinerary object.
+ * --- NEW FUNCTION ---
+ * Creates a system message, saves it to the DB, and broadcasts it to the trip chat.
+ * @param {string} tripId - The ID of the chat session/trip.
+ * @param {string} text - The content of the system message.
+ * @param {string} [messageType='system'] - The type of message (e.g., 'system', 'error').
  */
-const sendItineraryUpdate = (tripId, newItinerary) => {
-    const payload = {
-        tripId: tripId,
-        itinerary: newItinerary
-    };
-    socketChannel.broadcastToTrip(tripId, 'itineraryUpdated', payload);
+const sendSystemMessageToTrip = async (tripId, text, messageType = 'system') => {
+    try {
+        const message = await Message.create({
+            chatSession: tripId,
+            type: messageType,
+            text: text,
+        });
+        // Use the existing socket channel to broadcast the new message
+        socketChannel.broadcastToTrip(tripId, 'newMessage', message);
+    } catch (error) {
+        logger.error('Failed to create and send system message', { error: error.message, tripId });
+    }
 };
-
 
 module.exports = {
+  initNotificationService,
   sendTripSuccess,
   sendTripError,
   sendItineraryUpdate,
+  sendStatusUpdate,
+  sendSystemMessageToTrip,
+  broadcastToTrip: socketChannel.broadcastToTrip,
+  emitToUser: socketChannel.emitToUser,
 };

@@ -1,18 +1,29 @@
 const express = require('express');
-const { protect } = require('../middlewares/authMiddleware');
-const { handleChatMessage, findOrCreateAiSession } = require('../controllers/chatController');
-
 const router = express.Router();
+const chatController = require('../controllers/chatController');
+const { body } = require('express-validator');
+const { protect, isChatMember } = require('../middlewares/authMiddleware');
+const { messageLimiter, generalLimiter } = require('../middlewares/rateLimiter');
+const validate = require('../middlewares/validateMiddleware');
 
-// All chat routes are protected and require an authenticated user.
 router.use(protect);
 
-/**
- * @desc    Main endpoint for handling all conversational messages.
- * @route   POST /api/chat/message
- */
-router.post('/message', handleChatMessage);
+// Validation middleware for sending a message
+const sendMessageValidation = [
+    body('sessionId').isMongoId().withMessage('A valid session ID is required.'),
+    body('message').notEmpty().withMessage('Message text cannot be empty.').trim()
+];
 
-router.post('/sessions/ai', findOrCreateAiSession);
+// This route now correctly points to the main exported function for handling AI interactions.
+router.post('/message/ai', messageLimiter, sendMessageValidation, validate, isChatMember, chatController.handleChatMessage);
+
+// THIS ROUTE IS FOR CLEARING AI CHAT HISTORY
+router.post('/sessions/ai/clear', generalLimiter, chatController.clearAiChatHistory);
+
+// This route is correct as findOrCreateAiSession is properly exported.
+router.post('/sessions/ai', generalLimiter, chatController.findOrCreateAiSession);
+
+// I have left the route as is, assuming you have this function defined elsewhere.
+router.post('/message/group', messageLimiter, sendMessageValidation, validate, isChatMember, chatController.handleGroupChatMessage);
 
 module.exports = router;

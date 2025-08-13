@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const Message = require('../models/Message');
 const ChatSession = require('../models/ChatSession');
-const { sendResponse } = require('../utils/responseHelper');
+const { sendSuccess, sendError } = require('../utils/responseHelper');
 const logger = require('../utils/logger');
 const cloudinary = require('../config/cloudinary');
 const { getSocketIO } = require('../utils/socket');
@@ -9,23 +9,23 @@ const { getSocketIO } = require('../utils/socket');
 exports.getMessages = async (req, res) => {
     const { sessionId } = req.params;
     const userId = req.user._id;
-    const { page = 1, limit = 20 } = req.query;
+    const { page = 1, limit = 30 } = req.query; 
 
     try {
         const session = await ChatSession.findOne({ _id: sessionId, participants: userId });
         if (!session) {
-            return sendResponse(res, 403, false, 'Access denied. You are not a participant of this chat session.');
+            return sendError(res, 403, 'Access denied. You are not a participant of this chat session.');
         }
 
         const messages = await Message.find({ chatSession: sessionId })
-            .populate('sender', 'username email profile.avatar')
+            .populate('sender', 'name email profileImage')
             .sort({ createdAt: -1 })
             .skip((page - 1) * limit)
             .limit(parseInt(limit));
 
         const totalMessages = await Message.countDocuments({ chatSession: sessionId });
 
-        sendResponse(res, 200, true, 'Messages fetched successfully', {
+        sendSuccess(res, 200, 'Messages fetched successfully', {
             messages: messages.reverse(),
             currentPage: parseInt(page),
             totalPages: Math.ceil(totalMessages / limit),
@@ -33,7 +33,7 @@ exports.getMessages = async (req, res) => {
         });
     } catch (error) {
         logger.error(`Error fetching messages: ${error.message}`);
-        sendResponse(res, 500, false, 'Failed to fetch messages.');
+        sendError(res, 500, 'Failed to fetch messages.');
     }
 };
 
@@ -42,7 +42,7 @@ exports.sendMediaMessage = async (req, res) => {
     const senderId = req.user._id;
     
     if (!req.file) {
-        return sendResponse(res, 400, false, 'No media file provided.');
+        return sendError(res, 400, false, 'No media file provided.');
     }
 
     let uploadResult = null;
@@ -104,7 +104,7 @@ exports.sendMediaMessage = async (req, res) => {
         io.to(sessionId).emit('newMessage', populatedMessage);
 
         logger.info(`Media message sent by ${senderId} in session ${sessionId}`);
-        sendResponse(res, 201, true, 'Media message sent successfully', { message: populatedMessage });
+        sendSuccess(res, 201, true, 'Media message sent successfully', { message: populatedMessage });
 
     } catch (error) {
         // If any part of the process fails, abort the DB transaction
@@ -121,7 +121,7 @@ exports.sendMediaMessage = async (req, res) => {
         }
 
         logger.error(`Error sending media message: ${error.message}`);
-        sendResponse(res, error.statusCode || 500, false, error.message || 'Failed to send media message.');
+        sendError(res, error.statusCode || 500, false, error.message || 'Failed to send media message.');
     } finally {
         dbSession.endSession();
     }

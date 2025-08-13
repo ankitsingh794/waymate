@@ -2,26 +2,25 @@ const mongoose = require('mongoose');
 
 const placeSchema = new mongoose.Schema({
   query: { type: String, required: true, index: true },
-  
   city: { type: String, required: true, index: true },
-
   name: { type: String, required: true },
   address: { type: String },
   rating: { type: Number },
   reason: { type: String }, 
+  
+  place_id: { type: String, unique: true, sparse: true },
 
-  photo_reference: { type: String },
-  place_id: { type: String },
   imageUrl: { type: String },
 
   location: {
     type: {
       type: String,
       enum: ['Point'],
-      default: 'Point'
+      required: true 
     },
     coordinates: {
-      type: [Number], // [longitude, latitude]
+      type: [Number], 
+      required: true 
     }
   },
   lastFetched: { type: Date, default: Date.now }

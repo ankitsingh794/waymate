@@ -1,89 +1,94 @@
-
-
 const axios = require('axios');
 const logger = require('../utils/logger');
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-const PARSING_MODEL = process.env.PARSING_MODEL || 'mistralai/mistral-7b-instruct:free';
+const PARSING_MODEL = process.env.PARSING_MODEL || 'mistralai/mistral-small-3.2-24b-instruct:free';
 
 async function detectIntentAndExtractEntity(userMessage) {
   const prompt = `
-    You are an expert travel assistant AI that functions as an intelligent router. Your primary function is to analyze the user's message, classify it into ONE of the defined intents, and extract all available entities into a single, minified JSON object. Your output must ONLY be this JSON object.
+You are an expert travel assistant AI that functions as an intelligent router. Your primary function is to analyze the user's message, classify it into ONE of the defined intents, and extract all available entities into a single, minified JSON object. Your output must ONLY be this JSON object.
 
-    ### Intents & Entities
-    1.  **create_trip**: The user wants to plan a new multi-day trip.
-        - Entities: "destination", "dates", "interests", "budget", "travelers".
-    2.  **suggest_destination**: The user is asking for ideas or doesn't know where to go.
-        - Entities: "interests", "budget", "duration".
-    3.  **casual_chat**: A general conversation or a query you cannot otherwise classify.
+### Intents & Entities
+1.  **create_trip**: User wants to plan a new multi-day trip to a specific destination.
+    - Entities: "destination", "vibe", "dates" (object with "startDate", "endDate"), "interests", "budget", "travelers", "transportMode".
+2.   **find_place**: User is looking for a local spot, activity, or a specific type of place (e.g., restaurant, romantic spot, adventure park), often with a sense of immediacy ("near me", "tomorrow").
+    - Entities: "query" (the description of the place), "location".
+3.  **edit_trip**: User wants to modify an existing trip (only in a group chat).
+    - Entities: "command".
+4.  **get_trip_detail**: User is asking about an existing trip (only in a group chat).
+    - Entities: "topic" (e.g., 'weather', 'budget', 'itinerary').
+5.  **casual_chat**: A general conversation or a query you cannot otherwise classify.
+6.  **suggest_destination**: User wants ideas or recommendations for a trip but hasn't picked a place.
+    - Entities: "vibe", "interests", "travelers".
+7.  **find_transport**: User wants to find transport (flights, trains, etc.) between two points.
+    - Entities: "origin", "destination", "transportMode", "travelDate".
+8.  **plan_day_trip**: User wants to plan a single-day excursion.
+    - Entities: "destination", "origin" (optional base city), "dayTripDate", "interests".
+9.  **get_travel_advice**: User is asking a general, factual question about a destination or travel topic.
+    - Entities: "topic" (e.g., "best time to visit", "safety", "visa requirements"), "destination".
+10. **estimate_budget**: User wants a cost estimate for a trip without a full itinerary.
+    - Entities: "destination", "duration" (e.g., "5 days"), "travelers", "budget" (e.g., 'luxury').
 
-    ---
-    ### 🧠 Core Logic & Rules (Follow these strictly)
-    - **CRITICAL RULE: Do NOT infer, invent, or hallucinate any details** that are not explicitly provided in the user's message. If a detail (like dates, budget, interests) is missing, OMIT it entirely from the JSON output.
-    - **Current Date for Reference:** ${new Date().toISOString()}
-    - **Suggestion vs. Creation:** If the user asks "where should I go," the intent is \`suggest_destination\`. If they provide a destination, the intent is \`create_trip\`.
-    - **Incomplete Information:** If a user says "plan a trip" but gives no destination, the intent is \`create_trip\`, and the "details" object will be empty.
-    - **Output:** Respond ONLY with the minified JSON object. No explanations.
+---
+### 🧠 Core Logic & Rules
+- **CRITICAL RULE:** Do NOT infer details. If a detail is missing, OMIT it from the JSON.
+- **Current Date:** ${new Date().toISOString()}
+- **Output:** Respond ONLY with the minified JSON object.
+- **Prioritization:** If a user asks for a cost estimate for a specific duration, prefer 'estimate_budget'. If they ask to plan a trip for a specific duration, prefer 'create_trip'.
 
-    ---
-    ### 📚 Examples
-    1.  **User:** "Plan a budget trip to Goa next weekend for 2 people. We like beaches."
-        **AI:** \`{"intent":"create_trip","details":{"destination":"Goa","dates":{"startDate":"2025-08-01","endDate":"2025-08-03"},"budget":"budget","travelers":2,"interests":["beaches"]}}\`
-    2.  **User:** "Plan a trip to Shimla"
-        **AI:** \`{"intent":"create_trip","details":{"destination":"Shimla"}}\`
-    3.  **User:** "plan a trip"
-        **AI:** \`{"intent":"create_trip","details":{}}\`
+---
+### 📚 Examples
+1.  **User:** "Plan a budget trip to Goa next weekend for 2 people."
+    **AI:** \`{"intent":"create_trip","details":{"destination":"Goa","budget":"budget","dates":{"startDate":"2025-08-15","endDate":"2025-08-17"},"travelers":2}}\`
+2.  **User:** "Find good cafes near me"
+    **AI:** \`{"intent":"find_place","details":{"query":"good cafes","location":"current"}}\`
+3. **User:** "show me some adventurous spots nearby for tomorrow"
+    **AI:** \`{"intent":"find_place","details":{"query":"adventurous spots for tomorrow","location":"current"}}\`
+4.  **User:** "find a romantic place for a date tonight"
+    **AI:** \`{"intent":"find_place","details":{"query":"romantic date spot","location":"current"}}\`
+5.  **User:** "add a visit to the museum on day 2"
+    **AI:** \`{"intent":"edit_trip","details":{"command":"add a visit to the museum on day 2"}}\`
+6.  **User:** "what's the weather like?"
+    **AI:** \`{"intent":"get_trip_detail","details":{"topic":"weather"}}\`
+7.  **User:** "hi how are you"
+    **AI:** \`{"intent":"casual_chat","details":{}}\`
+8.  **User:** "where should I go for an adventure trip?"
+    **AI:** \`{"intent":"suggest_destination","details":{"interests":["adventure"]}}\`
+9.  **User:** "Find me a flight from Mumbai to Delhi tomorrow"
+    **AI:** \`{"intent":"find_transport","details":{"origin":"Mumbai","destination":"Delhi","transportMode":"flight","travelDate":"2025-08-15"}}\`
+10.  **User:** "Plan a day trip to the Taj Mahal from Delhi"
+    **AI:** \`{"intent":"plan_day_trip","details":{"destination":"Taj Mahal","origin":"Delhi"}}\`
+11.  **User:** "What's the best time to visit Shimla?"
+    **AI:** \`{"intent":"get_travel_advice","details":{"topic":"best time to visit","destination":"Shimla"}}\`
+12. **User:** "How much would a 3-day luxury trip to Udaipur cost for 2?"
+    **AI:** \`{"intent":"estimate_budget","details":{"destination":"Udaipur","duration":"3 days","travelers":2,"budget":"luxury"}}\`
 
-    ---
-    ### User Message
-    "${userMessage}"
-
-    ---
-    ### JSON Output
-    `;
-
+---
+### User Message
+"${userMessage}"
+---
+### JSON Output
+`;
   try {
     const response = await axios.post(
       'https://openrouter.ai/api/v1/chat/completions',
-      {
-        model: PARSING_MODEL,
-        messages: [{ role: 'user', content: prompt }],
-        response_format: { type: "json_object" }
-      },
-      {
-        headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}` },
-        timeout: 5000
-      }
+      { model: PARSING_MODEL, messages: [{ role: 'user', content: prompt }] },
+      { headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}` }, timeout: 20000 }
     );
     let aiResponseText = response.data.choices[0].message.content;
-    let jsonString = null;
-
     const match = aiResponseText.match(/\{[\s\S]*\}/);
-
-    if (match && match[0]) {
-      // If a JSON-like structure is found, extract it.
-      jsonString = match[0];
-    } else {
-      // If no JSON object is found, the response is invalid.
-      logger.error('AI intent detection failed: No JSON object found in the AI response.', {
-        query: userMessage,
-        aiResponse: aiResponseText // Log the bad response for debugging
-      });
-      return { intent: 'casual_chat', details: {} };
+    if (!match || !match[0]) {
+      throw new Error('No JSON object found in the AI response.');
     }
-
-    // Attempt to parse the extracted string.
-    const result = JSON.parse(jsonString);
-
+    const result = JSON.parse(match[0]);
     logger.info(`Intent detected: ${result.intent}`, { details: result.details });
     return result;
-
   } catch (error) {
-    // This will catch final parsing errors or network issues.
     logger.error('AI intent detection failed:', { errorMessage: error.message, query: userMessage });
     return { intent: 'casual_chat', details: {} };
   }
 };
+
 /**
  * Extracts a specific piece of information from a user's message when the bot is in a
  * slot-filling conversation (i.e., after asking a direct question).
@@ -92,7 +97,11 @@ async function detectIntentAndExtractEntity(userMessage) {
  * @returns {any} The extracted data in the format defined by the slot.
  */
 async function extractEntityForSlot(userMessage, slotDefinition) {
+  console.log('\n--- [DEBUG] AI Slot Extraction Initiated ---');
+  console.log(`[DEBUG Step 1/5] User message: "${userMessage}", Slot Type: "${slotDefinition.validation?.type}"`);
+
   if (!slotDefinition.validation) {
+    console.log('[DEBUG SUCCESS] No validation needed. Returning raw user message.');
     return userMessage;
   }
 
@@ -120,18 +129,49 @@ async function extractEntityForSlot(userMessage, slotDefinition) {
         Matching Option:`;
       break;
 
-    case 'list': // Primarily for interests
+    case 'list':
       prompt = `
-        You are an activity extraction expert. The user's stated interest is: "${userMessage}".
-        Extract the core activity or theme.
-        CRITICAL: If the user's message is a day of the week (like Sunday, Monday, etc.), you MUST respond with the word "invalid".
-        Otherwise, respond with the extracted interest.
-        Extracted Interest:`;
+You are an expert at parsing user interests for travel planning. Your task is to extract up to 3 core activities or themes from the user's message.
+
+### USER MESSAGE:
+"${userMessage}"
+
+### TASK:
+Analyze the user's message and identify the main travel interests. You MUST return a single, valid JSON object with one key: "interests", which should be an array of strings.
+
+### 📚 EXAMPLES:
+- User: "I love visiting historical sites and trying new food." -> AI: \`{"interests":["history","food"]}\`
+- User: "adventure and relaxing" -> AI: \`{"interests":["adventure","relaxing"]}\`
+- User: "I'm not sure, maybe something outdoorsy." -> AI: \`{"interests":["outdoors"]}\`
+
+### JSON OUTPUT:
+`;
+      break;
+    case 'number':
+      prompt = `
+You are an expert at extracting numerical data. Your task is to find the single number in the user's message.
+
+### USER MESSAGE:
+"${userMessage}"
+
+### TASK:
+Respond with ONLY the numerical value. If there are no numbers, respond with "1".
+
+### 📚 EXAMPLES:
+- User: "5 people" -> AI: \`5\`
+- User: "just me" -> AI: \`1\`
+- User: "a couple" -> AI: \`2\`
+
+### YOUR RESPONSE (number only):
+`;
       break;
 
     default:
-      return userMessage; // Fallback for unknown types
+      console.log(`[DEBUG SUCCESS] Unknown validation type. Returning raw user message.`);
+      return userMessage;
   }
+
+  console.log('[DEBUG Step 2/5] Generated prompt for AI.');
 
   try {
     const response = await axios.post(
@@ -139,43 +179,53 @@ async function extractEntityForSlot(userMessage, slotDefinition) {
       {
         model: PARSING_MODEL,
         messages: [{ role: 'user', content: prompt }],
-        // Use JSON format only for the date_range, as others are simple strings
-        ...(type === 'date_range' && { response_format: { type: "json_object" } })
+        ...((type === 'date_range' || type === 'list') && { response_format: { type: "json_object" } })
       },
       { headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}` } }
     );
 
     let content = response.data.choices[0].message.content.trim();
+    console.log(`[DEBUG Step 3/5] Received RAW response from AI:`, content);
 
-    // Post-processing and validation
-    if (type === 'list' && (content.toLowerCase() === 'invalid' || /sunday|monday|tuesday|wednesday|thursday|friday|saturday/i.test(content))) {
-      logger.warn(`AI parsing rejected invalid interest: "${content}"`);
-      return null; // Reject the invalid interest
-    }
-    
-    if (type === 'date_range') {
-        // Ensure the JSON response is clean before parsing
-        const match = content.match(/\{[\s\S]*\}/);
-        if (match) content = match[0];
-        const parsedDate = JSON.parse(content);
-        // Final validation for the date object structure
-        if (parsedDate.startDate && parsedDate.endDate) {
-            return parsedDate;
-        }
-        // Handle single date response by making it a one-day trip
-        if (parsedDate.date) {
-            return { startDate: parsedDate.date, endDate: parsedDate.date };
+    if (type === 'date_range' || type === 'list') {
+      const match = content.match(/\{[\s\S]*\}/);
+      if (!match || !match[0]) {
+        console.error('[DEBUG FAILURE] AI response did not contain a valid JSON object.');
+        throw new Error('No valid JSON object found in AI response.');
+      }
+
+      const jsonString = match[0];
+      console.log(`[DEBUG Step 4/5] Extracted JSON string: ${jsonString}`);
+      const parsedJson = JSON.parse(jsonString);
+      console.log(`[DEBUG Step 5/5] Successfully parsed JSON.`);
+
+      if (type === 'list') {
+        console.log(`[DEBUG SUCCESS] Returning interests:`, parsedJson.interests);
+        return parsedJson.interests || [];
+      }
+      if (type === 'number') {
+        const number = parseInt(content, 10);
+        return isNaN(number) ? 1 : number;
+      }
+      if (type === 'date_range') {
+        if (parsedJson.startDate && parsedJson.endDate) {
+          console.log(`[DEBUG SUCCESS] Returning dates:`, parsedJson);
+          return parsedJson;
         }
         throw new Error('Invalid date structure returned by AI');
+      }
     }
 
-    return content; // For 'choice' and 'list' types
-    
+    console.log(`[DEBUG SUCCESS] Returning content for choice: "${content}"`);
+    return content;
+
   } catch (error) {
-    logger.error(`AI slot extraction failed for slot type ${type}:`, error.message);
+    console.error(`[DEBUG CRITICAL FAILURE] The process failed at or after Step 3.`);
+    logger.error(`AI slot extraction failed for slot type ${type}:`, { errorMessage: error.message });
     return null;
   }
 }
+
 
 module.exports = {
   detectIntentAndExtractEntity,

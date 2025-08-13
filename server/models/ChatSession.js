@@ -13,15 +13,13 @@ const chatSessionSchema = new mongoose.Schema(
     tripId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Trip',
-      // required: true,
-      // unique: true
+      required: function() { return this.sessionType === 'group'; }
     },
     name: {
         type: String,
         default: 'Trip Chat'
     },
     lastMessage: {
-      // ENHANCEMENT: Added senderId for better UI performance
       senderId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
       text: String,
       sentAt: Date

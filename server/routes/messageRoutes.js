@@ -1,15 +1,25 @@
 const express = require('express');
 const router = express.Router();
 const messageController = require('../controllers/messageController');
-const { protect } = require('../middlewares/authMiddleware');
-const { isGroupMember } = require('../middlewares/isGroupMember'); 
+const { protect, isChatMember } = require('../middlewares/authMiddleware'); 
 const { messageLimiter } = require('../middlewares/rateLimiter');
-const upload = require('../middlewares/multer');
+const { uploadMedia } = require('../middlewares/multer'); 
+const { mongoIdValidation } = require('../utils/validationHelpers');
+const validate = require('../middlewares/validateMiddleware');
+
+// Define middleware chain for session-based routes for clarity
+const sessionAccess = [protect, mongoIdValidation('sessionId'), validate, isChatMember];
 
 // Get paginated message history for a chat session
-router.get('/session/:sessionId', protect, isGroupMember, messageController.getMessages);
+router.get('/session/:sessionId', sessionAccess, messageController.getMessages);
 
 // Send a media message (image, video, file)
-router.post('/session/:sessionId/media', protect, isGroupMember, messageLimiter, upload.single('media'), messageController.sendMediaMessage);
+router.post(
+    '/session/:sessionId/media',
+    sessionAccess,
+    messageLimiter,
+    uploadMedia('media'), 
+    messageController.sendMediaMessage
+);
 
 module.exports = router;

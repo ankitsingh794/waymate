@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
+
 const userSchema = new mongoose.Schema(
   {
     name: {
@@ -20,9 +21,11 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: [true, 'Please add a password'],
-      minlength: 6,
+      minlength: 8,
       select: false
     },
+    // FIX: Moved from `location` to the top level for proper semantic structure.
+    passwordChangedAt: Date,
     role: {
       type: String,
       enum: ['user', 'admin', 'moderator'],
@@ -43,37 +46,50 @@ const userSchema = new mongoose.Schema(
     },
     preferences: {
       language: { type: String, default: 'en' },
-      currency: { type: String, default: 'USD' }
+      currency: { type: String, default: 'INR' }
     },
     location: {
       city: String,
       country: String,
-      coordinates: {
-        type: [Number],
-        index: '2dsphere'
-      }
+      point: {
+        type: {
+          type: String,
+          enum: ['Point'],
+        },
+        coordinates: {
+          type: [Number], // [longitude, latitude]
+        },
+      },
     },
-    passwordChangedAt: Date,
+    favoriteTrips: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Trip'
+    }],
+    
     passwordResetToken: String,
     passwordResetTokenExpires: Date,
     emailVerificationToken: String,
-    emailVerificationTokenExpires: Date
+    emailVerificationTokenExpires: Date,
+    sessionHash: {
+        type: String,
+        select: false
+    }
   },
   { timestamps: true }
 );
 
-// --- Hooks and Methods (unchanged) ---
+// --- Hooks and Methods (No changes needed here) ---
+
+userSchema.index({ 'location.point': '2dsphere' });
 
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   const salt = await bcrypt.genSalt(12);
   this.password = await bcrypt.hash(this.password, salt);
-  next();
-});
-
-userSchema.pre('save', function (next) {
-  if (!this.isModified('password') || this.isNew) return next();
-  this.passwordChangedAt = Date.now() - 1000;
+  // This hook now correctly checks for passwordChangedAt at the top level
+  if (!this.isNew) {
+      this.passwordChangedAt = Date.now() - 1000;
+  }
   next();
 });
 

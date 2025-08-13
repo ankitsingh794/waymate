@@ -2,36 +2,35 @@ const nodemailer = require('nodemailer');
 const logger = require('./logger');
 
 /**
- * Send email using Nodemailer
- * @param {Object} options
- * @param {string} options.to - Recipient email(s), comma-separated if multiple
- * @param {string} options.subject - Email subject
- * @param {string} options.text - Plain text content
- * @param {string} [options.html] - HTML content (optional)
+ * Sends an email using a configured transport.
+ * Best for transactional emails like password resets, welcome messages, etc.
+ * @param {object} options - Email options.
+ * @param {string} options.to - Recipient's email address.
+ * @param {string} options.subject - Email subject.
+ * @param {string} options.text - Plain text body.
+ * @param {string} [options.html] - HTML body (optional).
+ * @returns {Promise<object>} Nodemailer response object.
  */
 const sendEmail = async ({ to, subject, text, html }) => {
+  
   try {
-    // ✅ Validate required fields
     if (!to || !subject || (!text && !html)) {
-      logger.error('❌ Missing email parameters', { to, subject });
-      throw new Error('Missing required email parameters');
+      throw new Error('Missing required email parameters: to, subject, and body are required.');
     }
 
-    // ✅ Create transporter
     const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: process.env.SMTP_PORT || 587,
-      secure: process.env.SMTP_PORT === 465, // Use TLS if port is 465
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || '587', 10),
+      secure: parseInt(process.env.SMTP_PORT || '587', 10) === 465,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
     });
 
-    // ✅ Verify SMTP connection (optional, but good for debugging)
     if (process.env.NODE_ENV !== 'production') {
       await transporter.verify();
-      logger.info('✅ SMTP connection verified');
+      logger.info('✅ SMTP connection verified successfully.');
     }
 
     const mailOptions = {
@@ -43,22 +42,16 @@ const sendEmail = async ({ to, subject, text, html }) => {
     };
 
     const info = await transporter.sendMail(mailOptions);
-
-    logger.info(`📧 Email sent successfully`, {
-      messageId: info.messageId,
-      to,
-      subject,
-    });
-
+    logger.info(`📧 Email sent to ${to} with subject "${subject}"`, { messageId: info.messageId });
     return info;
+
   } catch (error) {
-    logger.error('❌ Error sending email', {
+    logger.error('❌ Error sending email:', {
       error: error.message,
-      stack: error.stack,
       to,
       subject,
     });
-    throw new Error('Email could not be sent. Please try again later.');
+    throw new Error('The email could not be sent at this time.');
   }
 };
 

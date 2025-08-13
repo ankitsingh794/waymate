@@ -2,19 +2,49 @@ const mongoose = require('mongoose');
 const crypto = require('crypto');
 const pdfService = require('../services/pdfService');
 const Trip = require('../models/Trip');
-const User = require('../models/User');
 const ChatSession = require('../models/ChatSession');
 const logger = require('../utils/logger');
-const { sendResponse } = require('../utils/responseHelper');
-const { getCache, setCache, invalidateCacheByPattern } = require('../config/redis');
+const { sendSuccess, sendError } = require('../utils/responseHelper');
+const { getCache, setCache } = require('../config/redis');
 const { getSocketIO } = require('../utils/socket');
+const notificationService = require('../services/notificationService');
+const cacheKeys = require('../utils/cacheKeys');
+const { invalidateTripCache, invalidateUserCache } = require('../services/cacheInvalidationService');
+const smartSeatScheduleService = require('../services/smartSeatScheduleService');
 
 
 /**
- * @desc    Get all trips for the current user (with Redis cache).
- * @route   GET /api/trips
- * @access  Private
+ * @desc    Upgrades a trip with a detailed, AI-powered train schedule.
+ * @route   POST /api/trips/:id/smart-schedule
+ * @access  Private (Trip Members)
  */
+exports.upgradeToSmartSchedule = async (req, res) => {
+    try {
+        const { trip } = await getTripAndVerifyPermission(req.params.id, req.user._id);
+
+        const schedule = await smartSeatScheduleService.getSmartSeatSchedule(
+            trip.origin.coords,
+            trip.destinationCoordinates, // Corrected to use destinationCoordinates
+            new Date(trip.startDate).toISOString().split('T')[0]
+        );
+
+        if (schedule.error) {
+            return sendError(res, 404, schedule.error);
+        }
+
+        trip.smartSchedule = schedule;
+        await trip.save();
+
+        await invalidateTripCache(trip._id);
+
+        notificationService.broadcastToTrip(trip._id.toString(), 'scheduleUpdated', { tripId: trip._id, schedule });
+
+        return sendSuccess(res, 200, 'Smart schedule generated successfully.', { schedule });
+    } catch (error) {
+        logger.error(`Failed to generate smart schedule for trip ${req.params.id}`, { message: error.message });
+        return sendError(res, 500, 'Failed to generate smart schedule.');
+    }
+};
 
 /**
  * Reusable helper to fetch a trip and verify user's permission level.
@@ -25,14 +55,14 @@ const { getSocketIO } = require('../utils/socket');
  */
 async function getTripAndVerifyPermission(tripId, userId, requiredRoles = ['viewer', 'editor', 'owner']) {
     const trip = await Trip.findById(tripId).populate(
-        'group.members.userId', 
-        'name email profileImage' 
+        'group.members.userId',
+        'name email profileImage'
     );
     if (!trip) {
         throw { statusCode: 404, message: 'Trip not found.' };
     }
 
-     const member = trip.group.members.find(m => m.userId._id.toString() === userId.toString());
+    const member = trip.group.members.find(m => m.userId._id.toString() === userId.toString());
     if (!member) {
         throw { statusCode: 403, message: 'Access denied. You are not a member of this trip.' };
     }
@@ -45,18 +75,41 @@ async function getTripAndVerifyPermission(tripId, userId, requiredRoles = ['view
 }
 
 /**
- * Invalidates all cache entries for a user's trips.
- * @param {string} userId - The ID of the user whose cache should be cleared.
+ * @desc    Update the activities for a specific day in a trip's itinerary.
+ * @route   PATCH /api/trips/:id/itinerary/:day
+ * @access  Private (Owner or Editor)
  */
-async function invalidateAllTripCachesForUser(userId) {
-    logger.debug(`Invalidating all trip caches for user ${userId}`);
-    // This function should use Redis SCAN to find all keys matching the pattern
-    // and delete them. This is a more robust approach than simple DEL.
-    await invalidateCacheByPattern(`trips:${userId}:*`);
-}
+exports.updateDayItinerary = async (req, res) => {
+    const { id, day } = req.params;
+    const { activities } = req.body;
 
+    try {
+        const { trip } = await getTripAndVerifyPermission(id, req.user._id, ['owner', 'editor']);
 
-// --- CONTROLLER EXPORTS ---
+        const dayToUpdate = trip.itinerary.find(d => d.day == day);
+        if (!dayToUpdate) {
+            return sendError(res, 404, `Itinerary for day ${day} not found on this trip.`);
+        }
+
+        dayToUpdate.activities = activities;
+        await trip.save();
+        await invalidateTripCache(trip._id);
+        await Promise.all(trip.group.members.map(m => invalidateUserCache(m.userId._id)));
+
+        notificationService.broadcastToTrip(trip._id.toString(), 'itineraryUpdated', {
+            tripId: trip._id,
+            itinerary: trip.itinerary
+        });
+
+        logger.info(`Itinerary for day ${day} of trip ${trip._id} updated by ${req.user.email}`);
+        return sendSuccess(res, 200, 'Itinerary updated successfully.', { day: dayToUpdate });
+
+    } catch (error) {
+        logger.error(`Error updating day itinerary for trip ${id}: ${error.message}`);
+        return sendError(res, error.statusCode || 500, error.message || 'Failed to update itinerary.');
+    }
+};
+
 
 /** *Gets all trips for the current user.
  * @desc    Get all trips for the current user.
@@ -66,13 +119,13 @@ async function invalidateAllTripCachesForUser(userId) {
 exports.getAllTrips = async (req, res) => {
     const { page = 1, limit = 10, status, destination } = req.query;
     const userId = req.user._id;
-    const queryKey = `trips:${userId}:page=${page}&limit=${limit}&status=${status || ''}&dest=${destination || ''}`;
+    const queryKey = cacheKeys.generateUserTripsKey(req.user._id, req.query);
 
     try {
         const cachedTrips = await getCache(queryKey);
         if (cachedTrips) {
             logger.info(`Returning cached trips for user ${userId} from key: ${queryKey}`);
-            return sendResponse(res, 200, true, 'Trips fetched successfully from cache.', cachedTrips);
+            return sendSuccess(res, 200, 'Trips fetched successfully from cache.', cachedTrips);
         }
 
         const query = { 'group.members.userId': userId };
@@ -93,12 +146,12 @@ exports.getAllTrips = async (req, res) => {
             data: trips
         };
 
-        await setCache(queryKey, responseData, 300); // Cache for 5 minutes
+        await setCache(queryKey, responseData, 300);
         logger.info(`Fetched and cached ${trips.length} trips for ${req.user.email}`);
-        return sendResponse(res, 200, true, 'Trips fetched successfully.', responseData);
+        return sendSuccess(res, 200, 'Trips fetched successfully.', responseData);
     } catch (error) {
         logger.error(`Error fetching trips: ${error.message}`);
-        return sendResponse(res, 500, false, 'Failed to fetch trips.');
+        return sendError(res, 500, 'Failed to fetch trips.');
     }
 };
 
@@ -107,14 +160,13 @@ exports.getAllTrips = async (req, res) => {
  * @route   GET /api/trips/:id
  * @access  Private (Owner or Editor)
  * */
-
 exports.getTripById = async (req, res) => {
     try {
         const { trip } = await getTripAndVerifyPermission(req.params.id, req.user._id);
-        return sendResponse(res, 200, true, 'Trip fetched successfully.', { trip });
+        return sendSuccess(res, 200, 'Trip fetched successfully.', { trip });
     } catch (error) {
         logger.error(`Error fetching trip by ID: ${error.message}`);
-        return sendResponse(res, error.statusCode || 500, false, error.message || 'Failed to fetch trip.');
+        return sendError(res, error.statusCode || 500, error.message || 'Failed to fetch trip.');
     }
 };
 
@@ -126,22 +178,17 @@ exports.getTripById = async (req, res) => {
 exports.updateTripDetails = async (req, res) => {
     try {
         const { trip } = await getTripAndVerifyPermission(req.params.id, req.user._id, ['owner', 'editor']);
+        await invalidateTripCache(trip._id);
+        await Promise.all(trip.group.members.map(m => invalidateUserCache(m.userId._id)));
 
-        trip.startDate = req.body.startDate;
-        trip.endDate = req.body.endDate;
-        trip.travelers = req.body.travelers;
-        trip.status = req.body.status;
-        trip.preferences.accommodationType = req.body.preferences.accommodationType;
+        Object.assign(trip, req.body);
+        const updatedTrip = await trip.save();
 
-        await trip.save();
-
-        await Promise.all(trip.group.members.map(m => invalidateAllTripCachesForUser(m.userId)));
-
-        logger.info(`Trip details updated for: ${trip._id}`);
-        return sendResponse(res, 200, true, 'Trip updated successfully', { trip });
+        logger.info(`Trip details updated for: ${updatedTrip._id}`);
+        return sendSuccess(res, 200, 'Trip updated successfully', { trip: updatedTrip });
     } catch (error) {
         logger.error(`Error updating trip details: ${error.message}`);
-        return sendResponse(res, error.statusCode || 500, false, error.message || 'Failed to update trip.');
+        return sendError(res, error.statusCode || 500, error.message || 'Failed to update trip.');
     }
 };
 
@@ -156,6 +203,7 @@ exports.deleteTrip = async (req, res) => {
     session.startTransaction();
     try {
         const { trip } = await getTripAndVerifyPermission(req.params.id, req.user._id, ['owner']);
+
         const memberIds = trip.group.members.map(m => m.userId);
 
         await Trip.findByIdAndDelete(req.params.id, { session });
@@ -163,15 +211,14 @@ exports.deleteTrip = async (req, res) => {
 
         await session.commitTransaction();
 
-        // Invalidate cache for all former members
-        await Promise.all(memberIds.map(userId => invalidateAllTripCachesForUser(userId)));
+        await Promise.all(memberIds.map(userId => invalidateUserCache(userId)));
 
         logger.info(`Trip deleted: ${trip._id}`);
-        return sendResponse(res, 200, true, 'Trip deleted successfully');
+        return sendSuccess(res, 200, 'Trip deleted successfully');
     } catch (error) {
         await session.abortTransaction();
         logger.error(`Error deleting trip: ${error.message}`);
-        return sendResponse(res, error.statusCode || 500, false, error.message || 'Failed to delete trip.');
+        return sendError(res, error.statusCode || 500, error.message || 'Failed to delete trip.');
     } finally {
         session.endSession();
     }
@@ -184,7 +231,6 @@ exports.deleteTrip = async (req, res) => {
  * @route   DELETE /api/trips/:tripId/members/:memberId
  * @access  Private (Owner only)
  * */
-
 exports.removeMemberFromTrip = async (req, res) => {
     const { tripId, memberId } = req.params;
     const session = await mongoose.startSession();
@@ -192,7 +238,7 @@ exports.removeMemberFromTrip = async (req, res) => {
     try {
         const { trip } = await getTripAndVerifyPermission(tripId, req.user._id, ['owner']);
         if (req.user._id.toString() === memberId) {
-            return sendResponse(res, 400, false, 'The owner cannot be removed from the trip.');
+            return sendError(res, 400, 'The owner cannot be removed from the trip.');
         }
 
         trip.group.members = trip.group.members.filter(m => m.userId.toString() !== memberId);
@@ -201,14 +247,16 @@ exports.removeMemberFromTrip = async (req, res) => {
 
         await session.commitTransaction();
 
-        await invalidateAllTripCachesForUser(memberId);
+        await invalidateTripCache(tripId);
+        await invalidateUserCache(memberId); // The removed member
+        await Promise.all(trip.group.members.map(m => invalidateUserCache(m.userId))); // The remaining members
 
         logger.info(`Member ${memberId} removed from trip ${tripId}`);
-        return sendResponse(res, 200, true, 'Member removed successfully.', { members: trip.group.members });
+        return sendSuccess(res, 200, 'Member removed successfully.', { members: trip.group.members });
     } catch (error) {
         await session.abortTransaction();
         logger.error(`Error removing member from trip ${tripId}: ${error.message}`);
-        return sendResponse(res, error.statusCode || 500, false, error.message || 'Failed to remove member.');
+        return sendError(res, error.statusCode || 500, error.message || 'Failed to remove member.');
     } finally {
         session.endSession();
     }
@@ -224,30 +272,31 @@ exports.updateMemberRole = async (req, res) => {
     const { tripId, memberId } = req.params;
     const { role } = req.body;
     if (!['editor', 'viewer'].includes(role)) {
-        return sendResponse(res, 400, false, 'Invalid role. Must be "editor" or "viewer".');
+        return sendError(res, 400, 'Invalid role. Must be "editor" or "viewer".');
     }
     try {
         const { trip } = await getTripAndVerifyPermission(tripId, req.user._id, ['owner']);
         const memberToUpdate = trip.group.members.find(m => m.userId.toString() === memberId);
         if (!memberToUpdate) {
-            return sendResponse(res, 404, false, 'Member not found in this trip.');
+            return sendError(res, 404, 'Member not found in this trip.');
         }
         if (memberToUpdate.userId.toString() === req.user._id.toString()) {
-            return sendResponse(res, 400, false, 'The owner cannot change their own role.');
+            return sendError(res, 400, 'The owner cannot change their own role.');
         }
 
         memberToUpdate.role = role;
         await trip.save();
 
+        await invalidateTripCache(trip._id);
         await Promise.all(
-            trip.group.members.map(m => invalidateAllTripCachesForUser(m.userId))
+            trip.group.members.map(m => invalidateUserCache(m.userId))
         );
 
         logger.info(`Role for member ${memberId} in trip ${tripId} changed to ${role}`);
-        return sendResponse(res, 200, true, 'Member role updated successfully.', { members: trip.group.members });
+        return sendSuccess(res, 200, 'Member role updated successfully.', { members: trip.group.members });
     } catch (error) {
         logger.error(`Error updating member role in trip ${tripId}: ${error.message}`);
-        return sendResponse(res, error.statusCode || 500, false, error.message || 'Failed to update role.');
+        return sendError(res, error.statusCode || 500, error.message || 'Failed to update role.');
     }
 };
 
@@ -258,7 +307,6 @@ exports.updateMemberRole = async (req, res) => {
  */
 exports.downloadTripPdf = async (req, res) => {
     try {
-        // FIX: Correctly uses the helper to verify membership before proceeding.
         const { trip } = await getTripAndVerifyPermission(req.params.id, req.user._id);
         logger.info(`Generating PDF for trip: ${trip._id}`);
         const pdfBuffer = await pdfService.generateTripPdf(trip);
@@ -268,7 +316,7 @@ exports.downloadTripPdf = async (req, res) => {
         res.send(pdfBuffer);
     } catch (error) {
         logger.error(`Failed to generate PDF for trip ${req.params.id}: ${error.message}`);
-        return sendResponse(res, error.statusCode || 500, false, error.message || 'Failed to generate PDF itinerary.');
+        return sendError(res, error.statusCode || 500, error.message || 'Failed to generate PDF itinerary.');
     }
 };
 
@@ -284,15 +332,13 @@ exports.toggleFavoriteStatus = async (req, res) => {
         const { trip } = await getTripAndVerifyPermission(req.params.id, req.user._id);
         trip.favorite = !trip.favorite;
         await trip.save();
-
-        // Invalidate cache for all members to reflect the change.
-        await Promise.all(trip.group.members.map(m => invalidateAllTripCachesForUser(m.userId)));
+        await invalidateUserCache(req.user._id);
 
         logger.info(`Trip ${trip._id} favorite status set to ${trip.favorite}`);
-        return sendResponse(res, 200, true, 'Favorite status updated successfully.', { favorite: trip.favorite });
+        return sendSuccess(res, 200, 'Favorite status updated successfully.', { favorite: trip.favorite });
     } catch (error) {
         logger.error(`Error toggling favorite status for trip ${req.params.id}: ${error.message}`);
-        return sendResponse(res, error.statusCode || 500, false, error.message || 'Failed to update favorite status.');
+        return sendError(res, error.statusCode || 500, error.message || 'Failed to update favorite status.');
     }
 };
 
@@ -308,18 +354,18 @@ exports.getUpcomingTrips = async (req, res) => {
     try {
         const upcomingTrips = await Trip.find({
             'group.members.userId': userId,
-            startDate: { $gte: new Date() } // Find trips where the start date is today or later
-        }).sort({ startDate: 1 }); // Sort by the soonest start date
+            startDate: { $gte: new Date() }
+        }).sort({ startDate: 1 });
 
         logger.info(`Fetched ${upcomingTrips.length} upcoming trips for user ${userId}`);
-        return sendResponse(res, 200, true, 'Upcoming trips fetched successfully.', {
+        return sendSuccess(res, 200, 'Upcoming trips fetched successfully.', {
             count: upcomingTrips.length,
             data: upcomingTrips
         });
 
     } catch (error) {
         logger.error(`Error fetching upcoming trips for user ${userId}: ${error.message}`);
-        return sendResponse(res, 500, false, 'Failed to fetch upcoming trips.');
+        return sendError(res, 500, 'Failed to fetch upcoming trips.');
     }
 };
 
@@ -334,16 +380,14 @@ exports.updateTripStatus = async (req, res) => {
     const userId = req.user._id;
 
     try {
-        // Use the helper to find the trip and verify the user has permission
         const { trip } = await getTripAndVerifyPermission(id, userId, ['owner', 'editor']);
 
         trip.status = status;
         await trip.save();
+        
+        await invalidateTripCache(trip._id);
+        await Promise.all(trip.group.members.map(m => invalidateUserCache(m.userId)));
 
-        // Invalidate cache for all members to reflect the status change
-        await Promise.all(trip.group.members.map(m => invalidateAllTripCachesForUser(m.userId)));
-
-        // Notify all trip members of the status change via WebSocket
         const io = getSocketIO();
         trip.group.members.forEach(member => {
             io.to(member.userId.toString()).emit('tripStatusUpdated', {
@@ -354,11 +398,11 @@ exports.updateTripStatus = async (req, res) => {
         });
 
         logger.info(`Trip ${trip._id} status updated to ${status} by user ${userId}`);
-        return sendResponse(res, 200, true, 'Trip status updated successfully.', { trip });
+        return sendSuccess(res, 200, 'Trip status updated successfully.', { trip });
 
     } catch (error) {
         logger.error(`Error updating trip status for trip ${id}: ${error.message}`);
-        return sendResponse(res, error.statusCode || 500, false, error.message || 'Failed to update trip status.');
+        return sendError(res, error.statusCode || 500, error.message || 'Failed to update trip status.');
     }
 };
 
@@ -367,7 +411,7 @@ exports.generateInviteLink = async (req, res) => {
         const { trip } = await getTripAndVerifyPermission(req.params.id, req.user._id, ['owner', 'editor']);
 
         const inviteToken = crypto.randomBytes(20).toString('hex');
-        const inviteTokenExpires = Date.now() + 24 * 60 * 60 * 1000; 
+        const inviteTokenExpires = Date.now() + 24 * 60 * 60 * 1000;
 
         trip.inviteTokens.push({
             token: inviteToken,
@@ -376,13 +420,13 @@ exports.generateInviteLink = async (req, res) => {
         await trip.save();
 
         const inviteLink = `${process.env.CLIENT_URL}/join-trip?token=${inviteToken}`;
-        
+
         logger.info(`Invite link generated for trip ${trip._id} by ${req.user.email}`);
-        return sendResponse(res, 200, true, 'Invite link generated successfully', { inviteLink });
+        return sendSuccess(res, 200, 'Invite link generated successfully', { inviteLink });
 
     } catch (error) {
         logger.error(`Error generating invite link: ${error.message}`);
-        return sendResponse(res, error.statusCode || 500, false, error.message || 'Failed to generate link.');
+        return sendError(res, error.statusCode || 500, error.message || 'Failed to generate link.');
     }
 };
 
@@ -391,7 +435,7 @@ exports.acceptTripInvite = async (req, res) => {
     const userId = req.user._id;
 
     if (!token) {
-        return sendResponse(res, 400, false, 'Invite token is required.');
+        return sendError(res, 400, 'Invite token is required.');
     }
 
     const session = await mongoose.startSession();
@@ -403,37 +447,37 @@ exports.acceptTripInvite = async (req, res) => {
         });
 
         if (!trip) {
-            return sendResponse(res, 400, false, 'Invalid or expired invite link.');
+            return sendError(res, 400, 'Invalid or expired invite link.');
         }
         if (trip.group.members.some(m => m.userId.toString() === userId.toString())) {
-            return sendResponse(res, 400, false, 'You are already a member of this trip.');
+            return sendError(res, 400, 'You are already a member of this trip.');
         }
 
-        // Add the user to the trip and chat
+        const allMemberIds = [...trip.group.members.map(m => m.userId), userId];
+
         trip.group.members.push({ userId, role: 'editor' });
         trip.group.isGroup = true;
-        // Optional: Remove the token after use to make it single-use
         trip.inviteTokens = trip.inviteTokens.filter(t => t.token !== token);
         await trip.save({ session });
         await ChatSession.updateOne({ tripId: trip._id }, { $addToSet: { participants: userId } }, { session });
-        
+
         await session.commitTransaction();
 
-        // Invalidate caches and notify the new member
-        await invalidateAllTripCachesForUser(userId);
-        
+        await invalidateTripCache(trip._id);
+        await Promise.all(allMemberIds.map(id => invalidateUserCache(id)));
+
         const io = getSocketIO();
         io.to(userId.toString()).emit('newTripInvite', {
-             message: `Welcome! You've successfully joined the trip to ${trip.destination}.`,
-             tripId: trip._id,
+            message: `Welcome! You've successfully joined the trip to ${trip.destination}.`,
+            tripId: trip._id,
         });
 
         logger.info(`User ${req.user.email} joined trip ${trip._id} via invite link.`);
-        return sendResponse(res, 200, true, 'Successfully joined the trip!', { tripId: trip._id });
+        return sendSuccess(res, 200, 'Successfully joined the trip!', { tripId: trip._id });
     } catch (error) {
         await session.abortTransaction();
         logger.error(`Error accepting trip invite: ${error.message}`);
-        return sendResponse(res, 500, false, 'Failed to join trip.');
+        return sendError(res, 500, 'Failed to join trip.');
     } finally {
         session.endSession();
     }

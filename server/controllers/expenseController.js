@@ -1,8 +1,11 @@
 const Expense = require('../models/Expense');
 const Trip = require('../models/Trip');
-const { sendResponse } = require('../utils/responseHelper');
+const { sendSuccess, sendError } = require('../utils/responseHelper');
 const logger = require('../utils/logger');
-const { getSocketIO } = require('../utils/socket');
+const notificationService = require('../services/notificationService');
+const { getCache } = require('../config/redis');
+const { calculateAndCacheSettlements, CACHE_KEY_PREFIX } = require('../services/expenseService');
+
 
 /**
  * @desc    Add a new expense to a trip.
@@ -18,21 +21,21 @@ exports.addExpense = async (req, res) => {
         // 1. Verify the user is part of the trip.
         const trip = await Trip.findOne({ _id: tripId, 'group.members.userId': userId });
         if (!trip) {
-            return sendResponse(res, 404, false, 'Trip not found or you are not a member.');
+            return sendError(res, 404, 'Trip not found or you are not a member.');
         }
 
         // 2. Validate the paidBy user exists in the trip's members.
         const memberIds = new Set(trip.group.members.map(m => m.userId.toString()));
         for (const p of participants) {
             if (!memberIds.has(p.userId.toString())) {
-                return sendResponse(res, 400, false, `User with ID ${p.userId} is not a member of this trip.`);
+                return sendError(res, 400, `User with ID ${p.userId} is not a member of this trip.`);
             }
         }
 
         // 2. Validate the expense data.
         const totalShare = participants.reduce((sum, p) => sum + p.share, 0);
         if (Math.abs(totalShare - amount) > 0.01) { // Allow for small floating point discrepancies
-            return sendResponse(res, 400, false, 'The sum of participant shares must equal the total expense amount.');
+            return sendError(res, 400, 'The sum of participant shares must equal the total expense amount.');
         }
 
         // 3. Create and save the new expense.
@@ -44,23 +47,22 @@ exports.addExpense = async (req, res) => {
             paidBy,
             participants,
         });
+        calculateAndCacheSettlements(req.params.tripId);
 
-        // 4. Notify all group members via WebSockets.
-        const io = getSocketIO();
-        trip.group.members.forEach(member => {
-            io.to(member.userId.toString()).emit('expenseAdded', {
-                tripId,
-                expense: newExpense,
-                message: `${req.user.name} added a new expense: ${description}`
-            });
-        });
+        const notificationPayload = {
+            tripId,
+            expense: newExpense,
+            message: `${req.user.name} added a new expense: ${description}`
+        };
+        notificationService.broadcastToTrip(tripId, 'expenseAdded', notificationPayload);
+
 
         logger.info(`New expense added to trip ${tripId} by ${req.user.email}`);
-        return sendResponse(res, 201, true, 'Expense added successfully.', newExpense);
+        return sendSuccess(res, 201, true, 'Expense added successfully.', newExpense);
 
     } catch (error) {
         logger.error(`Error adding expense to trip ${tripId}: ${error.message}`);
-        return sendResponse(res, 500, false, 'Failed to add expense.');
+        return sendSuccess(res, 500, 'Failed to add expense.');
     }
 };
 
@@ -71,76 +73,28 @@ exports.addExpense = async (req, res) => {
  */
 exports.getTripExpenses = async (req, res) => {
     const { tripId } = req.params;
-    const userId = req.user._id;
-
-
-
     try {
-        const trip = await Trip.findOne({ _id: tripId, 'group.members.userId': userId })
-            .populate('group.members.userId', 'username email profile.avatar'); // Populate for summary
+        const trip = await Trip.findOne({ _id: tripId, 'group.members.userId': req.user._id });
         if (!trip) {
-            return sendResponse(res, 404, false, 'Trip not found or you are not a member.');
+            return sendError(res, 404, 'Trip not found or you are not a member.');
         }
 
-        const userMap = new Map(trip.group.members.map(m => [m.userId._id.toString(), m.userId]));
+        const expenses = await Expense.find({ tripId }).populate('paidBy', 'name email');
 
-        const expenses = await Expense.find({ tripId }).populate('paidBy', 'username');
-
-        // --- Balance Calculation Logic ---
-        const balances = new Map();
-        trip.group.members.forEach(member => balances.set(member.userId._id.toString(), 0));
-
-        expenses.forEach(expense => {
-            // The person who paid gets credited.
-            const paidByStr = expense.paidBy._id.toString();
-            balances.set(paidByStr, (balances.get(paidByStr) || 0) + expense.amount);
-
-            // Each participant gets debited for their share.
-            expense.participants.forEach(p => {
-                const participantIdStr = p.userId.toString();
-                balances.set(participantIdStr, (balances.get(participantIdStr) || 0) - p.share);
-            });
-        });
-
-        // --- Settlement Calculation (Who owes whom) ---
-        const creditors = [];
-        const debtors = [];
-        balances.forEach((amount, userId) => {
-            if (amount > 0) creditors.push({ userId, amount });
-            if (amount < 0) debtors.push({ userId, amount: -amount }); // Store as positive value
-        });
-
-        const settlements = [];
-        let i = 0, j = 0;
-        while (i < creditors.length && j < debtors.length) {
-            const creditor = creditors[i];
-            const debtor = debtors[j];
-            const amountToSettle = Math.min(creditor.amount, debtor.amount);
-
-            settlements.push({
-                from: userMap.get(debtor.userId), // O(1) lookup
-                to: userMap.get(creditor.userId),   // O(1) lookup
-                amount: parseFloat(amountToSettle.toFixed(2))
-            });
-
-            creditor.amount -= amountToSettle;
-            debtor.amount -= amountToSettle;
-
-            if (creditor.amount < 0.01) i++;
-            if (debtor.amount < 0.01) j++;
+        const cacheKey = `${CACHE_KEY_PREFIX}${tripId}`;
+        let summary = await getCache(cacheKey);
+        if (!summary) {
+            summary = await calculateAndCacheSettlements(tripId);
         }
 
-        return sendResponse(res, 200, true, 'Expenses and balances fetched successfully.', {
+        return sendSuccess(res, 200, 'Expenses and balances fetched successfully.', {
             expenses,
-            summary: {
-                totalSpent: expenses.reduce((sum, e) => sum + e.amount, 0),
-                settlements
-            }
+            summary: summary || { totalSpent: 0, settlements: [], currency: trip.preferences?.currency || 'INR' }
         });
 
     } catch (error) {
         logger.error(`Error fetching expenses for trip ${tripId}: ${error.message}`);
-        return sendResponse(res, 500, false, 'Failed to fetch expenses.');
+        return sendError(res, 500, 'Failed to fetch expenses.');
     }
 };
 
@@ -160,12 +114,12 @@ exports.updateExpense = async (req, res) => {
         // 1. Fetch the trip and the specific expense
         const trip = await Trip.findById(tripId);
         if (!trip) {
-            return sendResponse(res, 404, false, 'Trip not found.');
+            return sendError(res, 404, 'Trip not found.');
         }
 
         const expense = await Expense.findById(expenseId);
         if (!expense || expense.tripId.toString() !== tripId) {
-            return sendResponse(res, 404, false, 'Expense not found on this trip.');
+            return sendError(res, 404, 'Expense not found on this trip.');
         }
 
         // 2. Verify permissions
@@ -174,7 +128,7 @@ exports.updateExpense = async (req, res) => {
         const canEdit = member && (member.role === 'owner' || member.role === 'editor');
 
         if (!isPayer && !canEdit) {
-            return sendResponse(res, 403, false, 'You do not have permission to update this expense.');
+            return sendError(res, 403, 'You do not have permission to update this expense.');
         }
 
         // 3. Validate amounts if participants or amount are updated
@@ -185,7 +139,7 @@ exports.updateExpense = async (req, res) => {
             const totalShare = newParticipants.reduce((sum, p) => sum + p.share, 0);
 
             if (Math.abs(totalShare - newAmount) > 0.01) {
-                return sendResponse(res, 400, false, 'The sum of participant shares must equal the total expense amount.');
+                return sendError(res, 400,  'The sum of participant shares must equal the total expense amount.');
             }
         }
 
@@ -197,22 +151,18 @@ exports.updateExpense = async (req, res) => {
 
         await expense.save();
 
+        calculateAndCacheSettlements(req.params.tripId);
+
         // 5. Notify group members of the update
-        const io = getSocketIO();
-        trip.group.members.forEach(m => {
-            io.to(m.userId.toString()).emit('expenseUpdated', {
-                tripId,
-                expense,
-                message: `An expense was updated by ${req.user.name}.`
-            });
-        });
+        const notificationPayload = { tripId: req.params.tripId, expense: expense }; 
+        notificationService.broadcastToTrip(req.params.tripId, 'expenseUpdated', notificationPayload);
 
         logger.info(`Expense ${expenseId} on trip ${tripId} updated by ${req.user.email}`);
-        return sendResponse(res, 200, true, 'Expense updated successfully.', expense);
+        return sendSuccess(res, 200, true, 'Expense updated successfully.', expense);
 
     } catch (error) {
         logger.error(`Error updating expense ${expenseId}: ${error.message}`);
-        return sendResponse(res, 500, false, 'Failed to update expense.');
+        return sendError(res, 500, 'Failed to update expense.');
     }
 };
 
@@ -230,12 +180,12 @@ exports.deleteExpense = async (req, res) => {
         // 1. Fetch the trip and the specific expense
         const trip = await Trip.findById(tripId);
         if (!trip) {
-            return sendResponse(res, 404, false, 'Trip not found.');
+            return sendError(res, 404, 'Trip not found.');
         }
 
         const expense = await Expense.findById(expenseId);
         if (!expense || expense.tripId.toString() !== tripId) {
-            return sendResponse(res, 404, false, 'Expense not found on this trip.');
+            return sendError(res, 404, 'Expense not found on this trip.');
         }
 
         // 2. Verify permissions
@@ -244,27 +194,23 @@ exports.deleteExpense = async (req, res) => {
         const canDelete = member && (member.role === 'owner' || member.role === 'editor');
 
         if (!isPayer && !canDelete) {
-            return sendResponse(res, 403, false, 'You do not have permission to delete this expense.');
+            return sendError(res, 403,  'You do not have permission to delete this expense.');
         }
 
         // 3. Delete the expense
         await expense.deleteOne();
 
+        calculateAndCacheSettlements(req.params.tripId);
+
         // 4. Notify group members of the deletion
-        const io = getSocketIO();
-        trip.group.members.forEach(m => {
-            io.to(m.userId.toString()).emit('expenseDeleted', {
-                tripId,
-                expenseId,
-                message: `An expense was deleted by ${req.user.name}.`
-            });
-        });
+        const notificationPayload = { tripId, expenseId };
+        notificationService.broadcastToTrip(tripId, 'expenseDeleted', notificationPayload);
 
         logger.info(`Expense ${expenseId} on trip ${tripId} deleted by ${req.user.email}`);
-        return sendResponse(res, 200, true, 'Expense deleted successfully.');
+        return sendSuccess(res, 200, true, 'Expense deleted successfully.');
 
     } catch (error) {
         logger.error(`Error deleting expense ${expenseId}: ${error.message}`);
-        return sendResponse(res, 500, false, 'Failed to delete expense.');
+        return sendError(res, 500,  'Failed to delete expense.');
     }
 };

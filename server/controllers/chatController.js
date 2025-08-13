@@ -5,85 +5,50 @@ const aiService = require('../services/aiService');
 const Trip = require('../models/Trip');
 const ChatSession = require('../models/ChatSession');
 const logger = require('../utils/logger');
-const { sendResponse } = require('../utils/responseHelper');
+const { sendSuccess, sendError } = require('../utils/responseHelper');
+const { handleWaymateCommand } = require('../services/aiChatService');
 const finderService = require('../services/finderService');
-const { getSocketIO } = require('../utils/socket');
 const aiParsingService = require('../services/aiParsingService');
-const { handleTripEditRequest } = require('../services/aiChatService');
-const currencyService = require('../services/currencyService');
 const Message = require('../models/Message');
 const notificationService = require('../services/notificationService');
+const { invalidateUserCache } = require('../services/cacheInvalidationService')
+const { updateLastMessage } = require('../services/chatService');
 
 
 
-async function handleEditTripIntent(req, res, details) {
-    const { sessionId } = req.body;
-    const user = req.user;
-
-    if (!details.command) {
-        return sendResponse(res, 400, false, 'Edit command is missing.');
-    }
-
-    // Call the background AI service to handle the edit
-    handleTripEditRequest(sessionId, user, details.command);
-
-    // Immediately acknowledge the user's request
-    const reply = `Got it! I'm working on updating your itinerary with the request: "${details.command}". I'll send another message in the group chat when it's done.`;
-    await Message.create({ chatSession: sessionId, sender: null, text: reply, type: 'ai' });
-    return sendResponse(res, 200, true, 'Trip edit acknowledged.', { reply });
-}
-async function handleConvertBudgetIntent(req, res, details) {
-    const { sessionId } = req.body;
-    const { amount, fromCurrency, toCurrency } = details;
-
-    if (!amount || !fromCurrency || !toCurrency) {
-        const reply = "I can help with that! Please tell me the amount and which currencies you want to convert (e.g., 'convert 100 USD to INR').";
-        await Message.create({ chatSession: sessionId, sender: null, text: reply, type: 'ai' });
-        return sendResponse(res, 200, true, 'More info needed for conversion.', { reply });
-    }
-
-    const result = await currencyService.convertCurrency(amount, fromCurrency, toCurrency);
-
-    let conversionReply;
-    if (!result) {
-        conversionReply = `I'm sorry, I couldn't get the conversion rate from ${fromCurrency} to ${toCurrency} at the moment.`;
-    } else {
-        conversionReply = `Sure! ${result.originalAmount} ${result.from} is approximately **${result.convertedAmount} ${result.to}** right now.`;
-    }
-
-    await Message.create({ chatSession: sessionId, sender: null, text: conversionReply, type: 'ai' });
-    return sendResponse(res, 200, true, 'Currency conversion response.', { reply: conversionReply });
-}
-
-
-async function handleNewTripIntent(req, res, conversationManager, message, details) {
+async function handleNewTripIntent(req, res, conversationManager, message, details, userMessageId) {
     if (req.body.origin) { details.origin = req.body.origin; }
     const response = await conversationManager.handleMessage(message, details);
-    await Message.create({
+    const aiMessage = await Message.create({
         chatSession: req.body.sessionId,
         sender: null,
         text: response.reply,
         type: 'ai',
         inReplyTo: userMessageId
     });
-    return handleManagerResponse(res, req.user._id, response);
+    updateLastMessage(req.body.sessionId, aiMessage);
+    notificationService.emitToUser(req.user._id, 'newMessage', aiMessage);
+    return handleManagerResponse(res, req.user, response);
 }
 
-async function handleFinderIntent(req, res, details, userMessageId) {
-    const searchLocation = details.location || req.user.location?.city;
+async function handleFinderIntent(req, res, details, userMessageId, liveOrigin) {
+    const searchLocationCoords = liveOrigin;
+    const searchLocationName = details.location || req.user.location?.city || "your area";
+
     let reply;
-    if (!searchLocation) {
-        reply = "Of course! Where would you like me to look?";
+    const places = await finderService.findPlaces(details.query, searchLocationName, searchLocationCoords);
+
+    if (!places || places.length === 0) {
+        reply = `I'm sorry, I couldn't find any places matching "${details.query}" near ${searchLocationName}.`;
     } else {
-        const places = await finderService.findPlaces(details.query, searchLocation);
-        reply = !places || places.length === 0
-            ? `I'm sorry, I couldn't find any places that matched "${details.query}" in ${searchLocation}.`
-            : "Here are a few places I found for you:\n\n" +
-            places.map(p => `**${p.name}**\n*Rating: ${p.rating}*\n${p.reason}\n📍 ${p.address}`).join('\n\n');
+        reply = `Here are a few ${details.query} I found near ${searchLocationName}:\n\n` +
+            places.map(p => `**${p.name}**\n*Rating: ${p.rating || 'N/A'}*\n${p.reason}\n📍 ${p.address}`).join('\n\n');
     }
-    await Message.create({ chatSession: req.body.sessionId, sender: null, text: reply, type: 'ai', inReplyTo: userMessageId });
-    return sendResponse(res, 200, true, 'Finder response.', { reply });
+
+    await createAndUpdateAiReply(req.body.sessionId, reply, userMessageId, req.user._id);
+    return sendSuccess(res, 200, 'Finder response sent via socket.');
 }
+
 
 async function handleCasualChatIntent(req, res, message, userMessageId) {
     const { sessionId } = req.body;
@@ -93,77 +58,172 @@ async function handleCasualChatIntent(req, res, message, userMessageId) {
         content: msg.text
     }));
     const casualResponse = await aiService.getCasualResponse(message, formattedHistory);
-    await Message.create({ chatSession: sessionId, sender: null, text: casualResponse, type: 'ai', inReplyTo: userMessageId });
-    return sendResponse(res, 200, true, 'Casual chat response.', { reply: casualResponse });
+    const aiMessage = await Message.create({ chatSession: sessionId, sender: null, text: casualResponse, type: 'ai', inReplyTo: userMessageId });
+    updateLastMessage(req.body.sessionId, aiMessage);
+    notificationService.emitToUser(req.user._id, 'newMessage', aiMessage);
+    return sendSuccess(res, 200, 'Casual chat response sent via socket.');
 }
 
+async function createAndUpdateAiReply(sessionId, replyText, inReplyTo, userId) {
+    const aiMessage = await Message.create({
+        chatSession: sessionId,
+        sender: null,
+        text: replyText,
+        type: 'ai',
+        inReplyTo: inReplyTo
+    });
+    updateLastMessage(sessionId, aiMessage);
+    notificationService.emitToUser(userId, 'newMessage', aiMessage);
+    return aiMessage;
+}
 
-exports.handleChatMessage = async (req, res) => {
-    const { message, sessionId } = req.body;
-    const userId = req.user._id;
+async function handleTravelAdviceIntent(req, res, details, userMessageId) {
+    const { topic, destination } = details;
+    const { sessionId } = req.body;
 
-    if (!message || !sessionId) {
-        return sendResponse(res, 400, false, 'Message and Session ID are required.');
+    const advicePrompt = `As a travel expert, briefly answer the following question: "${topic} in ${destination}"`;
+    const advice = await aiService.getCasualResponse(advicePrompt);
+
+    await createAndUpdateAiReply(sessionId, advice, userMessageId, req.user._id);
+    return sendSuccess(res, 200, 'Travel advice provided.');
+}
+
+async function handleBudgetEstimateIntent(req, res, details, userMessageId) {
+    const { destination, duration, travelers, budget } = details;
+    const { sessionId } = req.body;
+
+    let reply;
+    if (!destination || !duration) {
+        reply = "I can definitely help with a budget estimate! To get started, please tell me the destination and for how many days you're planning the trip.";
+    } else {
+        const days = parseInt(duration.match(/\d+/)[0] || 1, 10);
+        const numTravelers = travelers || 1;
+        const budgetTier = budget || 'standard';
+        const costPerDay = { budget: 4000, standard: 8000, luxury: 20000 }[budgetTier];
+        const totalCost = days * numTravelers * costPerDay;
+
+        reply = `A rough estimate for a ${duration}, ${budgetTier}-style trip to ${destination} for ${numTravelers} person(s) would be around **₹${totalCost.toLocaleString('en-IN')}**. This is just a ballpark figure for accommodation, food, and activities.`;
     }
 
+    await createAndUpdateAiReply(sessionId, reply, userMessageId, req.user._id);
+    return sendSuccess(res, 200, 'Budget estimate provided.');
+}
+
+exports.handleChatMessage = async (req, res) => {
+    const { message, sessionId, origin } = req.body;
+    const userId = req.user._id;
     try {
         const userMessage = await Message.create({ chatSession: sessionId, sender: userId, text: message, type: 'user' });
+        notificationService.emitToUser(userId, 'newMessage', userMessage);
+
+        updateLastMessage(sessionId, userMessage);
 
         const conversationManager = new ConversationManager(userId);
-        const activeConversationState = await conversationManager.getState();
-
-
-        if (activeConversationState) {
+        if (await conversationManager.getState()) {
             const response = await conversationManager.handleMessage(message);
-            await Message.create({
-                chatSession: sessionId,
-                sender: null,
-                text: response.reply,
-                type: 'ai',
-                inReplyTo: userMessage._id
-            });
-            return handleManagerResponse(res, userId, response);
+            const aiMessage = await Message.create({ chatSession: sessionId, sender: null, text: response.reply, type: 'ai', inReplyTo: userMessage._id });
+            updateLastMessage(sessionId, aiMessage);
+            notificationService.emitToUser(userId, 'newMessage', aiMessage);
+            return handleManagerResponse(res, req.user, response);
         }
 
         const { intent, details } = await aiParsingService.detectIntentAndExtractEntity(message);
+
+        if (intent === 'get_trip_detail' || intent === 'edit_trip') {
+            const latestTrip = await Trip.findOne({ 'group.members.userId': userId }).sort({ createdAt: -1 });
+            if (latestTrip) {
+                const latestTripSession = await ChatSession.findOne({ tripId: latestTrip._id });
+                if (latestTripSession) {
+                    if (intent === 'get_trip_detail') {
+                        handleWaymateCommand(latestTripSession, req.user, intent, details);
+                    }
+                    const contextualReply = `That sounds like a question about your trip to ${latestTrip.destination}. For complex edits, it's best to use the dedicated group chat for that trip.`;
+                    const aiMessage = await Message.create({ chatSession: sessionId, sender: null, text: contextualReply, type: 'ai', inReplyTo: userMessage._id });
+                    updateLastMessage(sessionId, aiMessage);
+                    notificationService.emitToUser(userId, 'newMessage', aiMessage);
+                    return sendSuccess(res, 200, 'Context required.');
+                }
+            }
+        }
 
         switch (intent) {
             case 'create_trip':
                 return handleNewTripIntent(req, res, conversationManager, message, details, userMessage._id);
             case 'find_place':
-                return handleFinderIntent(req, res, details, userMessage._id);
-            case 'convert_budget':
-                return handleConvertBudgetIntent(req, res, details, userMessage._id);
-            case 'edit_trip':
-                return handleEditTripIntent(req, res, details, userMessage._id);
-            case 'get_trip_detail':
-                const contextualReply = "That's a great question! To manage details for a specific trip, please go to that trip's dashboard and use the group chat. I can help with general planning here!";
-                await Message.create({ chatSession: sessionId, sender: null, text: contextualReply, type: 'ai', inReplyTo: userMessage._id });
-                return sendResponse(res, 200, true, 'Context required.', { reply: contextualReply });
+                return handleFinderIntent(req, res, details, userMessage._id, origin);
+            case 'suggest_destination':
+                const suggestReply = "That sounds like a fun trip! I can give the best recommendations if you have a destination in mind. Where are you thinking of going?";
+                await createAndUpdateAiReply(sessionId, suggestReply, userMessage._id, userId);
+                return sendSuccess(res, 200, 'Suggestion provided.');
+
+            case 'get_travel_advice':
+                return handleTravelAdviceIntent(req, res, details, userMessage._id);
+
+            case 'estimate_budget':
+                return handleBudgetEstimateIntent(req, res, details, userMessage._id);
+
+            case 'find_transport':
+            case 'plan_day_trip':
+                const comingSoonReply = `Thanks for asking! The ability to plan ${intent === 'plan_day_trip' ? 'day trips' : 'transport'} is a feature I'm currently learning. For now, I can help you plan a full multi-day trip!`;
+                await createAndUpdateAiReply(sessionId, comingSoonReply, userMessage._id, userId);
+                return sendSuccess(res, 200, 'Feature in development response sent.');
+
             case 'casual_chat':
             default:
                 return handleCasualChatIntent(req, res, message, userMessage._id);
         }
     } catch (error) {
         logger.error(`Error in chat controller: ${error.message}`, { userId });
-        sendResponse(res, 500, false, 'An error occurred while handling your message.');
+        sendError(res, 500, 'An error occurred while handling your message.');
     }
 };
 
 
-function handleManagerResponse(res, userId, response) {
+/**
+ * @desc    Handles incoming messages for a trip's group chat.
+ * @route   POST /api/chat/message/group
+ * @access  Private (isChatMember middleware)
+ */
+exports.handleGroupChatMessage = async (req, res) => {
+    const { message, sessionId } = req.body;
+    try {
+        const session = await ChatSession.findById(sessionId);
+        if (!session || !session.tripId) {
+            return sendError(res, 404, 'Group chat session not found.');
+        }
+
+        const userMessage = await Message.create({ chatSession: sessionId, sender: req.user._id, text: message, type: 'user' });
+        updateLastMessage(sessionId, userMessage);
+        notificationService.broadcastToTrip(sessionId, 'newMessage', userMessage);
+
+        const { intent, details } = await aiParsingService.detectIntentAndExtractEntity(message);
+
+        if (intent === 'edit_trip' || intent === 'get_trip_detail') {
+            handleWaymateCommand(session, req.user, intent, details);
+        }
+
+        return sendSuccess(res, 200, 'Message received.');
+    } catch (error) {
+        logger.error(`Error in group chat controller: ${error.message}`);
+        return sendError(res, 500, 'Error in group chat.');
+    }
+};
+
+
+
+function handleManagerResponse(res, user, response) {
     if (response.action === 'trigger_trip_creation') {
-        sendResponse(res, 200, true, 'Conversation complete. Processing trip creation.', { reply: response.reply });
-        processTripCreation(userId, response.data);
+        sendSuccess(res, 200, 'Conversation complete. Processing trip creation.');
+        processTripCreation(user, response.data);
     } else {
-        sendResponse(res, 200, true, 'Conversation in progress.', { reply: response.reply });
+        sendSuccess(res, 200, 'Conversation in progress.');
     }
 }
 
 function createTripSummary(trip) {
     return {
         _id: trip._id,
-        destination: trip.destination,
+        destinationName: trip.destination,
         dates: {
             start: trip.startDate,
             end: trip.endDate,
@@ -174,56 +234,58 @@ function createTripSummary(trip) {
         },
         weatherSummary: trip.weather.forecast[0]?.condition || 'Weather data not available.',
         coverImage: trip.coverImage,
-        highlights: trip.highlights || [],
+        highlights: trip.aiSummary?.highlights || [],
     };
 }
 
-/**
- * ENHANCED: Formats a detailed, user-friendly response about a trip
- * based on the specific type of information requested.
- * @param {string} requestType - The category of information to format (e.g., 'itinerary', 'weather').
- * @param {object} trip - The full Mongoose trip object.
- * @param {object} options - Additional options, like a specific day for the itinerary.
- * @returns {string} A formatted string ready to be sent to the user.
- */
 
 /**
  * A background function to handle the full trip creation process.
  * @param {string} creatorId The ID of the user creating the trip.
  * @param {object} collectedData The data gathered from the conversational flow.
  */
-async function processTripCreation(creatorId, collectedData) {
-    if (mongoose.connection.readyState !== 1) {
-        logger.error('FATAL: Database is not connected. Aborting trip creation.');
-        const userMessage = "We're sorry, our database is currently under maintenance, and we can't create your trip right now. Please try again in a little while.";
-        notificationService.sendTripError(creatorId, userMessage);
-        return;
-    }
-    const io = getSocketIO();
+async function processTripCreation(creator, collectedData) {
+    logger.info('\n--- [DEBUG] Background Trip Creation Initiated ---');
+    logger.info(`[DEBUG Step 1/7] Received data for user ${creator.email}:`, collectedData);
 
     let session;
+    let trip;
+
     try {
-        if (!collectedData || !collectedData.destination || !collectedData.dates?.startDate) {
-            throw new Error('Incomplete data received for trip creation.');
+        notificationService.sendStatusUpdate(creator._id, 'I have all the details. Now planning your adventure to ' + collectedData.destination + '...');
+        logger.info('[DEBUG Step 2/7] Status update sent to client.');
+
+        // FIX: Create a clean, normalized origin coordinate object.
+        let originCoords = null;
+        if (collectedData.origin?.lat && collectedData.origin?.lon) {
+            // Use the live location if provided by the frontend.
+            originCoords = { lat: collectedData.origin.lat, lon: collectedData.origin.lon };
+        } else if (creator.location?.point?.coordinates?.length === 2) {
+            // Fallback to the user's saved profile location, converting from [lon, lat] to {lat, lon}.
+            originCoords = { lat: creator.location.point.coordinates[1], lon: creator.location.point.coordinates[0] };
         }
 
+        if (!originCoords) {
+            throw new Error('User origin location could not be determined.');
+        }
+
+        const aggregatedData = await tripService.aggregateTripData({
+            ...collectedData,
+            startDate: collectedData.dates.startDate,
+            endDate: collectedData.dates.endDate,
+            origin: originCoords, // Pass the clean coordinates object.
+            preferences: collectedData.preferences
+        });
+
+        logger.info('[DEBUG Step 4/7] Trip data successfully aggregated from external APIs.');
+
+        const aiResponse = await aiService.generateItinerary(aggregatedData);
+        logger.info('[DEBUG Step 5/7] AI itinerary successfully generated.');
+
         session = await mongoose.startSession();
-        session.startTransaction();
-        let trip;
-
-
-        try {
-            logger.info('Starting background trip creation...', { creatorId, data: collectedData });
-
-            const aggregatedData = await tripService.aggregateTripData({
-                ...collectedData,
-                startDate: collectedData.dates.startDate,
-                endDate: collectedData.dates.endDate,
-            });
-
-            const aiResponse = await aiService.generateItinerary(aggregatedData);
-
+        await session.withTransaction(async () => {
             [trip] = await Trip.create([{
+                origin: { coords: originCoords },
                 destination: aggregatedData.destinationName,
                 destinationCoordinates: aggregatedData.destinationCoords,
                 startDate: aggregatedData.startDate,
@@ -231,7 +293,7 @@ async function processTripCreation(creatorId, collectedData) {
                 travelers: aggregatedData.travelers,
                 preferences: aggregatedData.preferences,
                 coverImage: aggregatedData.coverImage,
-                route: aggregatedData.route,
+                routeInfo: aggregatedData.routeInfo,
                 weather: aggregatedData.weather,
                 attractions: aggregatedData.attractions,
                 foodRecommendations: aggregatedData.foodRecommendations,
@@ -239,59 +301,39 @@ async function processTripCreation(creatorId, collectedData) {
                 budget: aggregatedData.budget,
                 alerts: aggregatedData.alerts,
                 itinerary: aiResponse.itinerary,
-                formattedPlan: aiResponse.formattedText,
-                tips: aiResponse.tips,
-                mustEats: aiResponse.mustEats,
-                highlights: aiResponse.highlights,
-                packingChecklist: aiResponse.packingChecklist,
-                localEvents: aggregatedData.localEvents,
+                aiSummary: aiResponse.aiSummary,
                 status: 'planned',
                 group: {
-                    isGroup: false,
-                    members: [{ userId: creatorId, role: 'owner' }]
+                    isGroup: aggregatedData.travelers > 1,
+                    members: [{ userId: creator._id, role: 'owner' }]
                 }
             }], { session });
+            logger.info(`[DEBUG Step 6/7] Trip document created in database with ID: ${trip._id}`);
 
             await ChatSession.create([{
                 sessionType: 'group',
                 tripId: trip._id,
-                participants: [creatorId],
+                participants: [creator._id],
                 name: `Trip to ${trip.destination}`
             }], { session });
-
-            await session.commitTransaction();
-            logger.info(`Trip and ChatSession created successfully.`, { tripId: trip._id });
-
-            const summary = createTripSummary(trip);
-            notificationService.sendTripSuccess(creatorId, summary);
-
-        } catch (error) {
-            if (session.inTransaction()) {
-                await session.abortTransaction();
-                logger.warn('Transaction aborted due to an error during trip creation.', { error: error.message });
-            }
-            throw error;
-        } finally {
-            session.endSession();
-        }
-
-        const summary = createTripSummary(trip);
-        io.to(creatorId.toString()).emit('tripCreated', {
-            reply: "I've finished planning! Here is your new trip summary.",
-            summary: summary,
+            logger.info('[DEBUG Step 7/7] Associated chat session created.');
         });
 
-    } catch (error) {
-        if (session.inTransaction()) {
-            await session.abortTransaction();
+        logger.info('[DEBUG SUCCESS] Transaction completed successfully.');
+
+        if (trip) {
+            await invalidateUserCache(creator._id);
+            notificationService.sendTripSuccess(creator, createTripSummary(trip));
         }
-        logger.error(`FATAL: Background trip creation failed: ${error.message}`, { creatorId, stack: error.stack });
 
-        const userMessage = "We're sorry, but we couldn't create your trip plan at this moment as our systems are undergoing maintenance. 🛠️\n\nIf you'd like to report this issue directly to the developer, you can reach out here: https://www.linkedin.com/in/ankitsingh794/";
-
-        notificationService.sendTripError(creatorId, userMessage);
+    } catch (error) {
+        logger.error(`FATAL: Background trip creation failed: ${error.message}`, { creatorId: creator._id, stack: error.stack });
+        const userMessage = error.userMessage || "I'm sorry, I ran into an issue while creating your trip plan. Please try again later.";
+        notificationService.sendTripError(creator._id, userMessage);
     } finally {
-        session.endSession();
+        if (session) {
+            session.endSession();
+        }
     }
 }
 
@@ -305,8 +347,7 @@ exports.findOrCreateAiSession = async (req, res) => {
     try {
         let session = await ChatSession.findOne({
             sessionType: 'ai',
-            'participants.0': userId, // Find where the user is the first/only participant
-            'participants.1': { $exists: false }
+            participants: [userId]
         });
 
         if (!session) {
@@ -316,12 +357,42 @@ exports.findOrCreateAiSession = async (req, res) => {
                 name: `AI Assistant - ${req.user.name}`
             });
             logger.info(`Created new AI chat session for user ${userId}`, { sessionId: session._id });
+        } else {
+            logger.info(`Found existing AI chat session for user ${userId}`, { sessionId: session._id });
         }
 
-        return sendResponse(res, 200, true, 'AI session ready.', { sessionId: session._id });
+        return sendSuccess(res, 200, 'AI session ready.', { sessionId: session._id });
 
     } catch (error) {
         logger.error(`Error finding or creating AI session: ${error.message}`, { userId });
-        return sendResponse(res, 500, false, 'Could not initialize AI chat.');
+        return sendError(res, 500, 'Could not initialize AI chat.');
+    }
+};
+
+// In chatController.js, add this new exported function
+
+/**
+ * @desc    Deletes all messages from a user's 1-on-1 AI chat session.
+ * @route   POST /api/chat/sessions/ai/clear
+ * @access  Private
+ */
+exports.clearAiChatHistory = async (req, res) => {
+    const userId = req.user._id;
+    try {
+        const session = await ChatSession.findOne({
+            sessionType: 'ai',
+            participants: [userId]
+        });
+
+        if (session) {
+            await Message.deleteMany({ chatSession: session._id });
+            logger.info(`Cleared chat history for user ${userId} in session ${session._id}`);
+        }
+
+        return sendSuccess(res, 200, 'Chat history cleared successfully.');
+
+    } catch (error) {
+        logger.error(`Error clearing AI chat history for user ${userId}: ${error.message}`);
+        return sendError(res, 500, 'Failed to clear chat history.');
     }
 };

@@ -1,10 +1,8 @@
-// C:\Project\webdev\idk\WayMate\server\config\apiConfig.js
-
 require('dotenv').config();
 
 module.exports = {
   // Mapbox Configuration
-  MAPBOX_ACCESS_TOKEN: process.env.MAPBOX_ACCESS_TOKEN,
+  MAPBOX_ACCESS_TOKEN: process.env.MAPBOX_SECRET_KEY,
   MAPBOX_DIRECTIONS_BASE: 'https://api.mapbox.com/directions/v5/mapbox',
   MAPBOX_STATIC_BASE: 'https://api.mapbox.com/styles/v1/mapbox/streets-v11/static',
 
@@ -12,6 +10,7 @@ module.exports = {
   GOOGLE_API_KEY: process.env.GOOGLE_API_KEY,
   GOOGLE_PLACES_BASE: 'https://maps.googleapis.com/maps/api/place/nearbysearch/json',
   GOOGLE_GEOCODING_BASE: 'https://maps.googleapis.com/maps/api/geocode/json',
+  GOOGLE_DISTANCE_MATRIX_BASE: 'https://maps.googleapis.com/maps/api/distancematrix/json',
 
   // OpenTripMap Configuration
   OPENTRIPMAP_API_KEY: process.env.OPENTRIPMAP_API_KEY,

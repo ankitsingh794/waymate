@@ -1,6 +1,8 @@
 const User = require('../models/User');
 const logger = require('../utils/logger');
-const { sendResponse } = require('../utils/responseHelper'); // ✅ Standardized response
+const AppError = require('../utils/AppError');
+const { sendSuccess } = require('../utils/responseHelper');
+const cloudinary = require('../config/cloudinary');
 
 /**
  * @desc Get current user profile
@@ -10,7 +12,7 @@ const { sendResponse } = require('../utils/responseHelper'); // ✅ Standardized
 exports.getUserProfile = async (req, res, next) => {
   try {
     logger.info(`Fetching profile for user: ${req.user.email}`);
-    return sendResponse(res, 200, true, 'User profile fetched successfully', { user: req.user });
+    return sendSuccess(res, 200, true, 'User profile fetched successfully', { user: req.user });
   } catch (error) {
     logger.error(`Error fetching profile: ${error.message}`);
     next(error);
@@ -23,27 +25,32 @@ exports.getUserProfile = async (req, res, next) => {
  * @access Private
  */
 exports.updateUserProfile = async (req, res, next) => {
-  try {
-    const { name, preferences, location } = req.body;
+    try {
+        const { name, preferences, location } = req.body;
+        const updateData = {};
+        if (name) updateData.name = name;
+        if (preferences) {
+            if (preferences.language) updateData['preferences.language'] = preferences.language;
+            if (preferences.currency) updateData['preferences.currency'] = preferences.currency;
+        }
+        if (location) {
+            if (location.city) updateData['location.city'] = location.city;
+            if (location.country) updateData['location.country'] = location.country;
+        }
 
-    const updatedUser = await User.findByIdAndUpdate(
-      req.user._id,
-      {
-        ...(name && { name }),
-        ...(preferences && { preferences }),
-        ...(location && { location })
-      },
-      { new: true, runValidators: true }
-    ).select('-password');
+        const updatedUser = await User.findByIdAndUpdate(
+            req.user._id,
+            { $set: updateData },
+            { new: true, runValidators: true }
+        ).select('-password');
 
-    logger.info(`User profile updated: ${req.user.email}`);
-    return sendResponse(res, 200, true, 'Profile updated successfully', { user: updatedUser });
-  } catch (error) {
-    logger.error(`Error updating profile: ${error.message}`);
-    next(error);
-  }
-  
+        logger.info(`User profile updated for: ${req.user.email}`);
+        return sendSuccess(res, 200, true, 'Profile updated successfully', { user: updatedUser });
+    } catch (error) {
+        next(error);
+    }
 };
+
 
 
 /**
@@ -52,32 +59,86 @@ exports.updateUserProfile = async (req, res, next) => {
  * @access Admin
  */
 exports.changeAccountStatus = async (req, res, next) => {
-  try {
-    if (req.user.role !== 'admin') {
-      logger.warn(`Unauthorized status change attempt by user: ${req.user.email}`);
-      return sendResponse(res, 403, false, 'Access denied. Admins only.');
+    try {
+        if (req.params.id === req.user.id) {
+            return next(new AppError('Admins cannot change their own account status.', 400));
+        }
+
+        const user = await User.findByIdAndUpdate(
+            req.params.id, 
+            { accountStatus: req.body.status },
+            { new: true, runValidators: true }
+        ).select('name email role accountStatus');
+
+        if (!user) {
+            return next(new AppError('User not found with that ID.', 404));
+        }
+
+        logger.info(`Account status for ${user.email} changed to '${req.body.status}' by admin ${req.user.email}`);
+        return sendSuccess(res, 200, true, `Account status updated to ${req.body.status}`, { user });
+    } catch (error) {
+        next(error);
+    }
+};
+
+
+exports.updateUserPhoto = async (req, res, next) => {
+    try {
+        if (!req.file) {
+            return next(new AppError('No image file provided for upload.', 400));
+        }
+
+        const user = await User.findById(req.user._id);
+
+        const uploadResponse = await cloudinary.uploader.upload_stream(
+            { folder: `avatars`, public_id: user._id, overwrite: true, format: 'webp' },
+            async (error, result) => {
+                if (error) {
+                    logger.error('Cloudinary upload failed:', error);
+                    return next(new AppError('Image could not be uploaded.', 500));
+                }
+                
+                user.profileImage = result.secure_url;
+                await user.save({ validateBeforeSave: false }); 
+
+                logger.info(`Profile photo updated for user: ${user.email}`);
+                sendSuccess(res, 200, true, 'Profile photo updated successfully.', { profileImage: user.profileImage });
+            }
+        ).end(req.file.buffer);
+
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * @desc    Update the current user's live location.
+ * @route   PATCH /api/users/profile/location
+ * @access  Private
+ */
+exports.updateUserLocation = async (req, res, next) => {
+    const { lat, lon } = req.body;
+
+    if (typeof lat !== 'number' || typeof lon !== 'number') {
+        return next(new AppError('Invalid coordinates provided. Latitude and longitude must be numbers.', 400));
     }
 
-    const { id } = req.params;
-    const { status } = req.body;
+    try {
+        await User.findByIdAndUpdate(req.user._id, {
+            $set: {
+                'location.point': {
+                    type: 'Point',
+                    coordinates: [lon, lat] 
+                }
+            }
+        });
+        
+        // Use sendSuccess from your responseHelper for a consistent response
+        sendSuccess(res, 200, 'Location updated successfully.');
 
-    if (!['active', 'suspended', 'banned'].includes(status)) {
-      logger.warn(`Invalid account status provided: ${status}`);
-      return sendResponse(res, 400, false, 'Invalid account status');
+    } catch (error) {
+        logger.error(`Error updating location for user ${req.user.email}:`, { error: error.message });
+        // Pass the error to the global error handler
+        next(new AppError('Failed to update location.', 500));
     }
-
-    const user = await User.findByIdAndUpdate(id, { accountStatus: status }, { new: true, runValidators: true })
-      .select('-password');
-
-    if (!user) {
-      logger.warn(`User not found for status change: ID ${id}`);
-      return sendResponse(res, 404, false, 'User not found');
-    }
-
-    logger.info(`Account status changed for user: ${user.email} → ${status}`);
-    return sendResponse(res, 200, true, `Account status updated to ${status}`, { user });
-  } catch (error) {
-    logger.error(`Error changing account status: ${error.message}`);
-    next(error);
-  }
 };

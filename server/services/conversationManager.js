@@ -2,6 +2,15 @@ const { getCache, setCache, deleteCache } = require('../config/redis');
 const { flows } = require('../config/conversationFlows');
 const aiParser = require('./aiParsingService');
 
+
+function validateSlotData(slotName, data) {
+  if (slotName === 'dates') {
+    return typeof data === 'object' && data !== null && data.startDate && data.endDate;
+  }
+  return true;
+}
+
+
 class ConversationManager {
   constructor(userId) {
     this.userId = userId;
@@ -20,14 +29,13 @@ class ConversationManager {
       const currentSlotName = this.getCurrentSlot(state);
       const flow = flows[state.intent];
       const slotDefinition = flow.definition[currentSlotName];
-      
+
       // Use the specialized AI parser to extract the specific piece of info we asked for
       const extractedData = await aiParser.extractEntityForSlot(message, slotDefinition);
-      
-      if (extractedData !== null && extractedData !== undefined) {
+
+      if (extractedData !== null && validateSlotData(currentSlotName, extractedData)) {
         state.collectedData[currentSlotName] = extractedData;
       } else {
-        // If the AI can't understand the user's answer, ask again with a hint
         return {
           reply: `I didn't quite catch that. ${slotDefinition.reprompt}`,
           action: null
@@ -35,11 +43,9 @@ class ConversationManager {
       }
     }
 
-    // After starting or processing, find the next required piece of information
     const nextSlotName = this.findNextMissingSlot(state);
 
     if (nextSlotName) {
-      // If there's more information to collect, update the state and ask the next question.
       state.status = `pending_${nextSlotName}`;
       await this.saveState(state);
       return {
@@ -47,7 +53,6 @@ class ConversationManager {
         action: null
       };
     } else {
-      // All information has been collected and the conversation is complete.
       await this.endConversation();
       const finalData = this.mapDataForService(state.collectedData);
       return {
@@ -61,12 +66,12 @@ class ConversationManager {
   async startConversation(intent, initialDetails) {
     const state = {
       intent,
-      status: 'pending', // Will be updated to pending_the_first_slot
+      status: 'pending',
       collectedData: initialDetails || {}
     };
     return state;
   }
-  
+
   findNextMissingSlot(state) {
     const flow = flows[state.intent];
     return flow.slots.find(slot => !state.collectedData.hasOwnProperty(slot));
@@ -85,9 +90,12 @@ class ConversationManager {
     const { budget, interests, travelers, preferences, ...rest } = collectedData;
     const finalAccommodationType = preferences?.accommodationType || budget;
     const finalInterests = preferences?.interests || interests;
+
+    const finalTravelers = parseInt(travelers, 10) || 1;
+
     return {
-      ...rest, 
-      travelers: travelers || 1,
+      ...rest,
+      travelers: finalTravelers,
       preferences: {
         accommodationType: finalAccommodationType,
         interests: Array.isArray(finalInterests) ? finalInterests : [finalInterests].filter(Boolean)

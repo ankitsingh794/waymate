@@ -1,0 +1,10 @@
+{
+  "counts": {
+    "railCodes": 13147,
+    "geoStations": 8697
+  },
+  "merged": 13147,
+  "unmatchedRailCodes": [],
+  "coordsSourcedByName": 306,
+  "droppedOutsideIndia": 0
+}

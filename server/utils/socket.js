@@ -1,137 +1,136 @@
 const { Server } = require('socket.io');
-const logger = require('./logger');
+const jwt = require('jsonwebtoken');
 const { createAdapter } = require('@socket.io/redis-adapter');
 const { createClient } = require('redis');
-const { authenticateSocket } = require('../middlewares/socketAuthMiddleware');
-const Message = require('../models/Message');
-const ChatSession = require('../models/ChatSession');
-const aiChatService = require('../services/aiChatService');
-
-// --- Centralized Socket Event Constants ---
-const SOCKET_EVENTS = {
-  CONNECTION: 'connection',
-  DISCONNECT: 'disconnect',
-  JOIN_SESSION: 'joinSession',
-  LEAVE_SESSION: 'leaveSession',
-  SEND_MESSAGE: 'sendMessage',
-  NEW_MESSAGE: 'newMessage',
-  ERROR: 'error',
-};
+const User = require('../models/User');
+const logger = require('../utils/logger');
+const redisCache = require('../config/redis');
+const notificationService = require('../services/notificationService');
 
 let io = null;
 
-const handleUserMessage = async (socket, sessionId, text) => {
-    try {
-        const sender = socket.user;
-        const session = await ChatSession.findOne({ _id: sessionId, participants: sender._id });
-        if (!session) {
-            return socket.emit(SOCKET_EVENTS.ERROR, { message: 'You are not a member of this chat session.' });
-        }
+const authenticateSocket = async (socket, next) => {
+  logger.debug('--- [SOCKET AUTHENTICATION START] ---');
+  logger.debug(`[1/7] New socket connection attempt from handshake: ${JSON.stringify(socket.handshake.auth)}`);
 
-        const newMessage = await Message.create({
-            chatSession: sessionId,
-            sender: sender._id,
-            text,
-            type: 'user',
-        });
-
-        const populatedMessage = await Message.findById(newMessage._id).populate('sender', 'name profileImage');
-        session.lastMessage = { text: populatedMessage.text, sentAt: populatedMessage.createdAt };
-        await session.save();
-
-        io.to(sessionId).emit(SOCKET_EVENTS.NEW_MESSAGE, populatedMessage);
-    } catch (error) {
-        logger.error(`Error in handleUserMessage: ${error.message}`);
-        socket.emit(SOCKET_EVENTS.ERROR, { message: 'Failed to send message.' });
+  try {
+    const token = socket.handshake.auth.token;
+    if (!token) {
+      logger.warn('[FAIL] Authentication failed: Missing token.');
+      return next(new Error('Authentication failed: Missing token'));
     }
+    logger.debug('[2/7] Token found in handshake.');
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    logger.debug(`[3/7] JWT verification successful. Decoded payload:`, decoded);
+
+    if (!decoded.jti) {
+      logger.warn('[FAIL] Authentication failed: Token missing JTI (JWT ID).');
+      return next(new Error('Authentication failed: Token missing ID'));
+    }
+    logger.debug(`[4/7] JTI found: ${decoded.jti}`);
+
+    const isBlacklisted = await redisCache.isTokenBlacklisted(decoded.jti);
+    if (isBlacklisted) {
+      logger.warn(`[FAIL] Authentication failed: Token with JTI ${decoded.jti} is blacklisted.`);
+      return next(new Error('Authentication failed: Token has been invalidated'));
+    }
+    logger.debug('[5/7] Token is not blacklisted.');
+    
+    const user = await User.findById(decoded.id).select('+passwordChangedAt'); 
+    if (!user || user.accountStatus !== 'active') {
+      const reason = !user ? 'User not found' : `User account status is ${user.accountStatus}`;
+      logger.warn(`[FAIL] Authentication failed: ${reason}.`);
+      return next(new Error('Authentication failed: User invalid'));
+    }
+    logger.debug(`[6/7] User found and active: ${user.email}`);
+
+    if (user.passwordChangedAt && (decoded.iat * 1000) < new Date(user.passwordChangedAt).getTime()) {
+      logger.warn('[FAIL] Authentication failed: Password was changed after token was issued.');
+      return next(new Error('Authentication failed: Credentials changed'));
+    }
+    logger.debug('[7/7] Password change check passed.');
+    
+    logger.debug('--- [SOCKET AUTHENTICATION SUCCESS] ---');
+    socket.user = user;
+    next();
+
+  } catch (error) {
+    logger.error(`[CRASH] An unexpected error occurred during socket authentication: ${error.message}`, { stack: error.stack });
+    next(new Error(`Authentication failed: ${error.message}`));
+  }
 };
 
-const handleAiCommand = (socket, sessionId, text) => {
-    const sender = socket.user;
-    const command = text.trim().substring(7).trim();
-    logger.info(`AI command received from ${sender.email}: "${command}"`);
-
-    io.to(sessionId).emit(SOCKET_EVENTS.NEW_MESSAGE, {
-        chatSession: sessionId,
-        type: 'system',
-        text: `${sender.name} asked WayMate to process a command...`,
-        createdAt: new Date(),
-    });
-
-    aiChatService.handleWaymateCommand(sessionId, sender, command);
-};
-
+/**
+ * Initializes the Socket.IO server.
+ * @param {object} httpServer The Node.js HTTP server instance.
+ * @returns {object} The configured Socket.IO server instance.
+ */
+// In your src/utils/socket.js file
 
 const initSocketIO = (httpServer) => {
+  const origin = process.env.NODE_ENV === 'production'
+    ? [process.env.CLIENT_URL]
+    : [process.env.CLIENT_URL, 'http://localhost:5173', 'https://localhost:5173'];
+
   io = new Server(httpServer, {
-    cors: {
-      origin: [process.env.CLIENT_URL, 'http://localhost:5173'],
-      methods: ['GET', 'POST'],
-      credentials: true,
-    },
+    cors: { origin, methods: ['GET', 'POST'], credentials: true },
   });
 
-  const pubClient = createClient({ url: process.env.REDIS_URL || 'redis://localhost:6379' });
-  const subClient = pubClient.duplicate();
+  // Define the connection handler logic once to be reused
+  const onConnection = (socket) => {
+    logger.info(`✅ Socket connected: ${socket.id} for user ${socket.user.email}`);
+    socket.join(socket.user._id.toString());
+    socket.on('joinSession', (sessionId) => {
+      socket.join(sessionId);
+      logger.debug(`Socket ${socket.id} joined session ${sessionId}`);
+    });
+    socket.on('leaveSession', (sessionId) => {
+      socket.leave(sessionId);
+      logger.debug(`Socket ${socket.id} left session ${sessionId}`);
+    });
+    socket.on('disconnect', (reason) => {
+      logger.info(`🔌 Client disconnected: ${socket.id}. Reason: ${reason}`);
+    });
+  };
 
-  Promise.all([pubClient.connect(), subClient.connect()]).then(() => {
-    io.adapter(createAdapter(pubClient, subClient));
-    logger.info('✅ Socket.IO Redis adapter connected successfully.');
-  }).catch((err) => {
-    logger.error('❌ Failed to connect Socket.IO Redis adapter', err);
-  });
+  // Use an async IIFE (Immediately Invoked Function Expression) to handle setup
+  (async () => {
+    // --- Redis Adapter for Scalability ---
+    const redisUrl = process.env.REDIS_URL;
+    const redisHost = process.env.REDIS_HOST;
+    const redisPort = process.env.REDIS_PORT;
 
-  io.use(authenticateSocket);
+    if (redisUrl || (redisHost && redisPort)) {
+      try {
+        const redisOptions = redisUrl ? { url: redisUrl } : { socket: { host: redisHost, port: redisPort } };
+        const pubClient = createClient(redisOptions);
+        const subClient = pubClient.duplicate();
 
-  io.on(SOCKET_EVENTS.CONNECTION, (socket) => {
-    try {
-      logger.info(`🔌 Socket connected: ${socket.id} for user ${socket.user.id}`);
+        // Register error handlers before connecting
+        [pubClient, subClient].forEach(client => {
+          client.on('error', (err) => logger.error('❌ Socket.IO Redis client error', err));
+        });
 
-      socket.join(socket.user.id.toString());
-
-      socket.on(SOCKET_EVENTS.JOIN_SESSION, (sessionId) => {
-        socket.join(sessionId);
-        logger.info(`User ${socket.user.id} joined session room: ${sessionId}`);
-      });
-
-      socket.on(SOCKET_EVENTS.LEAVE_SESSION, (sessionId) => {
-        socket.leave(sessionId);
-        logger.info(`User ${socket.user.id} left session room: ${sessionId}`);
-      });
-
-      socket.on(SOCKET_EVENTS.SEND_MESSAGE, async (data) => {
-        const { sessionId, text } = data;
-        if (!sessionId || !text) {
-          return socket.emit(SOCKET_EVENTS.ERROR, { message: 'Session ID and text are required.' });
-        }
-
-        if (text.trim().toLowerCase().startsWith('@waymate')) {
-          handleAiCommand(socket, sessionId, text);
-        } else {
-          await handleUserMessage(socket, sessionId, text);
-        }
-      });
-
-      socket.on(SOCKET_EVENTS.DISCONNECT, () => {
-        logger.info(`🔌 Client disconnected: ${socket.id}`);
-      });
-
-    } catch (error) {
-      logger.error(`Unhandled error in socket connection handler: ${error.message}`, { socketId: socket.id });
+        await Promise.all([pubClient.connect(), subClient.connect()]);
+        io.adapter(createAdapter(pubClient, subClient));
+        logger.info('✅ Socket.IO is using the Redis adapter for scalability.');
+      } catch (err) {
+        logger.error('❌ CRITICAL: Failed to connect Socket.IO to Redis adapter. Exiting.', err);
+        process.exit(1);
+      }
+    } else {
+      logger.warn('⚠️  Redis not configured for Socket.IO. Running in standalone mode.');
     }
-  });
+
+    io.use(authenticateSocket);
+    io.on('connection', onConnection);
+     notificationService.initNotificationService(io);
+  })();
 
   return io;
 };
 
-const getSocketIO = () => {
-  if (!io) {
-    throw new Error('Socket.IO not initialized!');
-  }
-  return io;
-};
-
-module.exports = {
-  initSocketIO,
-  getSocketIO,
-};
+module.exports = { initSocketIO,
+  authenticateSocket,
+ };

@@ -1,59 +1,68 @@
 const jwt = require('jsonwebtoken');
-const logger = require('../utils/logger');
+const crypto = require('crypto');
+const logger = require('./logger');
 
 /**
- * Generate Access Token (Short-lived)
- * @param {String} id - User ID
- * @returns {String} JWT Access Token
+ * Generates a short-lived JWT Access Token.
+ * Includes a unique token identifier (jti) for blacklisting.
+ * @param {string} userId - The user's MongoDB ObjectId.
+ * @returns {string} The JWT Access Token.
  */
-exports.generateAccessToken = (id) => {
+const generateAccessToken = (userId) => {
   try {
-    const token = jwt.sign({ id }, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_ACCESS_EXPIRE || '15m' // Default 15 minutes
+    const jti = crypto.randomBytes(16).toString('hex');
+    const token = jwt.sign({ id: userId }, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_ACCESS_EXPIRE || '15m',
+      jwtid: jti,
     });
-    logger.debug(`✅ Access token generated for userId: ${id}`);
+    logger.debug(`Generated access token for user: ${userId}`);
     return token;
   } catch (error) {
-    logger.error(`❌ Error generating Access Token: ${error.message}`);
-    throw error;
+    logger.error('Error generating access token:', { error: error.message });
+    throw new Error('Could not create access token.');
   }
 };
 
 /**
- * Generate Refresh Token (Long-lived)
- * @param {String} id - User ID
- * @returns {String} JWT Refresh Token
+ * Generates a long-lived JWT Refresh Token.
+ * @param {string} userId - The user's MongoDB ObjectId.
+ * @returns {string} The JWT Refresh Token.
  */
-exports.generateRefreshToken = (id) => {
+const generateRefreshToken = (userId) => {
   try {
-    const token = jwt.sign({ id }, process.env.JWT_REFRESH_SECRET, {
-      expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d' // Default 7 days
+    const jti = crypto.randomBytes(16).toString('hex');
+    const token = jwt.sign({ id: userId }, process.env.JWT_REFRESH_SECRET, {
+      expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d',
+      jwtid: jti,
     });
-    logger.debug(`✅ Refresh token generated for userId: ${id}`);
+    logger.debug(`Generated refresh token for user: ${userId}`);
     return token;
   } catch (error) {
-    logger.error(`❌ Error generating Refresh Token: ${error.message}`);
-    throw error;
+    logger.error('Error generating refresh token:', { error: error.message });
+    throw new Error('Could not create refresh token.');
   }
 };
 
 /**
- * Verify Token (Access or Refresh)
- * @param {String} token - JWT Token
- * @param {Boolean} isRefresh - true if refresh token
- * @returns {Object|null} Decoded payload or null if invalid
+ * Verifies a JWT and returns its decoded payload.
+ * @param {string} token - The JWT to verify.
+ * @param {'access' | 'refresh'} tokenType - The type of token being verified.
+ * @returns {object | null} The decoded payload if valid, otherwise null.
  */
-exports.verifyToken = (token, isRefresh = false) => {
+const verifyToken = (token, tokenType = 'access') => {
   try {
-    const secret = isRefresh ? process.env.JWT_REFRESH_SECRET : process.env.JWT_SECRET;
-    const decoded = jwt.verify(token, secret);
-    logger.debug(`✅ Token verified successfully`, {
-      userId: decoded.id,
-      type: isRefresh ? 'refresh' : 'access'
-    });
-    return decoded;
+    const secret = tokenType === 'refresh' 
+      ? process.env.JWT_REFRESH_SECRET 
+      : process.env.JWT_SECRET;
+    return jwt.verify(token, secret);
   } catch (error) {
-    logger.warn(`⚠ Token verification failed: ${error.message}`);
-    return null; // return null instead of throwing for smoother control flow
+    logger.warn(`Token verification failed: ${error.message}`);
+    return null;
   }
+};
+
+module.exports = {
+  generateAccessToken,
+  generateRefreshToken,
+  verifyToken,
 };

@@ -1,85 +1,83 @@
 require('dotenv').config();
-const http = require('http'); 
+const https = require('https');
+const fs = require('fs');
+const path = require('path');
+const mongoose = require('mongoose');
+
 const app = require('./app');
 const connectDB = require('./config/db');
 const logger = require('./utils/logger');
 const { initSocketIO } = require('./utils/socket');
 const { closeRedisConnection } = require('./config/redis');
 const { initScheduledJobs } = require('./services/cleanupService');
+const { initAlertMonitoring } = require('./services/alertMonitorService');
+const { initLiveItineraryService } = require('./services/liveItineraryService');
 
+// --- Environment Variable Validation ---
+const requiredEnvVars = ['MONGO_URI', 'JWT_SECRET', 'JWT_REFRESH_SECRET', 'PORT', 'CLIENT_URL'];
+const missingVars = requiredEnvVars.filter(key => !process.env[key]);
 
+if (missingVars.length > 0) {
+  logger.error(`❌ FATAL ERROR: Missing required environment variables: ${missingVars.join(', ')}`);
+  process.exit(1);
+}
 
 const PORT = process.env.PORT || 5000;
 
-/**
- * ✅ Validate required environment variables
- */
-const requiredEnvVars = ['MONGO_URI', 'JWT_SECRET', 'JWT_REFRESH_SECRET'];
-requiredEnvVars.forEach((key) => {
-  if (!process.env[key]) {
-    logger.error(`❌ Missing required environment variable: ${key}`);
-    process.exit(1);
-  }
-});
-
-/**
- * ✅ Handle uncaught exceptions
- */
-process.on('uncaughtException', (err) => {
-  logger.error(`❌ Uncaught Exception: ${err.message}`);
-  process.exit(1);
-});
-
-/**
- * ✅ Create HTTP server from the Express app
- */
-const server = http.createServer(app);
-
-/**
- * ✅ Initialize Socket.IO and attach it to the server
- * FIX: This now calls the single, correct function.
- */
-initSocketIO(server);
-initScheduledJobs();
-
-
-/**
- * ✅ Connect to Database and Start Server
- */
+// --- Server Startup Logic ---
 const startServer = async () => {
   try {
     await connectDB();
-    server.listen(PORT, () => { // ✅ Use server.listen instead of app.listen
-      logger.info(`✅ Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
-    });
+    await mongoose.model('Place').ensureIndexes();
+    initScheduledJobs();
+    initAlertMonitoring();
+    initLiveItineraryService();
+    logger.info('✅ Database indexes ensured.');
 
-    /**
-     * ✅ Graceful Shutdown
-     */
-    const shutdown = async (signal) => { 
-      logger.info(`🛑 ${signal} received. Closing server...`);
-      await closeRedisConnection(); 
-      server.close(() => {
-        logger.info('✅ Server closed. Exiting process.');
+    const options = {
+      key: fs.readFileSync(path.join(__dirname, 'localhost-key.pem')),
+      cert: fs.readFileSync(path.join(__dirname, 'localhost.pem')),
+      minVersion: 'TLSv1.2',
+      ciphers: [
+        'ECDHE-ECDSA-AES128-GCM-SHA256',
+        'ECDHE-RSA-AES128-GCM-SHA256',
+        'ECDHE-ECDSA-AES256-GCM-SHA384',
+        'ECDHE-RSA-AES256-GCM-SHA384',
+        'ECDHE-ECDSA-CHACHA20-POLY13O5',
+        'ECDHE-RSA-CHACHA20-POLY1305',
+        'DHE-RSA-AES128-GCM-SHA256',
+        'DHE-RSA-AES256-GCM-SHA384'
+      ].join(':'),
+    };
+
+    const server = https.createServer(options, app);
+    const io = initSocketIO(server);
+
+
+    // Setup graceful shutdown
+    const shutdown = (signal) => {
+      logger.info(`🛑 ${signal} received. Closing server gracefully...`);
+      server.close(async () => {
+        logger.info('✅ HTTPS server closed.');
+        if (io) io.close(() => logger.info('✅ Socket.IO connections closed.'));
+        await closeRedisConnection();
+        await mongoose.connection.close();
         process.exit(0);
       });
     };
 
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => shutdown('SIGINT'));
 
-    process.on('SIGTERM', shutdown);
-    process.on('SIGINT', shutdown);
-
-    /**
-     * ✅ Handle unhandled promise rejections
-     */
-    process.on('unhandledRejection', (err) => {
-      logger.error(`❌ Unhandled Rejection: ${err.message}`);
-      server.close(() => process.exit(1));
+    server.listen(PORT, () => {
+      logger.info(`✅ HTTPS Server started on port ${PORT} with PID ${process.pid}`);
     });
+
   } catch (err) {
-    logger.error(`❌ Failed to start server: ${err.message}`);
+    logger.error(`❌ Failed to start server: ${err.message}`, err.stack);
     process.exit(1);
   }
 };
 
+// --- Start the Server ---
 startServer();

@@ -6,14 +6,14 @@ const ipKeyGenerator = (req, res) => req.ip;
 
 // ✅ Custom handler for logging
 const rateLimitHandler = (req, res, next, options) => {
-  logger.warn('Rate limit hit', {
-    ip: req.ip,
-    endpoint: req.originalUrl,
-    method: req.method,
-    user: req.user ? req.user.email : 'Guest'
-  });
-  res.status(options.statusCode).json(options.message);
+    logger.warn('Rate limit exceeded', {
+        ip: req.ip,
+        endpoint: req.originalUrl,
+        user: req.user ? req.user.email : 'Guest'
+    });
+    res.status(options.statusCode).json({ success: false, message: options.message.message });
 };
+
 
 // ✅ Custom safe key generator wrapper
 const customKeyGenerator = (extraKey = '') => (req, res) => {
@@ -86,6 +86,20 @@ const messageLimiter = rateLimit({
     handler: rateLimitHandler
 });
 
+const refreshLimiter = rateLimit({
+  store: new RedisStore({
+    sendCommand: (...args) => redisClient.sendCommand(args),
+    prefix: 'refreshLimiter'
+  }),
+  windowMs: 5 * 60 * 1000, // 5 mins
+  max: 50, // Allow a reasonable number of refreshes
+  message: { success: false, message: 'Too many token refresh attempts.' },
+  handler: rateLimitHandler,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+
 
 // Global limiter
 const globalLimiter = rateLimit({
@@ -100,6 +114,23 @@ const globalLimiter = rateLimit({
   handler: rateLimitHandler
 });
 
+const generalLimiter = rateLimit({
+  store: new RedisStore({ sendCommand: (...args) => redisClient.sendCommand(args), prefix: 'generalLimiter' }),
+  windowMs: 15 * 60 * 1000,
+  max: 200, // Reasonable limit for general use
+  handler: rateLimitHandler,
+  message: { success: false, message: 'Too many requests. Please slow down.' },
+});
+
+// Stricter limiter for expensive operations (e.g., PDF generation, AI calls)
+const strictLimiter = rateLimit({
+  store: new RedisStore({ sendCommand: (...args) => redisClient.sendCommand(args), prefix: 'strictLimiter' }),
+  windowMs: 15 * 60 * 1000,
+  max: 50, // Much lower limit
+  handler: rateLimitHandler,
+  message: { success: false, message: 'Too many requests for this resource. Please try again later.' },
+});
+
 module.exports = { 
     otpRateLimiter, 
     loginRateLimiter, 
@@ -107,5 +138,8 @@ module.exports = {
     globalLimiter,
     groupCreationLimiter, 
     messageLimiter,      
-    customKeyGenerator 
+    customKeyGenerator ,
+    generalLimiter,
+    strictLimiter,
+    refreshLimiter
 };

@@ -51,7 +51,7 @@ const messageSchema = new mongoose.Schema(
   { timestamps: true } // Adds createdAt & updatedAt
 );
 
-// ✅ Index for fast chat queries
 messageSchema.index({ chatSession: 1, createdAt: -1 });
+
 
 module.exports = mongoose.model('Message', messageSchema);

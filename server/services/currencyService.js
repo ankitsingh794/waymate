@@ -30,7 +30,6 @@ async function getRates(baseCurrency = 'INR') {
     const rates = response.data?.conversion_rates;
 
     if (rates) {
-      // Cache the rates for 12 hours to stay relatively fresh but avoid excessive calls.
       await setCache(cacheKey, rates, 43200);
       return rates;
     }

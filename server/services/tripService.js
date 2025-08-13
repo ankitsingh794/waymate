@@ -6,33 +6,23 @@ const { fetchLocalEvents } = require('./eventService');
 const currencyService = require('./currencyService');
 const { BUDGET_CONFIG } = require('../config/budgetConfig');
 
-const OPENTRIPMAP_BASE = 'https://api.opentripmap.com/0.1/en/places';
-const OPENWEATHER_FORECAST_BASE = 'https://api.openweathermap.org/data/2.5/forecast'; // ✅ Correct endpoint for forecast
-const UNSPLASH_BASE = 'https://api.unsplash.com/search/photos';
-
-const MAPBOX_DIRECTIONS_BASE = 'https://api.mapbox.com/directions/v5/mapbox';
-const MAPBOX_STATIC_BASE = 'https://api.mapbox.com/styles/v1/mapbox/streets-v11/static';
-const GOOGLE_PLACES_BASE = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json';
-
-const OPENTRIPMAP_API_KEY = process.env.OPENTRIPMAP_API_KEY;
-const OPENWEATHER_API_KEY = process.env.OPENWEATHER_API_KEY;
-const UNSPLASH_ACCESS_KEY = process.env.UNSPLASH_ACCESS_KEY;
-const MAPBOX_ACCESS_TOKEN = process.env.MAPBOX_SECRET_KEY;
-const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
-
-const DEFAULT_IMAGE_URL =
-  'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80';
-
-
-// Free tier limits
-const LIMITS = {
-  mapboxDirections: 100000,
-  staticImages: 50000
-};
-
-// Redis keys for API usage tracking
-const MAPBOX_DIRECTIONS_KEY = 'usage:mapbox:directions';
-const MAPBOX_STATIC_KEY = 'usage:mapbox:static';
+const {
+  OPENTRIPMAP_API_KEY,
+  OPENWEATHER_API_KEY,
+  UNSPLASH_ACCESS_KEY,
+  MAPBOX_ACCESS_TOKEN,
+  GOOGLE_API_KEY,
+  OPENTRIPMAP_BASE,
+  OPENWEATHER_BASE,
+  UNSPLASH_BASE,
+  MAPBOX_DIRECTIONS_BASE,
+  MAPBOX_STATIC_BASE,
+  GOOGLE_PLACES_BASE,
+  LIMITS,
+  MAPBOX_DIRECTIONS_KEY,
+  MAPBOX_STATIC_KEY,
+  GOOGLE_DISTANCE_MATRIX_BASE,
+} = require('../config/apiConfig');
 
 // Sub-schema for attractions
 const API_LANGUAGE_CODES = {
@@ -164,11 +154,14 @@ const getRouteData = async (origin, destination, includeStaticMap = false) => {
       throw new Error(`Invalid coordinates: origin=${JSON.stringify(origin)}, destination=${JSON.stringify(destination)}`);
     }
 
-    // Check Mapbox directions API usage quota
     const canCallDirections = await checkAndIncrementUsage(MAPBOX_DIRECTIONS_KEY, LIMITS.mapboxDirections);
     if (!canCallDirections) throw new Error('Mapbox Directions limit reached');
 
-    const modes = ['driving', 'cycling', 'walking'];
+    const distanceKm = haversineDistance(origin, destination);
+    const modes = ['driving'];
+    if (distanceKm < 50) modes.push('cycling');
+    if (distanceKm < 10) modes.push('walking');
+
     const results = {};
 
     // Fetch routes for all modes concurrently
@@ -183,7 +176,7 @@ const getRouteData = async (origin, destination, includeStaticMap = false) => {
               geometries: 'geojson'
             }
           }),
-          `Mapbox Directions (${mode})`, // ✅ Descriptive name for retry logging
+          `Mapbox Directions (${mode})`,
           1,
           (err) => {
             // Retry only on network or 5xx, skip 422 errors
@@ -266,7 +259,7 @@ const getRouteData = async (origin, destination, includeStaticMap = false) => {
 
     for (const mode in SPEEDS_KMH) {
       fallbackDetails[mode] = {
-        mode: mode.charAt(0).toUpperCase() + mode.slice(1), 
+        mode: mode.charAt(0).toUpperCase() + mode.slice(1),
         duration: `${Math.max(1, Math.ceil(distanceKm / SPEEDS_KMH[mode]))}h`,
         cost: Math.round(distanceKm * (COSTS_PER_KM[mode] || 0)),
         distance: `${Math.round(distanceKm)} km`
@@ -290,7 +283,96 @@ const getRouteData = async (origin, destination, includeStaticMap = false) => {
   }
 };
 
-//geocoding logic
+/**
+ * Finds the fastest transportation hub (airport, train station) to reach from a user's location.
+ * @param {object} originCoords The user's starting { lat, lon }.
+ * @param {string} hubType The type of hub to search for (e.g., 'airport').
+ * @returns {Promise<object|null>} The best hub and travel details for the first leg of the journey.
+ */
+async function findFastestHub(originCoords, hubType) {
+  try {
+    const placesResponse = await axios.get(GOOGLE_PLACES_BASE, { params: { location: `${originCoords.lat},${originCoords.lon}`, rankby: 'distance', type: hubType, key: GOOGLE_API_KEY } });
+    const candidateHubs = placesResponse.data.results.slice(0, 3);
+    if (candidateHubs.length === 0) return null;
+
+    const destinationParams = candidateHubs.map(h => `${h.geometry.location.lat},${h.geometry.location.lng}`).join('|');
+    const matrixResponse = await axios.get(GOOGLE_DISTANCE_MATRIX_BASE, { params: { origins: `${originCoords.lat},${originCoords.lon}`, destinations: destinationParams, departure_time: 'now', key: GOOGLE_API_KEY } });
+
+    if (!matrixResponse.data.rows || matrixResponse.data.rows.length === 0) {
+      logger.warn(`Distance Matrix API returned no rows for hub type '${hubType}'.`);
+      return null;
+    }
+
+    let fastestLeg = null, shortestDuration = Infinity;
+    matrixResponse.data.rows[0].elements.forEach((element, index) => {
+      if (element.status === 'OK' && element.duration_in_traffic.value < shortestDuration) {
+        shortestDuration = element.duration_in_traffic.value;
+        const bestHub = candidateHubs[index];
+        fastestLeg = {
+          hub: { name: bestHub.name, coords: { lat: bestHub.geometry.location.lat, lon: bestHub.geometry.location.lng } },
+          travel: { durationValue: element.duration_in_traffic.value, durationText: element.duration_in_traffic.text, distanceText: element.distance.text, cost: Math.round((element.distance.value / 1000) * 12) } // Assumes ~₹12/km for taxi
+        };
+      }
+    });
+    return fastestLeg;
+  } catch (error) {
+    logger.error(`Error in findFastestHub for type '${hubType}':`, { message: error.message });
+    return null;
+  }
+}
+
+/**
+ * Estimates the time and cost for the main journey between two hubs.
+ */
+function estimateMainLeg(originHub, destinationHub, mode) {
+  const SPEEDS_KMH = { flight: 700, train: 80 };
+  const COSTS_PER_KM_INR = { flight: 5.5, train: 1.2 };
+  const distanceKm = haversineDistance(originHub.coords, destinationHub.coords);
+  const durationHours = Math.round(distanceKm / SPEEDS_KMH[mode]);
+  const cost = Math.round(distanceKm * COSTS_PER_KM_INR[mode]);
+  return { durationValue: durationHours * 3600, durationText: `${durationHours}h`, cost };
+}
+
+/**
+ * The main orchestrator for door-to-door route calculations.
+ */
+async function getDoorToDoorRoute(originCoords, destinationCoords) {
+  const travelOptions = {};
+
+  // --- Calculate Flight Option Concurrently ---
+  const [originAirportLeg, destinationAirportLeg] = await Promise.all([
+    findFastestHub(originCoords, 'airport'),
+    findFastestHub(destinationCoords, 'airport')
+  ]);
+  if (originAirportLeg && destinationAirportLeg) {
+    const mainFlightLeg = estimateMainLeg(originAirportLeg.hub, destinationAirportLeg.hub, 'flight');
+    const totalDurationSec = originAirportLeg.travel.durationValue + mainFlightLeg.durationValue + destinationAirportLeg.travel.durationValue;
+    const totalCost = originAirportLeg.travel.cost + mainFlightLeg.cost + destinationAirportLeg.travel.cost;
+    travelOptions.flight = { mode: 'Flight', durationValue: totalDurationSec, durationText: `${Math.round(totalDurationSec / 3600)}h total`, cost: totalCost, details: `Fly from ${originAirportLeg.hub.name} to ${destinationAirportLeg.hub.name}.` };
+  }
+
+  // --- Calculate Train Option Concurrently ---
+  const [originTrainLeg, destinationTrainLeg] = await Promise.all([
+    findFastestHub(originCoords, 'train_station'),
+    findFastestHub(destinationCoords, 'train_station')
+  ]);
+  if (originTrainLeg && destinationTrainLeg) {
+    const mainTrainLeg = estimateMainLeg(originTrainLeg.hub, destinationTrainLeg.hub, 'train');
+    const totalDurationSec = originTrainLeg.travel.durationValue + mainTrainLeg.durationValue + destinationTrainLeg.travel.durationValue;
+    const totalCost = originTrainLeg.travel.cost + mainTrainLeg.cost + destinationTrainLeg.travel.cost;
+    travelOptions.train = { mode: 'Train', durationValue: totalDurationSec, durationText: `${Math.round(totalDurationSec / 3600)}h total`, cost: totalCost, details: `Train from ${originTrainLeg.hub.name} to ${destinationTrainLeg.hub.name}.` };
+  }
+
+  const finalOptions = Object.values(travelOptions);
+  if (finalOptions.length === 0) return { fastest: { mode: 'N/A' }, cheapest: { mode: 'N/A' }, details: {} };
+
+  const fastest = finalOptions.reduce((a, b) => a.durationValue < b.durationValue ? a : b);
+  const cheapest = finalOptions.reduce((a, b) => a.cost < b.cost ? a : b);
+  return { fastest, cheapest, details: travelOptions };
+}
+
+
+
 async function getGeocodedLocation(destination) {
   if (typeof destination === 'object' && destination.lat && destination.lon) {
     return {
@@ -340,7 +422,7 @@ async function fetchAllApiData(destinationInfo, params) {
     retry(() => axios.get(GOOGLE_PLACES_BASE, { params: { location: `${destinationCoords.lat},${destinationCoords.lon}`, radius: 5000, ...personalizedParams, language: apiLangCode, key: GOOGLE_API_KEY } }), 'Google Places Attractions'),
     retry(() => axios.get(GOOGLE_PLACES_BASE, { params: { location: `${destinationCoords.lat},${destinationCoords.lon}`, radius: 5000, keyword: 'hotel|lodging', ...personalizedParams, language: apiLangCode, key: GOOGLE_API_KEY } }), 'Google Places Accommodations'),
     retry(() => axios.get(GOOGLE_PLACES_BASE, { params: { location: `${destinationCoords.lat},${destinationCoords.lon}`, radius: 5000, type: 'restaurant', keyword: 'restaurant|cafe|food', language: apiLangCode, key: GOOGLE_API_KEY } }), 'Google Places Food'),
-    retry(() => axios.get(OPENWEATHER_FORECAST_BASE, { params: { lat: destinationCoords.lat, lon: destinationCoords.lon, appid: OPENWEATHER_API_KEY, units: 'metric' } }), 'OpenWeatherMap Forecast'),
+    retry(() => axios.get(OPENWEATHER_BASE, { params: { lat: destinationCoords.lat, lon: destinationCoords.lon, appid: OPENWEATHER_API_KEY, units: 'metric' } }), 'OpenWeatherMap Forecast'),
     retry(() => axios.get(UNSPLASH_BASE, { params: { query: destinationName, per_page: 1, client_id: UNSPLASH_ACCESS_KEY } }), 'Unsplash Image'),
     getRouteData(origin, destinationCoords),
     fetchLocalEvents(destinationName, startDate, endDate)
@@ -354,11 +436,13 @@ function processAttractions(response) {
     return response.value.data.results.slice(0, 10).map(g => ({
       name: g.name,
       description: `Rating: ${g.rating || 'N/A'} (${g.user_ratings_total || 0} reviews)`,
-      image: g.photos ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${g.photos[0].photo_reference}&key=${GOOGLE_API_KEY}` : null
+      photo_reference: g.photos ? g.photos[0].photo_reference : null,
+      vicinity: g.vicinity
     }));
   }
   return [{ name: 'City Museum' }, { name: 'Local Park' }];
 }
+
 
 function processAccommodations(response) {
   if (response.status === 'fulfilled' && response.value.data?.results?.length > 0) {
@@ -376,10 +460,11 @@ function processFood(response) {
     return response.value.data.results.slice(0, 8).map(g => ({
       name: g.name,
       description: `Rating: ${g.rating || 'N/A'} (${g.user_ratings_total || 0} reviews)`,
-      image: g.photos ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${g.photos[0].photo_reference}&key=${GOOGLE_API_KEY}` : null
+      photo_reference: g.photos ? g.photos[0].photo_reference : null,
+      vicinity: g.vicinity
     }));
   }
-  return [{ name: 'Local Café' }, { name: 'Street Food Corner' }]; // Simple fallback
+  return [{ name: 'Local Café' }, { name: 'Street Food Corner' }];
 }
 
 function processWeather(response) {
@@ -492,20 +577,20 @@ async function convertAllCosts(tripData, targetCurrency, currencyService) {
       tripData.budget[key] = await safeConvert(tripData.budget[key]);
     }
   });
-  
+
   await Promise.all(budgetPromises);
   tripData.budget.currency = targetCurrency;
 
   if (tripData.routeInfo && tripData.routeInfo.details) {
     const routePromises = Object.values(tripData.routeInfo.details).map(async (mode) => {
-        if(mode.cost) {
-            mode.cost = await safeConvert(mode.cost);
-        }
+      if (mode.cost) {
+        mode.cost = await safeConvert(mode.cost);
+      }
     });
     await Promise.all(routePromises);
 
-    if(tripData.routeInfo.fastest?.cost) tripData.routeInfo.fastest.cost = await safeConvert(tripData.routeInfo.fastest.cost);
-    if(tripData.routeInfo.cheapest?.cost) tripData.routeInfo.cheapest.cost = await safeConvert(tripData.routeInfo.cheapest.cost);
+    if (tripData.routeInfo.fastest?.cost) tripData.routeInfo.fastest.cost = await safeConvert(tripData.routeInfo.fastest.cost);
+    if (tripData.routeInfo.cheapest?.cost) tripData.routeInfo.cheapest.cost = await safeConvert(tripData.routeInfo.cheapest.cost);
   }
 
   return tripData;
@@ -518,7 +603,6 @@ const aggregateTripData = async ({ destination, origin, startDate, endDate, trav
 
   try {
     const destinationInfo = await getGeocodedLocation(destination);
-
     const cacheKey = `v4:trip:${destinationInfo.name.replace(/\s+/g, '_')}:${startDate}:${endDate}:${travelers}`;
     const cached = await getCache(cacheKey);
     if (cached) {
@@ -527,23 +611,21 @@ const aggregateTripData = async ({ destination, origin, startDate, endDate, trav
     }
 
     const { language = 'English' } = preferences;
-
     const apiLangCode = API_LANGUAGE_CODES[language.toLowerCase()] || 'en';
-
     const personalizedParams = buildPersonalizedApiParams(preferences);
     const apiParams = { startDate, endDate, origin, personalizedParams, destinationName: destinationInfo.name, apiLangCode };
-
     const apiResults = await fetchAllApiData(destinationInfo, apiParams);
 
     const attractions = processAttractions(apiResults.attractionsRes);
-    const accommodationSuggestions = processAccommodations(apiResults.accommodationRes);
-    const foodRecommendations = processFood(apiResults.foodRes);
-    const weather = processWeather(apiResults.weatherRes);
+    // ... (processing for accommodations, food, weather, image remains the same) ...
     const coverImage = processCoverImage(apiResults.unsplashRes);
-    const route = apiResults.routeRes.status === 'fulfilled' ? apiResults.routeRes.value : {};
     const localEvents = apiResults.eventsRes.status === 'fulfilled' ? apiResults.eventsRes.value : [];
 
-    const budget = calculateTripBudget({ ...apiParams, travelers, preferences }, route, attractions);
+    // FIX: Removed the incorrect, unnecessary call to getRouteData.
+    // We now ONLY use getDoorToDoorRoute for the main journey calculation.
+    const routeInfo = await getDoorToDoorRoute(origin, destinationInfo.coords);
+
+    const budget = calculateTripBudget({ ...apiParams, travelers, preferences }, routeInfo, attractions);
     const alerts = await fetchThreatAlertsForDestination(destinationInfo.name);
 
     let tripData = {
@@ -555,14 +637,15 @@ const aggregateTripData = async ({ destination, origin, startDate, endDate, trav
       travelers,
       preferences,
       attractions,
-      foodRecommendations,
-      accommodationSuggestions,
-      weather,
+      foodRecommendations: processFood(apiResults.foodRes),
+      accommodationSuggestions: processAccommodations(apiResults.accommodationRes),
+      weather: processWeather(apiResults.weatherRes),
       coverImage,
-      routeInfo: route,
       budget,
       alerts,
-      localEvents
+      localEvents,
+      // FIX: Correctly and non-redundantly assign the routeInfo.
+      routeInfo: routeInfo,
     };
 
     const { currency = 'USD' } = preferences;
@@ -574,11 +657,11 @@ const aggregateTripData = async ({ destination, origin, startDate, endDate, trav
 
   } catch (error) {
     logger.error('❌ Trip aggregation failed', { error: error.message, stack: error.stack });
-    
+
     const userMessage = "We're sorry, but we couldn't create your trip plan at this moment as our systems are undergoing maintenance. 🛠️\n\nIf you'd like to report this issue directly to the developer, you can reach out here: https://www.linkedin.com/in/ankitsingh794/";
 
     const userFacingError = new Error('Failed to aggregate trip data');
-    userFacingError.userMessage = userMessage; 
+    userFacingError.userMessage = userMessage;
     throw userFacingError;
   }
 };

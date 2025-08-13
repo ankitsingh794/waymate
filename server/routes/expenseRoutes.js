@@ -52,10 +52,10 @@ router.post('/', addExpenseValidation, validate, addExpense);
 router.get('/', getTripExpenses);
 
 /**
- * @route   PUT /api/trips/:tripId/expenses/:expenseId
+ * @route   PATCH /api/trips/:tripId/expenses/:expenseId
  * @desc    Update an existing expense
  */
-router.put('/:expenseId', mongoIdValidation('expenseId'), updateExpenseValidation, validate, updateExpense);
+router.patch('/:expenseId', mongoIdValidation('expenseId'), updateExpenseValidation, validate, updateExpense);
 
 /**
  * @route   DELETE /api/trips/:tripId/expenses/:expenseId

@@ -1,82 +1,66 @@
 const logger = require('../utils/logger');
-const multer = require('multer');
-const { validationResult } = require('express-validator');
-const crypto = require('crypto');
+const AppError = require('../utils/AppError');
 
-/**
- * Global Error Handler Middleware
- */
-const errorHandler = (err, req, res, next) => {
-  let statusCode = err.statusCode || 500;
-  let message = err.message || 'Internal Server Error';
-  const errorId = crypto.randomBytes(6).toString('hex'); // Unique error trace ID
-
-  // ✅ Mongoose Validation Error
-  if (err.name === 'ValidationError') {
-    statusCode = 400;
-    message = Object.values(err.errors).map(val => val.message).join(', ');
-  }
-
-  // ✅ Mongoose CastError (Invalid ObjectId)
-  if (err.name === 'CastError') {
-    statusCode = 400;
-    message = `Invalid ${err.path}: ${err.value}`;
-  }
-
-  // ✅ Duplicate Key Error
-  if (err.code === 11000) {
-    statusCode = 400;
-    const fields = Object.keys(err.keyValue).join(', ');
-    message = `Duplicate value for field: ${fields}. Use another value.`;
-  }
-
-  // ✅ JWT Errors
-  if (err.name === 'JsonWebTokenError') {
-    statusCode = 401;
-    message = 'Invalid token, please log in again';
-  }
-
-  if (err.name === 'TokenExpiredError') {
-    statusCode = 401;
-    message = 'Token expired, please log in again';
-  }
-
-  // ✅ Multer Errors
-  if (err instanceof multer.MulterError) {
-    statusCode = 400;
-    if (err.code === 'LIMIT_FILE_SIZE') {
-      message = 'File too large. Max size is 2MB';
-    } else if (err.code === 'LIMIT_UNEXPECTED_FILE') {
-      message = 'Invalid file type. Only jpeg, jpg, png, webp allowed';
-    } else {
-      message = `File upload error: ${err.message}`;
-    }
-  }
-
-  // ✅ Express Validator Errors (optional)
-  if (!err.name && validationResult(req).array().length > 0) {
-    statusCode = 422;
-    message = validationResult(req).array().map(err => `${err.param}: ${err.msg}`).join(', ');
-  }
-
-  // ✅ Log with Winston
-  logger.error(`Error ID: ${errorId} | ${message}`, {
-    statusCode,
-    method: req.method,
-    url: req.originalUrl,
-    user: req.user ? req.user.email : 'Guest',
-    ip: req.ip,
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
-  });
-
-  // ✅ Final response
-  res.status(statusCode).json({
-    success: false,
-    statusCode,
-    message,
-    errorId, // for debugging
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
-  });
+const handleCastErrorDB = (err) => {
+    const message = `Invalid ${err.path}: ${err.value}.`;
+    return new AppError(message, 400);
 };
 
-module.exports = errorHandler;
+const handleDuplicateFieldsDB = (err) => {
+    const value = err.errmsg.match(/(["'])(\\?.)*?\1/)[0];
+    const message = `Duplicate field value: ${value}. Please use another value!`;
+    return new AppError(message, 400);
+};
+
+const handleValidationErrorDB = (err) => {
+    const errors = Object.values(err.errors).map(el => el.message);
+    const message = `Invalid input data. ${errors.join('. ')}`;
+    return new AppError(message, 400);
+};
+
+const handleJWTError = () => new AppError('Invalid token. Please log in again!', 401);
+const handleJWTExpiredError = () => new AppError('Your token has expired! Please log in again.', 401);
+
+const sendErrorDev = (err, res) => {
+    res.status(err.statusCode).json({
+        status: err.status,
+        error: err,
+        message: err.message,
+        stack: err.stack
+    });
+};
+
+
+
+const sendErrorProd = (err, res) => {
+    if (err.isOperational) {
+        return res.status(err.statusCode).json({
+            status: err.status,
+            message: err.message
+        });
+    }
+    logger.error('PROGRAMMING ERROR', err);
+    res.status(500).json({
+        status: 'error',
+        message: 'Something went very wrong!'
+    });
+};
+
+module.exports = (err, req, res, next) => {
+    err.statusCode = err.statusCode || 500;
+    err.status = err.status || 'error';
+
+    if (process.env.NODE_ENV === 'development') {
+        sendErrorDev(err, res);
+    } else if (process.env.NODE_ENV === 'production') {
+        let error = { ...err, message: err.message, name: err.name };
+
+        if (error.name === 'CastError') error = handleCastErrorDB(error);
+        if (error.code === 11000) error = handleDuplicateFieldsDB(error);
+        if (error.name === 'ValidationError') error = handleValidationErrorDB(error);
+        if (error.name === 'JsonWebTokenError') error = handleJWTError();
+        if (error.name === 'TokenExpiredError') error = handleJWTExpiredError();
+
+        sendErrorProd(error, res);
+    }
+};

@@ -1,65 +1,57 @@
 const express = require('express');
 const { body } = require('express-validator');
-const {
-  registerUser,
-  verifyEmail,
-  loginUser,
-  forgotPassword,
-  resetPassword,
-  updatePassword,
-  logoutUser,
-  refreshToken
-} = require('../controllers/authController');
+const authController = require('../controllers/authController');
 const { protect } = require('../middlewares/authMiddleware');
 const validate = require('../middlewares/validateMiddleware');
-const { loginRateLimiter } = require('../middlewares/rateLimiter');
+const { loginRateLimiter, generalLimiter, refreshLimiter } = require('../middlewares/rateLimiter');
+const { passwordValidation } = require('../utils/validationHelpers');
 
 const router = express.Router();
 
-// --- Validation Chains ---
+// --- Validation Chains with Enhanced Security ---
 
 const registerValidation = [
   body('name').notEmpty().withMessage('Name is required.'),
   body('email').isEmail().withMessage('Please provide a valid email.').normalizeEmail(),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long.')
-];
-
-const verifyEmailValidation = [
-  body('token').notEmpty().withMessage('Verification token is required.')
+  // Use the strong password validator
+  passwordValidation('password'),
 ];
 
 const loginValidation = [
   body('email').isEmail().withMessage('Please provide a valid email.'),
-  body('password').notEmpty().withMessage('Password is required.')
-];
-
-const forgotPasswordValidation = [
-  body('email').isEmail().withMessage('Please provide a valid email.')
+  body('password').notEmpty().withMessage('Password is required.'),
 ];
 
 const resetPasswordValidation = [
   body('token').notEmpty().withMessage('Reset token is required.'),
-  body('password').isLength({ min: 6 }).withMessage('New password must be at least 6 characters long.')
+  // Enforce strong passwords on reset
+  passwordValidation('password'),
 ];
 
 const updatePasswordValidation = [
   body('currentPassword').notEmpty().withMessage('Current password is required.'),
-  body('newPassword').isLength({ min: 6 }).withMessage('New password must be at least 6 characters long.')
+  // Enforce strong passwords on update
+  passwordValidation('newPassword'),
 ];
 
+// --- Public Routes with Rate Limiting ---
 
-// --- Public Routes ---
+router.post('/register', generalLimiter, registerValidation, validate, authController.registerUser);
 
-router.post('/register', registerValidation, validate, registerUser);
-router.post('/verify-email', verifyEmailValidation, validate, verifyEmail);
-router.post('/login', loginValidation, validate, loginRateLimiter, loginUser);
-router.post('/refresh-token', refreshToken);
-router.post('/forgot-password', forgotPasswordValidation, validate, forgotPassword);
-router.post('/reset-password', resetPasswordValidation, validate, resetPassword);
+router.post('/verify-email', generalLimiter, [body('token').notEmpty()], validate, authController.verifyEmail);
 
-// --- Private Routes ---
+router.post('/login', loginRateLimiter, loginValidation, validate, authController.loginUser);
 
-router.put('/update-password', protect, updatePasswordValidation, validate, updatePassword);
-router.post('/logout', protect, logoutUser);
+router.post('/refresh-token', refreshLimiter, authController.refreshToken); 
+
+router.post('/forgot-password', generalLimiter, [body('email').isEmail()], validate, authController.forgotPassword);
+
+router.post('/reset-password', generalLimiter, resetPasswordValidation, validate, authController.resetPassword);
+
+
+// Use PATCH for partial updates, a semantic improvement
+router.patch('/update-password', protect, updatePasswordValidation, validate, authController.updatePassword);
+
+router.post('/logout', protect, authController.logoutUser);
 
 module.exports = router;
