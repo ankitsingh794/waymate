@@ -1,6 +1,6 @@
 <div align="center">
   <br />
-    <img src="https://i.imgur.com/your-logo-url.png" alt="WayMate Logo" width="150">
+    <img src="https://res.cloudinary.com/divulwxho/image/upload/v1755125118/logo_jvzo8w.png" alt="WayMate Logo" width="150">
   <h1 align="center">🌍 WayMate - AI-Powered Collaborative Travel Planner</h1>
   <p align="center">
     A comprehensive, full-stack travel planning application designed to transform how users plan and experience their journeys.
