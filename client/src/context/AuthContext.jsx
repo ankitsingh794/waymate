@@ -1,5 +1,3 @@
-
-
 // src/context/AuthContext.jsx
 import React, {
   createContext,
@@ -12,7 +10,7 @@ import React, {
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/axiosInstance';
-import { getSocket } from '../utils/socketManager';
+import { getSocket, disconnectSocket } from '../utils/socketManager';
 
 const AuthContext = createContext();
 
@@ -23,83 +21,105 @@ export default function AuthProvider({ children }) {
   const navigate = useNavigate();
   const tokenRefreshIntervalRef = useRef(null);
 
-  // --- DETAILED DEBUGGING FUNCTIONS ---
-
   const connectSocket = useCallback((token) => {
-    console.log('--- [SOCKET CONNECTION START] ---');
     if (!token) {
-      console.error('[FAIL] connectSocket called without a token.');
+      console.error('[Socket Auth] Attempted to connect without a token.');
       return;
     }
-    console.log('[1/4] connectSocket called.');
-
     const socket = getSocket();
     if (socket) {
-      console.log('[2/4] Socket instance retrieved.');
       if (socket.connected) {
-        console.log('[INFO] Socket already connected. Disconnecting first for a clean reconnect.');
         socket.disconnect();
       }
-      
-      console.log(`[3/4] Setting socket auth with token: ${token.substring(0, 20)}...`);
       socket.auth = { token };
-      
-      console.log('[4/4] Calling socket.connect()...');
       socket.connect();
     } else {
-        console.error('[FAIL] Could not retrieve socket instance from socketManager.');
+        console.error('[Socket Auth] Could not retrieve socket instance.');
     }
   }, []);
 
-  const handleLogout = useCallback(() => {
-    console.log('--- [LOGOUT PROCESS START] ---');
-    // ... (logout logic remains the same)
+  /**
+   * Clears all session data, logs out from the backend, and redirects to the login page.
+   */
+  const handleLogout = useCallback(async () => {
+    console.log("Initiating logout...");
+    clearInterval(tokenRefreshIntervalRef.current);
+
+    try {
+      await api.post('/auth/logout');
+    } catch (error) {
+      console.error("Logout API call failed, proceeding with client-side cleanup:", error);
+    } finally {
+      setUser(null);
+      localStorage.removeItem('accessToken');
+      api.defaults.headers.common['Authorization'] = null;
+      disconnectSocket();
+      navigate('/login');
+    }
   }, [navigate]);
 
+  /**
+   * Schedules a periodic refresh of the access token before it expires.
+   */
   const scheduleTokenRefresh = useCallback(() => {
-    // ... (scheduleTokenRefresh logic remains the same)
+    clearInterval(tokenRefreshIntervalRef.current);
+
+    const REFRESH_INTERVAL = 14 * 60 * 1000;
+
+    const refreshToken = async () => {
+      try {
+        console.log("Attempting to refresh access token...");
+        const { data } = await api.post('/auth/refresh-token');
+        const newAccessToken = data.data.accessToken;
+        
+        localStorage.setItem('accessToken', newAccessToken);
+        api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
+        
+        connectSocket(newAccessToken);
+        console.log("Token refreshed successfully.");
+      } catch (error) {
+        console.error("Could not refresh token. Session is invalid.", error);
+        handleLogout();
+      }
+    };
+
+    tokenRefreshIntervalRef.current = setInterval(refreshToken, REFRESH_INTERVAL);
   }, [connectSocket, handleLogout]);
 
+  /**
+   * Logs in the user, sets state, and initializes the session.
+   */
   const login = useCallback(async (userData, accessToken) => {
-    console.log('--- [LOGIN PROCESS START] ---');
-    console.log('[1/2] login function called with user data and token.');
     setUser(userData);
+    localStorage.setItem('accessToken', accessToken);
     api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
     
-    console.log('[2/2] Handing off to connectSocket...');
     connectSocket(accessToken);
-    
     scheduleTokenRefresh();
+
     navigate('/dashboard');
   }, [navigate, connectSocket, scheduleTokenRefresh]);
-
-  // Restore session on load
   useEffect(() => {
     const restoreSession = async () => {
-      console.log('--- [SESSION RESTORE START] ---');
       try {
         const res = await api.post('/auth/refresh-token');
         const { accessToken, user: restoredUser } = res.data.data;
-        console.log('[SUCCESS] Session restored. Got new token.');
+        
         setUser(restoredUser);
+        localStorage.setItem('accessToken', accessToken);
         api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
         
-        console.log('[INFO] Handing off to connectSocket...');
         connectSocket(accessToken);
-        
         scheduleTokenRefresh();
       } catch (err) {
-        console.log('[INFO] No valid session found on initial load.');
         setUser(null);
       } finally {
-        console.log('--- [SESSION RESTORE FINISHED] ---');
         setLoading(false);
       }
     };
     restoreSession();
   }, [connectSocket, scheduleTokenRefresh]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => clearInterval(tokenRefreshIntervalRef.current);
   }, []);
