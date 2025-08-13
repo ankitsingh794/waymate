@@ -31,28 +31,37 @@
     font-size: 1.1rem;
     opacity: 0.8;
 }
+
+.explore-info h4{
+    color: #dedbd2;
+}
+
+.explore-info p{
+    color: #dedbd2;
+}
+
+
 .places-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 1.5rem;
 }
 
-/* --- Updated Place Card Styles --- */
+
 .place-card-link {
     text-decoration: none;
-    color: inherit; /* Ensures text inside the link inherits color */
+    color: inherit; 
 }
-/* ... (existing styles) ... */
 
-/* --- Updated Place Card Styles for Consistency --- */
+
 .place-card {
     background-color: #fcfaf9;
     border-radius: 1rem;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
     transition: all 0.3s ease;
     overflow: hidden;
-    display: flex; /* Use Flexbox for consistent layout */
-    flex-direction: column; /* Stack image and content vertically */
+    display: flex; 
+    flex-direction: column; 
 }
 
 .place-card:hover {
@@ -85,14 +94,14 @@
     opacity: 0.9;
     border-left: 3px solid #b0c4b1;
     padding-left: 1rem;
-    flex-grow: 1; /* Allow this to take up extra space, pushing the address down */
+    flex-grow: 1; 
     color: #4a5759;
 }
 
 .place-address {
     font-size: 0.9rem;
     opacity: 0.7;
-    margin-top: 1rem; /* Ensure consistent spacing */
+    margin-top: 1rem; 
     color: #4a5759;
 }
 

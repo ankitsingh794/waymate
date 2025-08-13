@@ -4,16 +4,14 @@ import api from '../../utils/axiosInstance';
 import DashboardNavbar from '../../components/DashboardNavbar';
 import './ExplorePage.css';
 
-
-
 const PlaceCard = ({ place }) => {
-    const mapsDirectionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(place.address)}&destination_place_id=${place.place_id}`;
-    const imageUrl = place.imageUrl || `https://placehold.co/400x300/f7e1d7/4a5759?text=${encodeURIComponent(place.name)}`; 
+    const mapsUrl = `https://www.google.com/maps/search/?api=1&query_place_id=$`;
+    const imageUrl = place.imageUrl || 'https://via.placeholder.com/400x300.png?text=Image+Not+Available';;
 
     return (
-         <a href={mapsDirectionsUrl} target="_blank" rel="noopener noreferrer" className="place-card-link">
+        <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="place-card-link">
             <div className="place-card">
-                <img src={imageUrl} alt={place.name} className="place-card-image"  loading="lazy" decoding="async"/>
+                <img src={imageUrl} alt={place.name} className="place-card-image" loading="lazy" decoding="async" />
                 <div className="place-card-content">
                     <h3>{place.name}</h3>
                     <p className="place-rating">Rating: {place.rating || 'N/A'}</p>
@@ -33,23 +31,51 @@ export default function ExplorePage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
+
     useEffect(() => {
-        const fetchPlaces = async () => {
+        const fetchPlaces = async (latitude, longitude) => {
             if (!query) {
                 setLoading(false);
                 setError('No search query provided.');
                 return;
             }
             try {
-                const response = await api.get(`/find-places?query=${encodeURIComponent(query)}`);
-                setPlaces(response.data.data.places);
+                const url = `/find-places?query=${encodeURIComponent(query)}&location=current&lat=${latitude}&lon=${longitude}`;
+                const response = await api.get(url);
+
+                const placesData = response.data.data;
+                if (Array.isArray(placesData)) {
+                    setPlaces(placesData);
+                } else {
+                    console.warn('API did not return an array for places, defaulting to empty.');
+                    setPlaces([]);
+                }
+
             } catch (err) {
+                console.error("Explore page fetch error:", err);
                 setError('Could not fetch results. Please try again later.');
+                setPlaces([]);
             } finally {
                 setLoading(false);
             }
         };
-        fetchPlaces();
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const { latitude, longitude } = position.coords;
+                    fetchPlaces(latitude, longitude);
+                },
+                (geoError) => {
+                    console.error("Geolocation error:", geoError);
+                    setError('Could not get your location. Please enable location services in your browser.');
+                    setLoading(false);
+                }
+            );
+        } else {
+            setError('Geolocation is not supported by this browser.');
+            setLoading(false);
+        }
     }, [query]);
 
     return (
@@ -64,11 +90,11 @@ export default function ExplorePage() {
 
                 {loading && <p className="loading-message">Searching for the best places...</p>}
                 {error && <p className="error-message">{error}</p>}
-                
+
                 {!loading && !error && (
                     <div className="places-grid">
                         {places.length > 0 ? (
-                            places.map((place, index) => <PlaceCard place={place} key={index} />)
+                            places.map((place) => <PlaceCard place={place} key={place.place_id} />)
                         ) : (
                             <p className="no-results">No places found for your search.</p>
                         )}

@@ -4,11 +4,10 @@ import { useTranslation } from 'react-i18next';
 import { VscSearch, VscChevronLeft, VscChevronRight, VscCompass, VscLocation } from "react-icons/vsc";
 import DashboardNavbar from '../../components/DashboardNavbar';
 import api from '../../utils/axiosInstance';
-import socket from '../../utils/socket';
 import './Dashboard.css';
 import Lottie from 'lottie-react';
 import CircleLoader from '../../assets/circle-loader.json';
-
+import { useAuth } from '../../context/AuthContext';
 
 const TripCarousel = ({ title, subtitle, trips }) => {
     const containerRef = useRef(null);
@@ -77,7 +76,7 @@ const TripCarousel = ({ title, subtitle, trips }) => {
                     <Link to={`/trip/${trip._id || trip.tripId}`} className="trip-card-link" key={trip._id || trip.tripId}>
                         <div className="trip-card">
                             <div className="trip-image-wrapper">
-                                <img src={trip.coverImage || `https://images.unsplash.com/photo-1502602898657-3e91760c0337?w=500&q=80`} alt={trip.destination} draggable="false" loading="lazy" decoding="async"/>
+                                <img src={trip.coverImage || `https://images.unsplash.com/photo-1502602898657-3e91760c0337?w=500&q=80`} alt={trip.destination} draggable="false" loading="lazy" decoding="async" />
                             </div>
                             <div className="trip-info">
                                 <h4>{trip.destination}</h4>
@@ -97,7 +96,7 @@ const ExploreCard = ({ suggestion }) => {
         <Link to={`/explore?q=${suggestion.query}`} className="explore-card-link">
             <div className="explore-card">
                 <div className="explore-image-wrapper">
-                    <img src={suggestion.image} alt={suggestion.title} draggable="false" loading="lazy" decoding="async"/>
+                    <img src={suggestion.image} alt={suggestion.title} draggable="false" loading="lazy" decoding="async" />
                     <div className="explore-card-overlay"></div>
                 </div>
                 <div className="explore-info">
@@ -110,157 +109,139 @@ const ExploreCard = ({ suggestion }) => {
 };
 
 const exploreSuggestions = [
-  {
-    id: 1,
-    title: 'Cozy Cafés to Kickstart Your Day ☕',
-    description: 'Start your morning right with local brews, good vibes, and Wi-Fi-friendly corners.',
-    query: 'cafes',
-    image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725793/20250722_1251_Travel_Adventures_Await_simple_compose_01k0rg1d0yehrszrgy9c88r7vf_bgosht.png',
-    category: 'morning'
-  },
-  {
-    id: 2,
-    title: 'Top-Rated Restaurants for Lunch or Dinner 🍽️',
-    description: 'From trending spots to timeless favorites, these places serve the best bites around.',
-    query: 'restaurants',
-    image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725793/20250728_2300_Elegant_Dining_Atmosphere_simple_compose_01k19184vsesyafa059embpznx_xkeqqv.png',
-    category: 'midday'
-  },
-  {
-    id: 3,
-    title: 'Scenic Parks & Trails to Unwind 🌿',
-    description: 'Get some fresh air, stretch your legs, or plan a peaceful afternoon picnic.',
-    query: 'parks',
-    image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725793/20250728_2303_Serene_Afternoon_Stroll_simple_compose_01k191dxm4f8j8arabbf441xpg_k1umvv.png',
-    category: 'afternoon'
-  },
-  {
-    id: 4,
-    title: 'Late-Night Street Food Adventures 🌙',
-    description: 'Explore sizzling stalls and bold local flavors under the city lights.',
-    query: 'street food',
-    image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725792/20250728_2306_Vibrant_Indian_Night_Market_simple_compose_01k191k4jqfbarsb7va1jqakqy_gszieu.png',
-    category: 'evening'
-  },
-  {
-    id: 5,
-    title: 'Art Galleries & Exhibits 🎨',
-    description: 'Feed your creative side with inspiring local art, design, and culture.',
-    query: 'art gallery',
-    image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725792/20250728_2307_Colorful_Abstract_Gallery_simple_compose_01k191q25zfy3s165671rgfrkc_tmhrrr.png',
-    category: 'culture'
-  },
-  {
-    id: 6,
-    title: 'Must-See Historical Spots 🏛️',
-    description: 'Walk through time with these heritage sites and iconic landmarks.',
-    query: 'historical places',
-    image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725793/20250728_2310_Image_Generation_simple_compose_01k191sfwyej1s6xt058vmwey5_qxddwj.png',
-    category: 'culture'
-  },
-  {
-    id: 7,
-    title: 'Instagrammable Photo Spots 📸',
-    description: 'Snap some stunning shots at the city’s most photogenic corners.',
-    query: 'instagram spots',
-    image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725792/20250728_2314_Vibrant_Street_Art_Pose_simple_compose_01k1921f27fjgs9y2n1qk0kzgg_vwxxlo.png',
-    category: 'chill'
-  },
-  {
-    id: 8,
-    title: 'Shopping Streets & Bazaars 🛍️',
-    description: 'Wander through colorful markets and local boutiques full of surprises.',
-    query: 'shopping',
-    image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725791/20250728_2317_Vibrant_Market_Scene_simple_compose_01k1927swhfrv9e0q5sag4as4p_bmibuk.png',
-    category: 'midday'
-  },
-  {
-    id: 9,
-    title: 'Rooftop Bars & City Views 🌇',
-    description: 'Sip cocktails with a view — perfect for sunsets and city lights.',
-    query: 'rooftop bars',
-    image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725791/20250728_2320_Sunset_Rooftop_Cheers_simple_compose_01k192bm6befesyb03cp0jdsbt_zyrj2f.png',
-    category: 'evening'
-  },
-  {
-    id: 10,
-    title: 'Live Music & Nightlife 🎶',
-    description: 'End your day with dancing, music, and vibrant local nightlife scenes.',
-    query: 'live music',
-    image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725791/20250728_2322_Energetic_Live_Concert_simple_compose_01k192gqthfftvb27nr4dtkwk0_lwldsw.png',
-    category: 'night'
-  },
-  {
-    id: 11,
-    title: 'Peaceful Temples & Spiritual Spots 🕊️',
-    description: 'Find your calm in these tranquil places of worship and reflection.',
-    query: 'temples',
-    image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725792/Gemini_Generated_Image_esbadkesbadkesba_rf3rz6.png',
-    category: 'morning'
-  },
-  {
-    id: 12,
-    title: 'Chill Bookstores & Libraries 📚',
-    description: 'Cozy up with a book or get lost in quiet corners of the city.',
-    query: 'bookstore',
-    image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725792/20250728_2327_Cozy_Indie_Bookstore_simple_compose_01k192s6c8fwpabeg0cmtw1cw7_ujvq7d.png',
-    category: 'chill'
-  }
+    {
+        id: 1,
+        title: 'Cozy Cafés to Kickstart Your Day ☕',
+        description: 'Start your morning right with local brews, good vibes, and Wi-Fi-friendly corners.',
+        query: 'cafes',
+        image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725793/20250722_1251_Travel_Adventures_Await_simple_compose_01k0rg1d0yehrszrgy9c88r7vf_bgosht.png',
+        category: 'morning'
+    },
+    {
+        id: 2,
+        title: 'Top-Rated Restaurants for Lunch or Dinner 🍽️',
+        description: 'From trending spots to timeless favorites, these places serve the best bites around.',
+        query: 'restaurants',
+        image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725793/20250728_2300_Elegant_Dining_Atmosphere_simple_compose_01k19184vsesyafa059embpznx_xkeqqv.png',
+        category: 'midday'
+    },
+    {
+        id: 3,
+        title: 'Scenic Parks & Trails to Unwind 🌿',
+        description: 'Get some fresh air, stretch your legs, or plan a peaceful afternoon picnic.',
+        query: 'parks',
+        image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725793/20250728_2303_Serene_Afternoon_Stroll_simple_compose_01k191dxm4f8j8arabbf441xpg_k1umvv.png',
+        category: 'afternoon'
+    },
+    {
+        id: 4,
+        title: 'Late-Night Street Food Adventures 🌙',
+        description: 'Explore sizzling stalls and bold local flavors under the city lights.',
+        query: 'street food',
+        image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725792/20250728_2306_Vibrant_Indian_Night_Market_simple_compose_01k191k4jqfbarsb7va1jqakqy_gszieu.png',
+        category: 'evening'
+    },
+    {
+        id: 5,
+        title: 'Art Galleries & Exhibits 🎨',
+        description: 'Feed your creative side with inspiring local art, design, and culture.',
+        query: 'art gallery',
+        image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725792/20250728_2307_Colorful_Abstract_Gallery_simple_compose_01k191q25zfy3s165671rgfrkc_tmhrrr.png',
+        category: 'culture'
+    },
+    {
+        id: 6,
+        title: 'Must-See Historical Spots 🏛️',
+        description: 'Walk through time with these heritage sites and iconic landmarks.',
+        query: 'historical places',
+        image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725793/20250728_2310_Image_Generation_simple_compose_01k191sfwyej1s6xt058vmwey5_qxddwj.png',
+        category: 'culture'
+    },
+    {
+        id: 7,
+        title: 'Instagrammable Photo Spots 📸',
+        description: 'Snap some stunning shots at the city’s most photogenic corners.',
+        query: 'instagram spots',
+        image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725792/20250728_2314_Vibrant_Street_Art_Pose_simple_compose_01k1921f27fjgs9y2n1qk0kzgg_vwxxlo.png',
+        category: 'chill'
+    },
+    {
+        id: 8,
+        title: 'Shopping Streets & Bazaars 🛍️',
+        description: 'Wander through colorful markets and local boutiques full of surprises.',
+        query: 'shopping',
+        image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725791/20250728_2317_Vibrant_Market_Scene_simple_compose_01k1927swhfrv9e0q5sag4as4p_bmibuk.png',
+        category: 'midday'
+    },
+    {
+        id: 9,
+        title: 'Rooftop Bars & City Views 🌇',
+        description: 'Sip cocktails with a view — perfect for sunsets and city lights.',
+        query: 'rooftop bars',
+        image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725791/20250728_2320_Sunset_Rooftop_Cheers_simple_compose_01k192bm6befesyb03cp0jdsbt_zyrj2f.png',
+        category: 'evening'
+    },
+    {
+        id: 10,
+        title: 'Live Music & Nightlife 🎶',
+        description: 'End your day with dancing, music, and vibrant local nightlife scenes.',
+        query: 'live music',
+        image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725791/20250728_2322_Energetic_Live_Concert_simple_compose_01k192gqthfftvb27nr4dtkwk0_lwldsw.png',
+        category: 'night'
+    },
+    {
+        id: 11,
+        title: 'Peaceful Temples & Spiritual Spots 🕊️',
+        description: 'Find your calm in these tranquil places of worship and reflection.',
+        query: 'temples',
+        image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725792/Gemini_Generated_Image_esbadkesbadkesba_rf3rz6.png',
+        category: 'morning'
+    },
+    {
+        id: 12,
+        title: 'Chill Bookstores & Libraries 📚',
+        description: 'Cozy up with a book or get lost in quiet corners of the city.',
+        query: 'bookstore',
+        image: 'https://res.cloudinary.com/divulwxho/image/upload/v1753725792/20250728_2327_Cozy_Indie_Bookstore_simple_compose_01k192s6c8fwpabeg0cmtw1cw7_ujvq7d.png',
+        category: 'chill'
+    }
 ];
 
 
 export default function Dashboard() {
     const { t } = useTranslation('dashboard');
-
-    const [currentUser, setCurrentUser] = useState(null);
-    const [upcomingTrips, setUpcomingTrips] = useState([]);
+    const { user, upcomingTrips, setUpcomingTrips } = useAuth();
     const [pastTrips, setPastTrips] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const hasFetchedTrips = useRef(false);
+
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                // --- UPDATED: More efficient data fetching ---
-                // Instead of fetching all trips and filtering on the client,
-                // we now use specific endpoints for upcoming and past trips.
-                const [userResponse, upcomingResponse, pastResponse] = await Promise.all([
-                    api.get('/users/profile'), // Fetches user profile
-                    api.get('/trips/upcoming'), // Use the dedicated endpoint for upcoming trips
-                    api.get('/trips?status=completed') // Use a query param for past trips
-                ]);
+  const fetchInitialTrips = async () => {
+    try {
+      const pastResponse = await api.get('/trips?status=ongoing');
+      setPastTrips(pastResponse.data.data.data || []);
 
-                setCurrentUser(userResponse.data.data.user);
-                setUpcomingTrips(upcomingResponse.data.data.data);
-                setPastTrips(pastResponse.data.data.data);
+      const upcomingResponse = await api.get('/trips?status=planned');
+      setUpcomingTrips(upcomingResponse.data.data.data || []);
 
-            } catch (err) {
-                setError('Could not fetch dashboard data. Please try again later.');
-                console.error("Dashboard fetch error:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
+    } catch (err) {
+      setError('Could not fetch dashboard data. Please try again later.');
+      console.error("Dashboard fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        fetchData();
+  if (user && !hasFetchedTrips.current) {
+    hasFetchedTrips.current = true; 
+    fetchInitialTrips();
+  } else if (!user) {
+    setLoading(false);
+  }
+}, [user, setUpcomingTrips]);
 
-
-        fetchData();
-
-        socket.connect();
-
-        const handleNewTrip = (data) => {
-            console.log('New trip received via WebSocket:', data);
-            setUpcomingTrips(prevTrips => [data.summary, ...prevTrips]);
-        };
-
-        socket.on('tripCreated', handleNewTrip);
-
-        return () => {
-            socket.off('tripCreated', handleNewTrip);
-            socket.disconnect();
-        };
-    }, []);
 
     if (loading) {
         return (
@@ -281,10 +262,10 @@ export default function Dashboard() {
             <div className="dashboard-body">
                 <aside className={`sidebar`}>
                     <div className="sidebar-content">
-                        {currentUser && (
+                        {user && (
                             <div className="sidebar-profile">
-                                <img src={currentUser.profileImage || `https://placehold.co/100x100/EDAFB8/4A5759?text=${currentUser.name.charAt(0)}`} alt="User" className="profile-avatar" loading="lazy" decoding="async"/>
-                                <h4>{currentUser.name}</h4>
+                                <img src={user.profileImage || `https://placehold.co/100x100/EDAFB8/4A5759?text=${user.name.charAt(0)}`} alt="User" className="profile-avatar" loading="lazy" decoding="async" />
+                                <h4>{user.name}</h4>
                                 <p>{t('sidebar.traveler')}</p>
                             </div>
                         )}
@@ -299,7 +280,7 @@ export default function Dashboard() {
                 <main className="main-content">
                     <header className="main-header">
                         <div className="welcome-message">
-                            <h1>{t('welcome', { name: currentUser?.name || 'Explorer' })}</h1>
+                            <h1>{t('welcome', { name: user?.name || 'Explorer' })}</h1>
                             <p>{t('subheading')}</p>
                         </div>
                         <div className="search-bar">

@@ -1,30 +1,43 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../../utils/axiosInstance';
 import './Register.css';
 import { useAuth } from '../../context/AuthContext';
 
+
 export default function Login() {
     const { t } = useTranslation('auth');
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [message, setMessage] = useState('');
     const navigate = useNavigate();
-    const { login } = useAuth();
+    const { login, user } = useAuth();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+
+    useEffect(() => {
+    if (user) {
+        navigate('/dashboard', { replace: true });
+    }
+}, [user, navigate]);
 
     const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setMessage('');
+        setIsSubmitting(true);
         try {
             const res = await api.post('/auth/login', formData);
-            login(res.data.data.user, res.data.data.accessToken);
-
+            const { accessToken, user } = res.data.data;
+            login(user, accessToken);
         } catch (err) {
             setMessage(err.response?.data?.message || 'Invalid credentials. Please try again.');
+        } finally {
+            setIsSubmitting(false);
         }
     };
+
 
     return (
         <div className='register-container'>
@@ -34,7 +47,10 @@ export default function Login() {
                 <input name="email" type="email" placeholder={t('login.emailLabel')} onChange={handleChange} required />
                 <h3>{t('login.passwordLabel')}</h3>
                 <input name="password" type="password" placeholder={t('login.passwordLabel')} onChange={handleChange} required />
-                <button type="submit">{t('login.button')}</button>
+                <button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? 'Logging in...' : t('login.button')}
+                </button>
+
 
                 {message && <p className="message">{message}</p>}
 

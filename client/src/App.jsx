@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import './App.css';
-import ProtectedRoute from './components/ProtectedRoute'
+import ProtectedRoute from './components/ProtectedRoute';
+import useLocationTracker from './utils/useLocationTracker';
 
 import Home from './pages/HomePage/Home';
 import VerifyEmail from './pages/LoginPage/VerifyEmail';
@@ -14,8 +15,10 @@ import Dashboard from './pages/DashboardPage/Dashboard';
 import Settings from './pages/SettingsPage/Settings';
 import EditTrip from './pages/TripPage/EditTrip';
 import ExplorePage from './pages/DashboardPage/ExplorePage';
+import ResetPassword from './pages/LoginPage/ResetPassword';
 
 function App() {
+  useLocationTracker();
   return (
     <Routes>
       <Route path="/" element={<Home />} />
@@ -23,6 +26,8 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password/:token" element={<ResetPassword />} />
+
 
       {/* Protected Routes */}
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

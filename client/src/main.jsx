@@ -2,8 +2,9 @@ import React, { Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
-import { AuthProvider } from './context/AuthContext';
+import AuthProvider from './context/AuthContext';
 import { BrowserRouter } from 'react-router-dom';
+import ErrorBoundary from './components/ErrorBoundary';
 import './i18n';
 import Lottie from 'lottie-react';
 import CircleLoader from './assets/circle-loader.json';
@@ -18,9 +19,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <Suspense fallback={<LoadingSpinner />}>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
+        <ErrorBoundary>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </ErrorBoundary>
       </Suspense>
     </BrowserRouter>
   </React.StrictMode>

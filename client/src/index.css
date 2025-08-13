@@ -1,16 +1,24 @@
-
 :root {
   --font-main: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
   --font-size-base: 16px;
   --line-height-base: 1.5;
 
-  --color-bg-dark: #1f1f1f;
-  --color-bg-light: #f9f9f9;
-  --color-text-dark: #ffffffde;
-  --color-text-light: #1a1a1a;
+  /* New Color Palette */
+  --palette-dark-slate: #4a5759;
+  --palette-misty-rose: #edafb8;
+  --palette-champagne-pink: #f7e1d7;
+  --palette-ash-grey: #b0c4b1;
+  --palette-silver: #dedbd2;
 
-  --primary-color: #4f46e5;
-  --primary-hover: #3730a3;
+  /* Semantic Color Variables */
+  --color-bg-dark: var(--palette-dark-slate);
+  --color-bg-light: var(--palette-champagne-pink);
+  --color-text-dark: var(--palette-champagne-pink);
+  --color-text-light: var(--palette-dark-slate);
+  --color-text-on-primary: var(--palette-dark-slate);
+
+  --primary-color: var(--palette-misty-rose);
+  --primary-hover: #e09aa6; /* Darker shade of primary color */
 
   --border-radius: 10px;
   --transition-fast: 0.2s ease;
@@ -32,6 +40,7 @@ body, h1, h2, h3, h4, h5, h6, p, a, button {
   margin: 0;
   padding: 0;
   font-family: inherit;
+  color: black;
 }
 
 h1 {
@@ -43,6 +52,7 @@ h1 {
 h2 {
   font-size: 2rem;
   font-weight: 600;
+  color: black;
 }
 
 p {
@@ -75,7 +85,7 @@ a:hover {
 button {
   padding: 0.6em 1.4em;
   background-color: var(--primary-color);
-  color: white;
+  color: var(--color-text-on-primary);
   border: none;
   border-radius: var(--border-radius);
   cursor: pointer;
@@ -83,7 +93,7 @@ button {
   transition: background-color var(--transition-fast);
 }
 button:hover {
-  background-color: #EDAFB8;
+  background-color: var(--primary-hover);
 }
 button:focus,
 button:focus-visible {
@@ -101,15 +111,6 @@ button:focus-visible {
     background-color: var(--color-bg-light);
     color: var(--color-text-light);
   }
-
-  button {
-    background-color: var(--primary-color);
-    color: white;
-  }
-
-  a:hover {
-    color: var(--primary-hover);
-  }
 }
 
 /* Utility */
@@ -123,7 +124,7 @@ input, textarea {
   font-size: 1rem;
   padding: 0.6rem 1rem;
   border-radius: var(--border-radius);
-  border: 1px solid #ccc;
+  border: 1px solid var(--palette-ash-grey);
   transition: border-color var(--transition-fast);
 }
 input:focus, textarea:focus {
@@ -136,9 +137,9 @@ input:focus, textarea:focus {
   width: 8px;
 }
 ::-webkit-scrollbar-thumb {
-  background-color: #888;
+  background-color: var(--palette-ash-grey);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background-color: #555;
+  background-color: var(--palette-dark-slate);
 }
