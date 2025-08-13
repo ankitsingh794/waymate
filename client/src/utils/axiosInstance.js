@@ -1,46 +1,70 @@
+// src/utils/axiosInstance.js
 import axios from 'axios';
 
+const baseURL = import.meta.env.PROD
+  ? 'https://waymate.onrender.com/api/v1' // Production URL
+  : 'https://localhost:5000/api/v1';       // Development URL
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000',
-  withCredentials: true // Send refreshToken cookie
+  baseURL,
+  withCredentials: true,
 });
 
-// --- Optional: helpful for tracking session/debugging
+/**
+ * Request Interceptor:
+ * This function runs *before* every API request is sent.
+ * It retrieves the access token from localStorage and adds it to the Authorization header.
+ * This ensures that every request is authenticated, even after a page refresh.
+ */
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+/**
+ * Response Interceptor:
+ * This function runs *after* every API response is received.
+ * It specifically looks for '401 Unauthorized' errors, which indicate an expired access token,
+ * and tries to refresh the session automatically.
+ */
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalConfig = error.config;
+    const originalRequest = error.config;
 
-    // Log all API errors
-    console.error('API Error:', {
-      message: error.message,
-      url: error.config?.url,
-      method: error.config?.method,
-      status: error.response?.status,
-      responseData: error.response?.data,
-    });
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true; 
 
-    // If token expired and this is not already a retry
-    if (
-      error.response?.status === 401 &&
-      !originalConfig._retry &&
-      !originalConfig.url.includes('/auth/login') &&
-      !originalConfig.url.includes('/auth/refresh-token')
-    ) {
-      originalConfig._retry = true;
       try {
-        // Try to refresh token
-        const refreshRes = await api.post('/auth/refresh-token');
-        const newAccessToken = refreshRes.data.data.accessToken;
+        console.log("Access token expired. Attempting to refresh...");
+        const { data } = await api.post('/auth/refresh-token');
+        const newAccessToken = data.data.accessToken;
 
-        // Attach new token
+        localStorage.setItem('accessToken', newAccessToken);
+
         api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
-        originalConfig.headers['Authorization'] = `Bearer ${newAccessToken}`;
 
-        return api(originalConfig); // Retry the original request
-      } catch (refreshErr) {
-        console.error('Auto-refresh failed. Logging out soon.');
-        return Promise.reject(refreshErr);
+        originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
+        
+        return api(originalRequest);
+        
+      } catch (refreshError) {
+        console.error("Session has expired or is invalid. Redirecting to login.", refreshError);
+        
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('user');
+        
+        window.location.href = '/login';
+        
+        return Promise.reject(refreshError);
       }
     }
 
