@@ -1,5 +1,6 @@
 require('dotenv').config();
-const https = require('https');
+const http = require('http'); // Required for the HTTP server
+const https = require('https'); // Required for the local HTTPS server
 const fs = require('fs');
 const path = require('path');
 const mongoose = require('mongoose');
@@ -28,37 +29,34 @@ const PORT = process.env.PORT || 5000;
 const startServer = async () => {
   try {
     await connectDB();
-    await mongoose.model('Place').ensureIndexes();
+    
+    // Initialize background services
     initScheduledJobs();
     initAlertMonitoring();
     initLiveItineraryService();
-    logger.info('✅ Database indexes ensured.');
+    
+    let server;
 
-    const options = {
-      key: fs.readFileSync(path.join(__dirname, 'localhost-key.pem')),
-      cert: fs.readFileSync(path.join(__dirname, 'localhost.pem')),
-      minVersion: 'TLSv1.2',
-      ciphers: [
-        'ECDHE-ECDSA-AES128-GCM-SHA256',
-        'ECDHE-RSA-AES128-GCM-SHA256',
-        'ECDHE-ECDSA-AES256-GCM-SHA384',
-        'ECDHE-RSA-AES256-GCM-SHA384',
-        'ECDHE-ECDSA-CHACHA20-POLY13O5',
-        'ECDHE-RSA-CHACHA20-POLY1305',
-        'DHE-RSA-AES128-GCM-SHA256',
-        'DHE-RSA-AES256-GCM-SHA384'
-      ].join(':'),
-    };
+    // FIX: Conditionally create an HTTP or HTTPS server based on the environment.
+    if (process.env.NODE_ENV === 'production') {
+      logger.info('Production environment detected. Starting HTTP server.');
+      server = http.createServer(app);
+    } else {
+      logger.info('Development environment detected. Starting HTTPS server.');
+      const options = {
+        key: fs.readFileSync(path.join(__dirname, 'localhost-key.pem')),
+        cert: fs.readFileSync(path.join(__dirname, 'localhost.pem')),
+      };
+      server = https.createServer(options, app);
+    }
 
-    const server = https.createServer(options, app);
     const io = initSocketIO(server);
-
 
     // Setup graceful shutdown
     const shutdown = (signal) => {
       logger.info(`🛑 ${signal} received. Closing server gracefully...`);
       server.close(async () => {
-        logger.info('✅ HTTPS server closed.');
+        logger.info('✅ HTTP(S) server closed.');
         if (io) io.close(() => logger.info('✅ Socket.IO connections closed.'));
         await closeRedisConnection();
         await mongoose.connection.close();
@@ -70,11 +68,12 @@ const startServer = async () => {
     process.on('SIGINT', () => shutdown('SIGINT'));
 
     server.listen(PORT, () => {
-      logger.info(`✅ HTTPS Server started on port ${PORT} with PID ${process.pid}`);
+      const protocol = process.env.NODE_ENV === 'production' ? 'HTTP' : 'HTTP';
+      logger.info(`✅ ${protocol} Server started on port ${PORT} with PID ${process.pid}`);
     });
 
   } catch (err) {
-    logger.error(`❌ Failed to start server: ${err.message}`, err.stack);
+    logger.error(`❌ Failed to start server: ${err.message}`, { stack: err.stack });
     process.exit(1);
   }
 };
