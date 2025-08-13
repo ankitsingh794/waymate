@@ -45,7 +45,7 @@ const sendTokenResponse = (res, statusCode, message, tokens, userData = {}) => {
     expires: new Date(Date.now() + process.env.JWT_REFRESH_COOKIE_EXPIRE * 24 * 60 * 60 * 1000),
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'Lax',
+    sameSite: 'None',
   };
 
   res.cookie('refreshToken', tokens.refreshToken, cookieOptions);
