@@ -19,7 +19,6 @@ const useLocationTracker = () => {
           lat: latitude,
           lon: longitude,
         });
-        console.log('📍 Location updated successfully.');
       } catch (error) {
         console.error('Failed to send location update:', error);
       }
@@ -51,7 +50,6 @@ const useLocationTracker = () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
-        console.log('📍 Location tracking stopped.');
       }
     };
 

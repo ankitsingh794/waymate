@@ -326,7 +326,6 @@ Hello! I'm your Waymate AI Assistant. Here's a quick guide to what I can do for 
                 };
 
                 const handleTripCreated = (data) => {
-                    console.log('✅ "tripCreated" event received on frontend:', data);
                     setStatusUpdate(null);
                     const tripCreatedMessage = {
                         id: crypto.randomUUID(),

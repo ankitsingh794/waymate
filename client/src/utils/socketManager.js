@@ -7,9 +7,4 @@ const socket = io(import.meta.env.VITE_SOCKET_URL || 'https://localhost:5000', {
   withCredentials: true,
 });
 
-// Optional: Add logging for debugging
-socket.onAny((event, ...args) => {
-  console.log(`SOCKET EVENT: ${event}`, args);
-});
-
 export const getSocket = () => socket;
