@@ -4,11 +4,12 @@ const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
-const sanitizeInput = require('./middlewares/sanitizeMiddleware'); // Replaces xss-clean
+const sanitizeInput = require('./middlewares/sanitizeMiddleware'); 
 const hpp = require('hpp');
 const logger = require('./utils/logger');
 const { globalLimiter } = require('./middlewares/rateLimiter');
 const errorHandler = require('./middlewares/errorMiddleware');
+const metricsMiddleware = require('./middlewares/metricsMiddleware');
 
 // Routes
 const authRoutes = require('./routes/authRoutes');
@@ -17,6 +18,11 @@ const tripRoutes = require('./routes/tripRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const findPlacesRoutes = require('./routes/findPlacesRoutes');
+const trackingRoutes = require('./routes/trackingRoutes');
+const householdRoutes = require('./routes/householdRoutes');
+const exportRoutes = require('./routes/exportRoutes');
+const analyticsRoutes = require('./routes/analyticsRoutes');
+const metrics = require('./routes/metricsRoutes');
 
 const app = express();
 
@@ -48,6 +54,7 @@ app.options('*', cors(corsOptions));
 // --- Security Middleware ---
 app.use(helmet());
 app.use(express.json({ limit: '10kb' }));
+app.use(metricsMiddleware);
 
 // Sanitize request body and query to prevent XSS attacks
 app.use(sanitizeInput);
@@ -81,6 +88,11 @@ apiRouter.use('/trips', tripRoutes);
 apiRouter.use('/messages', messageRoutes);
 apiRouter.use('/chat', chatRoutes);
 apiRouter.use('/find-places', findPlacesRoutes);
+apiRouter.use('/tracking', trackingRoutes);
+apiRouter.use('/households', householdRoutes);
+apiRouter.use('/export', exportRoutes);
+apiRouter.use('/analytics', analyticsRoutes);
+apiRouter.use('/metrics', metrics);
 
 app.use('/api/v1', apiRouter);
 

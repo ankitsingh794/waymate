@@ -99,7 +99,17 @@ function buildItineraryPrompt(aggregatedData) {
     'punjabi': 'Punjabi (written in Gurmukhi script)',
   }[language.toLowerCase()] || 'English';
 
-  const promptDetails = { ...rest, budgetSummary, weatherSummary, languageFullName, budget, weather, language };
+  const promptDetails = { 
+    ...rest, 
+    budgetSummary, 
+    weatherSummary, 
+    languageFullName, 
+    budget, 
+    weather, 
+    language,
+    transportMode: aggregatedData.preferences.transportMode 
+  };
+
 
   return prompts.structuredTravelPlanPrompt(promptDetails);
 }

@@ -6,6 +6,7 @@ const ChatSession = require('../models/ChatSession');
 const AppError = require('../utils/AppError');
 const logger = require('../utils/logger');
 const { isTokenBlacklisted } = require('../config/redis');
+const Household = require('../models/Household');
 
 /**
  * Main authentication middleware to protect routes.
@@ -117,4 +118,36 @@ exports.isChatMember = async (req, res, next) => {
         return next(new AppError('You are not authorized to access this chat session.', 403));
     }
     next();
+};
+
+/**
+ * Authorization middleware to verify if the user is the head of their household.
+ * It also fetches and attaches the household object to the request (`req.household`).
+ */
+exports.isHouseholdHead = async (req, res, next) => {
+    try {
+        const householdId = req.user.householdId;
+
+        if (!householdId) {
+            return next(new AppError('You are not a member of any household.', 403));
+        }
+
+        const household = await Household.findById(householdId);
+
+        if (!household) {
+            return next(new AppError('Household not found.', 404));
+        }
+
+        const member = household.members.find(m => m.userId.equals(req.user._id));
+
+        if (!member || member.role !== 'head') {
+            return next(new AppError('Access denied. Only the household head can perform this action.', 403));
+        }
+
+        req.household = household;
+        next();
+
+    } catch (error) {
+        next(error);
+    }
 };

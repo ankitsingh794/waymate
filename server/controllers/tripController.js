@@ -11,6 +11,9 @@ const notificationService = require('../services/notificationService');
 const cacheKeys = require('../utils/cacheKeys');
 const { invalidateTripCache, invalidateUserCache } = require('../services/cacheInvalidationService');
 const smartSeatScheduleService = require('../services/smartSeatScheduleService');
+const AppError = require('../utils/AppError');
+const User = require('../models/User');
+const tripService = require('../services/tripService');
 
 
 /**
@@ -111,7 +114,8 @@ exports.updateDayItinerary = async (req, res) => {
 };
 
 
-/** *Gets all trips for the current user.
+/**
+ * Gets all trips for the current user, with dynamic status filtering.
  * @desc    Get all trips for the current user.
  * @route   GET /api/trips
  * @access  Private
@@ -128,13 +132,35 @@ exports.getAllTrips = async (req, res) => {
             return sendSuccess(res, 200, 'Trips fetched successfully from cache.', cachedTrips);
         }
 
+        const now = new Date();
         const query = { 'group.members.userId': userId };
-        if (status) query.status = status;
-        if (destination) query.$text = { $search: destination };
+        let sort = { startDate: -1 }; 
+        if (status) {
+            switch (status) {
+                case 'planned':
+                    query.startDate = { $gte: now };
+                    sort = { startDate: 1 }; 
+                    break;
+                case 'ongoing':
+                    query.startDate = { $lte: now };
+                    query.endDate = { $gte: now };
+                    break;
+                case 'completed':
+                    query.endDate = { $lt: now };
+                    break;
+                case 'canceled':
+                    query.status = 'canceled'; 
+                    break;
+            }
+        }
+
+        if (destination) {
+            query.$text = { $search: destination };
+        }
 
         const skip = (page - 1) * limit;
         const [trips, total] = await Promise.all([
-            Trip.find(query).sort({ startDate: -1 }).skip(skip).limit(parseInt(limit)),
+            Trip.find(query).sort(sort).skip(skip).limit(parseInt(limit)),
             Trip.countDocuments(query)
         ]);
 
@@ -154,6 +180,7 @@ exports.getAllTrips = async (req, res) => {
         return sendError(res, 500, 'Failed to fetch trips.');
     }
 };
+
 
 /** Gets a trip by ID.
  * @desc    Get a trip by ID.
@@ -249,7 +276,7 @@ exports.removeMemberFromTrip = async (req, res) => {
 
         await invalidateTripCache(tripId);
         await invalidateUserCache(memberId); // The removed member
-        await Promise.all(trip.group.members.map(m => invalidateUserCache(m.userId))); // The remaining members
+        await Promise.all(trip.group.members.map(m => invalidateUserCache(m.userId))); 
 
         logger.info(`Member ${memberId} removed from trip ${tripId}`);
         return sendSuccess(res, 200, 'Member removed successfully.', { members: trip.group.members });
@@ -344,32 +371,6 @@ exports.toggleFavoriteStatus = async (req, res) => {
 
 
 /**
- * @desc    Get all upcoming trips for the current user.
- * @route   GET /api/trips/upcoming
- * @access  Private
- */
-exports.getUpcomingTrips = async (req, res) => {
-    const userId = req.user._id;
-
-    try {
-        const upcomingTrips = await Trip.find({
-            'group.members.userId': userId,
-            startDate: { $gte: new Date() }
-        }).sort({ startDate: 1 });
-
-        logger.info(`Fetched ${upcomingTrips.length} upcoming trips for user ${userId}`);
-        return sendSuccess(res, 200, 'Upcoming trips fetched successfully.', {
-            count: upcomingTrips.length,
-            data: upcomingTrips
-        });
-
-    } catch (error) {
-        logger.error(`Error fetching upcoming trips for user ${userId}: ${error.message}`);
-        return sendError(res, 500, 'Failed to fetch upcoming trips.');
-    }
-};
-
-/**
  * @desc    Update the status of a specific trip.
  * @route   PATCH /api/trips/:id/status
  * @access  Private (Owner or Editor)
@@ -430,55 +431,127 @@ exports.generateInviteLink = async (req, res) => {
     }
 };
 
-exports.acceptTripInvite = async (req, res) => {
-    const { token } = req.body;
+
+exports.acceptTripInvite = async (req, res, next) => {
+    const { token, ageGroup, gender, relation } = req.body;
     const userId = req.user._id;
-
-    if (!token) {
-        return sendError(res, 400, 'Invite token is required.');
-    }
-
     const session = await mongoose.startSession();
-    session.startTransaction();
+
+    let trip; // Define trip in a scope accessible after the transaction
+
     try {
-        const trip = await Trip.findOne({
-            'inviteTokens.token': token,
-            'inviteTokens.expires': { $gt: Date.now() }
+        // --- Step 1: Perform all database writes within an atomic transaction ---
+        await session.withTransaction(async () => {
+            trip = await Trip.findOne({
+                'inviteTokens.token': token,
+                'inviteTokens.expires': { $gt: Date.now() }
+            }).session(session);
+
+            if (!trip) {
+                // Use a custom error that can be caught outside
+                throw new AppError('Invalid or expired invite link.', 400);
+            }
+            if (trip.group.members.some(m => m.userId.toString() === userId.toString())) {
+                throw new AppError('You are already a member of this trip.', 400);
+            }
+
+            trip.group.members.push({ 
+                userId, 
+                role: 'editor',
+                ageGroup,  // <-- Save the new field
+                gender,    // <-- Save the new field
+                relation   // <-- Save the new field
+            });
+            trip.group.isGroup = true;
+
+            const user = await User.findById(userId).session(session);
+            if (user.householdId && trip.householdId && !user.householdId.equals(trip.householdId)) {
+                 // Optional: Business logic to prevent joining trips outside one's household
+            }
+            
+            trip.group.members.push({ userId, role: 'editor' });
+            trip.group.isGroup = true;
+            trip.inviteTokens = trip.inviteTokens.filter(t => t.token !== token);
+            await trip.save({ session });
+
+            await ChatSession.updateOne({ tripId: trip._id }, { $addToSet: { participants: userId } }, { session });
         });
 
+        // If the transaction failed, 'trip' will be undefined and an error will have been thrown.
         if (!trip) {
-            return sendError(res, 400, 'Invalid or expired invite link.');
-        }
-        if (trip.group.members.some(m => m.userId.toString() === userId.toString())) {
-            return sendError(res, 400, 'You are already a member of this trip.');
+            // This case handles if findOne returned null inside the transaction
+            return next(new AppError('Invalid or expired invite link.', 400));
         }
 
-        const allMemberIds = [...trip.group.members.map(m => m.userId), userId];
+        // --- Step 2: Perform non-transactional side-effects AFTER the commit succeeds ---
+        logger.info(`User ${req.user.email} joined trip ${trip._id} via invite link.`);
 
-        trip.group.members.push({ userId, role: 'editor' });
-        trip.group.isGroup = true;
-        trip.inviteTokens = trip.inviteTokens.filter(t => t.token !== token);
-        await trip.save({ session });
-        await ChatSession.updateOne({ tripId: trip._id }, { $addToSet: { participants: userId } }, { session });
-
-        await session.commitTransaction();
-
+        // Invalidate caches for all relevant users
+        const memberIds = trip.group.members.map(m => m.userId);
         await invalidateTripCache(trip._id);
-        await Promise.all(allMemberIds.map(id => invalidateUserCache(id)));
+        await Promise.all(memberIds.map(id => invalidateUserCache(id)));
 
+        // Send real-time notification
         const io = getSocketIO();
         io.to(userId.toString()).emit('newTripInvite', {
             message: `Welcome! You've successfully joined the trip to ${trip.destination}.`,
             tripId: trip._id,
         });
 
-        logger.info(`User ${req.user.email} joined trip ${trip._id} via invite link.`);
         return sendSuccess(res, 200, 'Successfully joined the trip!', { tripId: trip._id });
+
     } catch (error) {
-        await session.abortTransaction();
-        logger.error(`Error accepting trip invite: ${error.message}`);
-        return sendError(res, 500, 'Failed to join trip.');
+        next(error); // Pass to the global error handler
     } finally {
+        // Always end the session.
         session.endSession();
+    }
+};
+
+
+
+/**
+ * @desc    Update the current user's demographic details for a specific trip
+ * @route   PATCH /api/trips/:tripId/members/me
+ * @access  Private (Trip Members with consent)
+ */
+exports.updateMyMemberDetails = async (req, res, next) => {
+    const { tripId } = req.params;
+    const { ageGroup, gender, relation } = req.body;
+
+    try {
+        const { trip, member } = await getTripAndVerifyPermission(tripId, req.user._id);
+
+        if (ageGroup) member.ageGroup = ageGroup;
+        if (gender) member.gender = gender;
+        if (relation) member.relation = relation;
+
+        await trip.save();
+        await invalidateTripCache(trip._id);
+
+        logger.info(`Demographic details for user ${req.user.email} updated on trip ${tripId}`);
+        sendSuccess(res, 200, 'Your details for this trip have been updated.', { member });
+
+    } catch (error) {
+        next(error);
+    }
+};
+
+
+/**
+ * @desc    Sync a batch of offline-created/updated trips
+ * @route   POST /api/trips/sync
+ * @access  Private
+ */
+exports.syncOfflineTrips = async (req, res, next) => {
+    const { trips } = req.body;
+    const user = req.user;
+
+    try {
+        // The service will handle the complex logic and return the mapping
+        const idMap = await tripService.processTripSync(user, trips);
+        sendSuccess(res, 200, 'Trips synced successfully.', { idMap });
+    } catch (error) {
+        next(error);
     }
 };

@@ -1,13 +1,14 @@
 const express = require('express');
-const { body,query } = require('express-validator');
+const { body, query } = require('express-validator');
 const { protect } = require('../middlewares/authMiddleware');
 const validate = require('../middlewares/validateMiddleware');
-const { isTripMember, isTripOwner } = require('../middlewares/authMiddleware'); 
-const { generalLimiter, strictLimiter } = require('../middlewares/rateLimiter'); 
+const { isTripMember, isTripOwner } = require('../middlewares/authMiddleware');
+const { generalLimiter, strictLimiter } = require('../middlewares/rateLimiter');
 const { mongoIdValidation } = require('../utils/validationHelpers');
 const expenseRoutes = require('./expenseRoutes');
 const tripController = require('../controllers/tripController');
 const { param } = require('express-validator');
+const { requireConsent } = require('../middlewares/consentMiddleware');
 
 const router = express.Router();
 
@@ -27,16 +28,17 @@ const updateDetailsValidation = [
     body('endDate').optional().isISO8601().toDate(),
     body('travelers').optional().isInt({ min: 1 }),
     body('status').optional().isIn(['planning', 'upcoming', 'active', 'completed', 'canceled']),
-    body('preferences.accommodationType').optional().isString()
+    body('preferences.accommodationType').optional().isString(),
+    body('preferences.transportMode').optional().isIn(['flight', 'train', 'bus', 'car', 'any']),
+    body('purpose').optional().isIn(['work', 'education', 'shopping', 'leisure', 'personal_business', 'other'])
 ];
+
 
 
 // --- Main Trip Routes ---
 router.route('/')
     .get(getAllTripsValidation, validate, tripController.getAllTrips)
 
-
-router.get('/upcoming', tripController.getUpcomingTrips);
 
 // --- Routes for a Specific Trip ---
 // 🔒 All these routes now require the user to be a member of the trip.
@@ -100,5 +102,27 @@ router.patch('/:id/itinerary/:day',
     validate,
     tripController.updateDayItinerary
 );
+
+
+router.patch('/:tripId/members/me',
+    [
+        mongoIdValidation('tripId'),
+        body('ageGroup').optional().isIn(['<18', '18-35', '36-60', '>60']),
+        body('gender').optional().isIn(['male', 'female', 'other', 'prefer_not_to_say']),
+        body('relation').optional().isString().trim()
+    ],
+    validate,
+    isTripMember, // User must be a member of the trip
+    requireConsent('demographic_data'), // User must have consented to share this data
+    tripController.updateMyMemberDetails
+);
+
+router.post(
+    '/sync',
+    body('trips').isArray().withMessage('Sync data must be an array of trips.'),
+    validate,
+    tripController.syncOfflineTrips
+);
+
 
 module.exports = router;

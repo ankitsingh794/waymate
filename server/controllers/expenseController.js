@@ -58,7 +58,7 @@ exports.addExpense = async (req, res) => {
 
 
         logger.info(`New expense added to trip ${tripId} by ${req.user.email}`);
-        return sendSuccess(res, 201, true, 'Expense added successfully.', newExpense);
+        return sendSuccess(res, 201, 'Expense added successfully.', { expense: newExpense });
 
     } catch (error) {
         logger.error(`Error adding expense to trip ${tripId}: ${error.message}`);
@@ -98,20 +98,16 @@ exports.getTripExpenses = async (req, res) => {
     }
 };
 
-
-// Add these two new functions to your expenseController.js file
-
 /**
  * @desc    Update an existing expense.
- * @route   PUT /api/trips/:tripId/expenses/:expenseId
+ * @route   PATCH /api/trips/:tripId/expenses/:expenseId
  * @access  Private (Trip Owner/Editor or Payer)
  */
-exports.updateExpense = async (req, res) => {
+exports.updateExpense = async (req, res, next) => {
     const { tripId, expenseId } = req.params;
     const userId = req.user._id;
 
     try {
-        // 1. Fetch the trip and the specific expense
         const trip = await Trip.findById(tripId);
         if (!trip) {
             return sendError(res, 404, 'Trip not found.');
@@ -122,7 +118,6 @@ exports.updateExpense = async (req, res) => {
             return sendError(res, 404, 'Expense not found on this trip.');
         }
 
-        // 2. Verify permissions
         const member = trip.group.members.find(m => m.userId.equals(userId));
         const isPayer = expense.paidBy.equals(userId);
         const canEdit = member && (member.role === 'owner' || member.role === 'editor');
@@ -131,38 +126,36 @@ exports.updateExpense = async (req, res) => {
             return sendError(res, 403, 'You do not have permission to update this expense.');
         }
 
-        // 3. Validate amounts if participants or amount are updated
         const { description, amount, category, participants } = req.body;
         if (amount || participants) {
-            const newAmount = amount || expense.amount;
+            const newAmount = amount !== undefined ? amount : expense.amount;
             const newParticipants = participants || expense.participants;
             const totalShare = newParticipants.reduce((sum, p) => sum + p.share, 0);
 
             if (Math.abs(totalShare - newAmount) > 0.01) {
-                return sendError(res, 400,  'The sum of participant shares must equal the total expense amount.');
+                return sendError(res, 400, 'The sum of participant shares must equal the total expense amount.');
             }
         }
 
-        // 4. Update the expense fields
         expense.description = description || expense.description;
-        expense.amount = amount || expense.amount;
+        expense.amount = amount !== undefined ? amount : expense.amount;
         expense.category = category || expense.category;
         expense.participants = participants || expense.participants;
 
         await expense.save();
-
         calculateAndCacheSettlements(req.params.tripId);
 
-        // 5. Notify group members of the update
-        const notificationPayload = { tripId: req.params.tripId, expense: expense }; 
+        const notificationPayload = { tripId: req.params.tripId, expense: expense };
         notificationService.broadcastToTrip(req.params.tripId, 'expenseUpdated', notificationPayload);
 
         logger.info(`Expense ${expenseId} on trip ${tripId} updated by ${req.user.email}`);
-        return sendSuccess(res, 200, true, 'Expense updated successfully.', expense);
+        
+        // FIX: Use the correct 'expense' variable and wrap it in a data object.
+        return sendSuccess(res, 200, 'Expense updated successfully.', { expense });
 
     } catch (error) {
-        logger.error(`Error updating expense ${expenseId}: ${error.message}`);
-        return sendError(res, 500, 'Failed to update expense.');
+        // Pass to the global error handler for consistent error responses.
+        next(error);
     }
 };
 
@@ -172,12 +165,11 @@ exports.updateExpense = async (req, res) => {
  * @route   DELETE /api/trips/:tripId/expenses/:expenseId
  * @access  Private (Trip Owner/Editor or Payer)
  */
-exports.deleteExpense = async (req, res) => {
+exports.deleteExpense = async (req, res, next) => {
     const { tripId, expenseId } = req.params;
     const userId = req.user._id;
 
     try {
-        // 1. Fetch the trip and the specific expense
         const trip = await Trip.findById(tripId);
         if (!trip) {
             return sendError(res, 404, 'Trip not found.');
@@ -188,29 +180,27 @@ exports.deleteExpense = async (req, res) => {
             return sendError(res, 404, 'Expense not found on this trip.');
         }
 
-        // 2. Verify permissions
         const member = trip.group.members.find(m => m.userId.equals(userId));
         const isPayer = expense.paidBy.equals(userId);
         const canDelete = member && (member.role === 'owner' || member.role === 'editor');
 
         if (!isPayer && !canDelete) {
-            return sendError(res, 403,  'You do not have permission to delete this expense.');
+            return sendError(res, 403, 'You do not have permission to delete this expense.');
         }
 
-        // 3. Delete the expense
         await expense.deleteOne();
-
         calculateAndCacheSettlements(req.params.tripId);
 
-        // 4. Notify group members of the deletion
         const notificationPayload = { tripId, expenseId };
         notificationService.broadcastToTrip(tripId, 'expenseDeleted', notificationPayload);
 
         logger.info(`Expense ${expenseId} on trip ${tripId} deleted by ${req.user.email}`);
-        return sendSuccess(res, 200, true, 'Expense deleted successfully.');
+        
+        // FIX: Remove the extra 'true' argument.
+        return sendSuccess(res, 200, 'Expense deleted successfully.');
 
     } catch (error) {
-        logger.error(`Error deleting expense ${expenseId}: ${error.message}`);
-        return sendError(res, 500,  'Failed to delete expense.');
+        // Pass to the global error handler.
+        next(error);
     }
 };

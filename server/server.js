@@ -1,6 +1,6 @@
 require('dotenv').config();
-const http = require('http'); // Required for the HTTP server
-const https = require('https'); // Required for the local HTTPS server
+const http = require('http'); 
+const https = require('https'); 
 const fs = require('fs');
 const path = require('path');
 const mongoose = require('mongoose');
@@ -37,7 +37,6 @@ const startServer = async () => {
     
     let server;
 
-    // FIX: Conditionally create an HTTP or HTTPS server based on the environment.
     if (process.env.NODE_ENV === 'production') {
       logger.info('Production environment detected. Starting HTTP server.');
       server = http.createServer(app);

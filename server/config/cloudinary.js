@@ -1,4 +1,3 @@
-// FILE: cloudinary.js
 
 const cloudinary = require('cloudinary').v2;
 const logger = require('../utils/logger');

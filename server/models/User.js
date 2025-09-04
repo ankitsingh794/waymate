@@ -28,7 +28,7 @@ const userSchema = new mongoose.Schema(
     passwordChangedAt: Date,
     role: {
       type: String,
-      enum: ['user', 'admin', 'moderator'],
+      enum: ['user', 'admin', 'moderator','researcher'],
       default: 'user'
     },
     accountStatus: {
@@ -65,6 +65,11 @@ const userSchema = new mongoose.Schema(
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Trip'
     }],
+     householdId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Household',
+        default: null
+    },
     
     passwordResetToken: String,
     passwordResetTokenExpires: Date,

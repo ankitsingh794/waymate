@@ -106,4 +106,75 @@ async function findPlaces(query, location, userCoords) {
     return finalResults;
 }
 
-module.exports = { findPlaces };
+
+
+
+
+/**
+ * [NEW & EFFICIENT] Identifies the most likely place at a given set of coordinates.
+ * This is a lightweight version of findPlaces, optimized for the passive tracking service.
+ * It does NOT use AI for justifications.
+ * @param {object} coords - The { lat, lon } coordinates of the stop.
+ * @returns {Promise<object|null>} The full Mongoose document for the identified place, or null.
+ */
+const identifyPlaceByCoordinates = async (coords) => {
+    const { lat, lon } = coords;
+    const cacheKey = `place-at:${lat.toFixed(4)},${lon.toFixed(4)}`;
+
+    const cached = await getCache(cacheKey);
+    if (cached) {
+        logger.info(`Returning cached place identification for coordinates.`);
+        // Ensure we return a full Mongoose object if needed, or just the data.
+        // For this use case, returning the cached data is sufficient.
+        return cached;
+    }
+    
+    try {
+        // Use Google Places Nearby Search, ranked by distance, to find the closest POI.
+        const response = await axios.get(`${GOOGLE_PLACES_BASE}/nearbysearch/json`, {
+            params: {
+                location: `${lat},${lon}`,
+                rankby: 'distance',
+                key: GOOGLE_API_KEY
+            }
+        });
+
+        const primaryPlaceData = response.data.results?.[0];
+
+        if (!primaryPlaceData) {
+            logger.warn(`No place identified at coordinates ${lat},${lon}.`);
+            return null;
+        }
+
+        // Check if this place already exists in our DB to avoid duplicates.
+        let place = await Place.findOne({ place_id: primaryPlaceData.place_id });
+
+        if (!place) {
+            // If it's a new place, create it.
+            const photoRef = primaryPlaceData.photos?.[0]?.photo_reference || null;
+            place = await Place.create({
+                name: primaryPlaceData.name,
+                address: primaryPlaceData.vicinity,
+                rating: primaryPlaceData.rating,
+                place_id: primaryPlaceData.place_id,
+                imageUrl: photoRef ? getGooglePhotoUrl(photoRef) : null,
+                city: primaryPlaceData.plus_code?.compound_code.split(',')[1]?.trim() || 'Unknown',
+                location: {
+                    type: 'Point',
+                    coordinates: [primaryPlaceData.geometry.location.lng, primaryPlaceData.geometry.location.lat]
+                }
+            });
+        }
+        
+        // Cache the resulting place object for future lookups.
+        await setCache(cacheKey, place.toObject(), 3600 * 24); // Cache for 24 hours
+        return place.toObject();
+
+    } catch (error) {
+        logger.error('Failed to identify place by coordinates.', { error: error.message });
+        return null;
+    }
+};
+
+
+module.exports = { findPlaces, identifyPlaceByCoordinates };

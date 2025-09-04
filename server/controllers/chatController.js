@@ -184,28 +184,38 @@ exports.handleChatMessage = async (req, res) => {
  * @route   POST /api/chat/message/group
  * @access  Private (isChatMember middleware)
  */
-exports.handleGroupChatMessage = async (req, res) => {
+exports.handleGroupChatMessage = async (req, res, next) => {
     const { message, sessionId } = req.body;
+    const AI_TRIGGER_WORD = '@WayMate';
+
     try {
         const session = await ChatSession.findById(sessionId);
         if (!session || !session.tripId) {
-            return sendError(res, 404, 'Group chat session not found.');
+            return next(new AppError('Group chat session not found.', 404));
         }
-
         const userMessage = await Message.create({ chatSession: sessionId, sender: req.user._id, text: message, type: 'user' });
         updateLastMessage(sessionId, userMessage);
         notificationService.broadcastToTrip(sessionId, 'newMessage', userMessage);
 
-        const { intent, details } = await aiParsingService.detectIntentAndExtractEntity(message);
+        if (message.trim().startsWith(AI_TRIGGER_WORD)) {
+            logger.info(`AI command detected in group chat ${sessionId}.`);
 
-        if (intent === 'edit_trip' || intent === 'get_trip_detail') {
-            handleWaymateCommand(session, req.user, intent, details);
+            const commandText = message.replace(AI_TRIGGER_WORD, '').trim();
+
+            const { intent, details } = await aiParsingService.detectIntentAndExtractEntity(commandText);
+
+            if (intent === 'edit_trip' || intent === 'get_trip_detail') {
+                handleWaymateCommand(session, req.user, intent, details);
+            } else {
+                const reply = "I can help with editing the trip or providing details about it. For other requests, please chat with me privately.";
+                notificationService.sendSystemMessageToTrip(sessionId, reply);
+            }
         }
 
-        return sendSuccess(res, 200, 'Message received.');
+        return sendSuccess(res, 200, 'Message processed.');
+
     } catch (error) {
-        logger.error(`Error in group chat controller: ${error.message}`);
-        return sendError(res, 500, 'Error in group chat.');
+        next(error);
     }
 };
 
@@ -279,8 +289,15 @@ async function processTripCreation(creator, collectedData) {
 
         logger.info('[DEBUG Step 4/7] Trip data successfully aggregated from external APIs.');
 
-        const aiResponse = await aiService.generateItinerary(aggregatedData);
-        logger.info('[DEBUG Step 5/7] AI itinerary successfully generated.');
+        if (collectedData.purpose === 'leisure' || !collectedData.purpose) {
+            // Use the full AI service for leisure trips or if purpose is unknown
+            logger.info('[DEBUG Step 5/7] Generating itinerary via full AI Service for leisure trip.');
+            aiResponse = await aiService.generateItinerary(aggregatedData);
+        } else {
+            // Use the fast, template-based generator for all other purposes
+            logger.info(`[DEBUG Step 5/7] Generating itinerary via template for '${collectedData.purpose}' trip.`);
+            aiResponse = tripService.generateTemplateItinerary(aggregatedData);
+        };
 
         session = await mongoose.startSession();
         await session.withTransaction(async () => {
@@ -303,9 +320,16 @@ async function processTripCreation(creator, collectedData) {
                 itinerary: aiResponse.itinerary,
                 aiSummary: aiResponse.aiSummary,
                 status: 'planned',
+                purpose: collectedData.purpose,
+                householdId: creator.householdId || null,
                 group: {
                     isGroup: aggregatedData.travelers > 1,
-                    members: [{ userId: creator._id, role: 'owner' }]
+                    members: [{
+                        userId: creator._id,
+                        role: 'owner',
+                        ageGroup: collectedData.creatorAgeGroup,
+                        gender: collectedData.creatorGender
+                    }]
                 }
             }], { session });
             logger.info(`[DEBUG Step 6/7] Trip document created in database with ID: ${trip._id}`);
@@ -368,8 +392,6 @@ exports.findOrCreateAiSession = async (req, res) => {
         return sendError(res, 500, 'Could not initialize AI chat.');
     }
 };
-
-// In chatController.js, add this new exported function
 
 /**
  * @desc    Deletes all messages from a user's 1-on-1 AI chat session.

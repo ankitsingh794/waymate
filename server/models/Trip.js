@@ -21,10 +21,12 @@ const smartScheduleSchema = new mongoose.Schema({
 const placeSchema = new mongoose.Schema({
   name: { type: String, required: true },
   description: { type: String },
+  rating: { type: Number },
+  reviews: { type: Number },
   image: { type: String },
   website: { type: String },
   vicinity: { type: String },
-  photo_reference: { type: String }
+  photo_reference: { type: String } 
 }, { _id: false });
 
 // Sub-schema for richer weather data
@@ -66,6 +68,24 @@ const aiSummarySchema = new mongoose.Schema({
   packingChecklist: [String]
 }, { _id: false });
 
+
+const itineraryItemSchema = new mongoose.Schema({
+  sequence: { type: Number, required: true },
+  type: { type: String, enum: ['activity', 'travel'], required: true },
+  startTime: { type: Date },
+  endTime: { type: Date },
+  description: { type: String },
+  placeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Place' },
+  activityPurpose: {
+    type: String,
+    enum: ['shopping', 'dining', 'work', 'education', 'personal_business', 'leisure', 'other'],
+  },
+  mode: { type: String, enum: ['walk', 'car', 'bus', 'train', 'flight', 'other'] },
+  distanceKm: { type: Number },
+  durationMinutes: { type: Number },
+}, { _id: true });
+
+
 const TripSchema = new mongoose.Schema({
   destination: { type: String, required: true, trim: true },
   origin: {
@@ -106,11 +126,32 @@ const TripSchema = new mongoose.Schema({
         enum: ['owner', 'editor', 'viewer'],
         default: 'viewer',
         required: true
+      },
+      ageGroup: {
+        type: String,
+        enum: ['<18', '18-35', '36-60', '>60'],
+      },
+      gender: {
+        type: String,
+        enum: ['male', 'female', 'other', 'prefer_not_to_say'],
+      },
+      relation: { // e.g., 'Spouse', 'Child', 'Friend', 'Colleague'
+        type: String,
+        trim: true
       }
     }]
   },
+  householdId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Household',
+    index: true 
+  },
   preferences: {
-    transportMode: { type: String },
+    transportMode: { 
+        type: String,
+        enum: ['flight', 'train', 'bus', 'car', 'any'], 
+        default: 'any'
+    },
     accommodationType: { type: String },
     currency: { type: String, default: 'USD' },
     language: { type: String, default: 'en' }
@@ -118,31 +159,38 @@ const TripSchema = new mongoose.Schema({
   coverImage: { type: String },
   routeInfo: routeInfoSchema,
   weather: { forecast: [weatherForecastSchema] },
-  attractions: [placeSchema],
-  foodRecommendations: [placeSchema],
-  accommodationSuggestions: [placeSchema],
+  attractions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Place' }],
+  foodRecommendations: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Place' }],
+  accommodationSuggestions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Place' }],
   budget: budgetSchema,
   localEvents: [localEventSchema],
   alerts: [String],
-  itinerary: [{
-    day: { type: Number, required: true },
-    title: { type: String, required: true },
-    activities: [String],
-  }],
+   itinerary: [itineraryItemSchema],
   aiSummary: aiSummarySchema,
+  
   inviteTokens: [{
     token: { type: String, required: true },
     expires: { type: Date, required: true },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
   }],
+    purpose: {
+    type: String,
+    enum: ['work', 'education', 'shopping', 'leisure', 'personal_business', 'other'],
+    default: 'leisure'
+  },
   smartSchedule: {
     type: smartScheduleSchema,
     default: null
   },
   status: {
     type: String,
-    enum: ['planned', 'ongoing', 'completed', 'canceled'],
+    enum: ['planned', 'ongoing', 'completed', 'canceled', 'unconfirmed'],
     default: 'planned',
+  },
+  source: { 
+      type: String,
+      enum: ['user_created', 'passive_detection'],
+      default: 'user_created'
   },
   sentAlerts: {
     type: [String],

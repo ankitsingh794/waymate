@@ -7,7 +7,8 @@ const {
   updateUserProfile,
   updateUserPhoto,
   changeAccountStatus,
-  updateUserLocation
+  updateUserLocation,
+  ...userController
 } = require('../controllers/userController');
 
 const { protect } = require('../middlewares/authMiddleware');
@@ -16,6 +17,7 @@ const validate = require('../middlewares/validateMiddleware');
 const { uploadSingleImage } = require('../middlewares/multer');
 const { generalLimiter } = require('../middlewares/rateLimiter'); 
 const { strictLimiter } = require('../middlewares/rateLimiter');
+const ConsentLog = require('../models/ConsentLog');
 
 
 // ✅ Validation Rules
@@ -75,6 +77,18 @@ router.patch('/:id/status',
   [body('status').isIn(['active', 'suspended', 'banned']).withMessage('Status must be one of: active, suspended, or banned')],
   validate,
   changeAccountStatus
+);
+
+// --- User Consent Routes ---
+router.post(
+    '/profile/consent',
+    protect,
+    [
+        body('consentType').isIn(['data_collection', 'demographic_data', 'passive_tracking']),
+        body('status').isIn(['granted', 'revoked'])
+    ],
+    validate,
+    userController.updateUserConsent 
 );
 
 module.exports = router;

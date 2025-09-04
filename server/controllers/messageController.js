@@ -5,11 +5,12 @@ const { sendSuccess, sendError } = require('../utils/responseHelper');
 const logger = require('../utils/logger');
 const cloudinary = require('../config/cloudinary');
 const { getSocketIO } = require('../utils/socket');
+const AppError = require('../utils/AppError');
 
 exports.getMessages = async (req, res) => {
     const { sessionId } = req.params;
     const userId = req.user._id;
-    const { page = 1, limit = 30 } = req.query; 
+    const { page = 1, limit = 30 } = req.query;
 
     try {
         const session = await ChatSession.findOne({ _id: sessionId, participants: userId });
@@ -37,12 +38,14 @@ exports.getMessages = async (req, res) => {
     }
 };
 
-exports.sendMediaMessage = async (req, res) => {
+exports.sendMediaMessage = async (req, res, next) => {
+    console.log('req.file:', req.file);
+    console.log('req.body:', req.body);
     const { sessionId } = req.params;
     const senderId = req.user._id;
-    
+
     if (!req.file) {
-        return sendError(res, 400, false, 'No media file provided.');
+        return next(new AppError('No media file was provided for upload.', 400));
     }
 
     let uploadResult = null;
@@ -52,30 +55,22 @@ exports.sendMediaMessage = async (req, res) => {
     try {
         const chatSession = await ChatSession.findOne({ _id: sessionId, participants: senderId });
         if (!chatSession) {
-            throw { statusCode: 403, message: 'Access denied. You cannot send messages to this session.' };
+            throw new AppError('Access denied. You cannot send messages to this session.', 403);
         }
 
-        // 1. Upload file to Cloudinary
         uploadResult = await new Promise((resolve, reject) => {
             const uploadStream = cloudinary.uploader.upload_stream(
                 { resource_type: 'auto', folder: `chat_media/${sessionId}` },
                 (error, result) => {
-                    if (error) reject(error);
+                    if (error) return reject(new AppError('Cloudinary upload failed.', 500));
                     resolve(result);
                 }
             );
             uploadStream.end(req.file.buffer);
         });
 
-        if (!uploadResult) {
-            throw new Error('Cloudinary upload failed.');
-        }
+        const mediaType = req.file.mimetype.startsWith('image/') ? 'image' : (req.file.mimetype.startsWith('video/') ? 'video' : 'file');
 
-        let mediaType = 'file';
-        if (req.file.mimetype.startsWith('image/')) mediaType = 'image';
-        else if (req.file.mimetype.startsWith('video/')) mediaType = 'video';
-
-        // 2. Create message and update session within a transaction
         const newMessage = new Message({
             chatSession: sessionId,
             sender: senderId,
@@ -85,43 +80,37 @@ exports.sendMediaMessage = async (req, res) => {
                 type: mediaType,
                 publicId: uploadResult.public_id,
             },
-            status: 'sent',
         });
         await newMessage.save({ session: dbSession });
 
         chatSession.lastMessage = {
-            text: `${req.user.username} sent a ${mediaType}.`,
+            text: `${req.user.name} sent a ${mediaType}.`,
             sentAt: new Date(),
         };
         await chatSession.save({ session: dbSession });
 
-        // 3. If all DB operations succeed, commit the transaction
         await dbSession.commitTransaction();
-        
-        // 4. Populate and emit the message
-        const populatedMessage = await Message.findById(newMessage._id).populate('sender', 'username email profile.avatar');
+
+        const populatedMessage = await Message.findById(newMessage._id).populate('sender', 'name email profileImage');
         const io = getSocketIO();
         io.to(sessionId).emit('newMessage', populatedMessage);
 
         logger.info(`Media message sent by ${senderId} in session ${sessionId}`);
-        sendSuccess(res, 201, true, 'Media message sent successfully', { message: populatedMessage });
+        sendSuccess(res, 201, 'Media message sent successfully.', { message: populatedMessage });
 
     } catch (error) {
-        // If any part of the process fails, abort the DB transaction
         await dbSession.abortTransaction();
 
-        // FIX: If a file was uploaded but the transaction failed, delete it from Cloudinary.
-        if (uploadResult && uploadResult.public_id) {
+        if (uploadResult?.public_id) {
             try {
                 await cloudinary.uploader.destroy(uploadResult.public_id);
-                logger.warn(`Cleaned up orphaned Cloudinary file due to transaction failure: ${uploadResult.public_id}`);
+                logger.warn(`Cleaned up orphaned Cloudinary file: ${uploadResult.public_id}`);
             } catch (cleanupError) {
                 logger.error(`CRITICAL: Failed to clean up orphaned Cloudinary file: ${cleanupError.message}`);
             }
         }
 
-        logger.error(`Error sending media message: ${error.message}`);
-        sendError(res, error.statusCode || 500, false, error.message || 'Failed to send media message.');
+        next(error);
     } finally {
         dbSession.endSession();
     }

@@ -1,0 +1,32 @@
+const express = require('express');
+const router = express.Router();
+const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
+const exportController = require('../controllers/exportController');
+
+// All routes in this file require the user to be an authenticated researcher
+router.use(protect, authorizeRoles('researcher'));
+
+/**
+ * @route   GET /api/v1/export/trips/json
+ * @desc    Export anonymized trip data as JSON
+ * @access  Researcher only
+ */
+router.get('/trips/json', exportController.exportTripsAsJson);
+
+/**
+ * @route   GET /api/v1/export/trips/csv
+ * @desc    Export anonymized trip data as CSV
+ * @access  Researcher only
+ */
+router.get('/trips/csv', exportController.exportTripsAsCsv);
+
+
+/**
+ * @route   GET /api/v1/export/trips/natpac-csv
+ * @desc    Export anonymized trip data in the standardized NATPAC CSV format
+ * @access  Researcher only
+ */
+router.get('/trips/natpac-csv', exportController.exportTripsAsNatpacCsv);
+
+
+module.exports = router;

@@ -22,4 +22,18 @@ router.post(
     messageController.sendMediaMessage
 );
 
+router.post(
+  "/test-upload",
+  uploadMedia("media"),
+  (req, res) => {
+    console.log("req.file:", req.file);
+    console.log("req.body:", req.body);
+    if (!req.file) {
+      return res.status(400).json({ error: "No file received" });
+    }
+    res.json({ file: req.file });
+  }
+);
+
+
 module.exports = router;

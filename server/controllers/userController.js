@@ -3,6 +3,7 @@ const logger = require('../utils/logger');
 const AppError = require('../utils/AppError');
 const { sendSuccess } = require('../utils/responseHelper');
 const cloudinary = require('../config/cloudinary');
+const ConsentLog = require('../models/ConsentLog');
 
 /**
  * @desc Get current user profile
@@ -12,7 +13,7 @@ const cloudinary = require('../config/cloudinary');
 exports.getUserProfile = async (req, res, next) => {
   try {
     logger.info(`Fetching profile for user: ${req.user.email}`);
-    return sendSuccess(res, 200, true, 'User profile fetched successfully', { user: req.user });
+    return sendSuccess(res, 200, 'User profile fetched successfully', { user: req.user });
   } catch (error) {
     logger.error(`Error fetching profile: ${error.message}`);
     next(error);
@@ -140,5 +141,31 @@ exports.updateUserLocation = async (req, res, next) => {
         logger.error(`Error updating location for user ${req.user.email}:`, { error: error.message });
         // Pass the error to the global error handler
         next(new AppError('Failed to update location.', 500));
+    }
+};
+
+/**
+ * @desc    Record or update user consent status
+ * @route   POST /api/users/profile/consent
+ * @access  Private
+ */
+exports.updateUserConsent = async (req, res, next) => {
+    const { consentType, status } = req.body;
+    const userId = req.user._id;
+
+    try {
+        // Create a new log entry for this consent action
+        await ConsentLog.create({
+            userId,
+            consentType,
+            status,
+            source: 'user_dashboard' // Or another source identifier
+        });
+
+        logger.info(`Consent status for '${consentType}' updated to '${status}' for user ${req.user.email}`);
+        sendSuccess(res, 200, 'Consent status updated successfully.');
+
+    } catch (error) {
+        next(error);
     }
 };
