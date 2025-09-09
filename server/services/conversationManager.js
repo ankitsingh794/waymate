@@ -22,15 +22,12 @@ class ConversationManager {
     let state = await this.getState();
 
     if (!state) {
-      // This is the start of a new conversation
       state = await this.startConversation('create_trip', initialDetails);
     } else {
-      // This is a continuing conversation, so we process the user's answer
       const currentSlotName = this.getCurrentSlot(state);
       const flow = flows[state.intent];
       const slotDefinition = flow.definition[currentSlotName];
 
-      // Use the specialized AI parser to extract the specific piece of info we asked for
       const extractedData = await aiParser.extractEntityForSlot(message, slotDefinition);
 
       if (extractedData !== null && validateSlotData(currentSlotName, extractedData)) {
@@ -69,9 +66,9 @@ class ConversationManager {
       status: 'pending',
       collectedData: initialDetails || {}
     };
+    await this.saveState(state);
     return state;
   }
-
   findNextMissingSlot(state) {
     const flow = flows[state.intent];
     return flow.slots.find(slot => !state.collectedData.hasOwnProperty(slot));

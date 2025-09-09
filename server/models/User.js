@@ -24,7 +24,6 @@ const userSchema = new mongoose.Schema(
       minlength: 8,
       select: false
     },
-    // FIX: Moved from `location` to the top level for proper semantic structure.
     passwordChangedAt: Date,
     role: {
       type: String,

@@ -1,10 +1,17 @@
-const mongoose = require('mongoose');
+/**
+ * @file controllers/householdController.js
+ * @description Controller for all household-related API logic.
+ * Now includes functions for updating details, managing member relationships, and submitting surveys.
+ */
+const mongoose =require('mongoose');
 const crypto = require('crypto');
 const Household = require('../models/Household');
 const User = require('../models/User');
-const { sendSuccess, sendError } = require('../utils/responseHelper');
+const { sendSuccess } = require('../utils/responseHelper');
 const logger = require('../utils/logger');
 const AppError = require('../utils/AppError');
+
+// --- Core Household Management ---
 
 /**
  * @desc    Create a new household
@@ -18,14 +25,12 @@ exports.createHousehold = async (req, res, next) => {
     try {
         const user = await User.findById(req.user._id).session(session);
         if (user.householdId) {
-            await session.abortTransaction();
-            session.endSession();
             return next(new AppError('You are already a member of a household.', 400));
         }
 
         const [household] = await Household.create([{
             householdName,
-            members: [{ userId: req.user._id, role: 'head' }]
+            members: [{ userId: req.user._id, role: 'head', relationship: 'parent' }] // Default relationship
         }], { session });
 
         user.householdId = household._id;
@@ -43,6 +48,7 @@ exports.createHousehold = async (req, res, next) => {
     }
 };
 
+
 /**
  * @desc    Get details of the current user's household
  * @route   GET /api/v1/households/my-household
@@ -51,25 +57,46 @@ exports.createHousehold = async (req, res, next) => {
 exports.getMyHouseholdDetails = async (req, res, next) => {
     try {
         if (!req.user.householdId) {
-            return next(new AppError('You are not a member of any household.', 404));
+            return sendSuccess(res, 200, 'User is not in a household.', { household: null });
         }
         const household = await Household.findById(req.user.householdId)
             .populate('members.userId', 'name email profileImage');
 
         if (!household) {
-            // Data inconsistency; the user has an ID for a non-existent household.
-            // This is a good place for a data sanitization routine in a real app.
             logger.warn(`User ${req.user.email} has an orphaned householdId: ${req.user.householdId}`);
             await User.findByIdAndUpdate(req.user._id, { $unset: { householdId: "" } });
             return next(new AppError('Could not find your household. Your profile has been updated.', 404));
         }
-
         sendSuccess(res, 200, 'Household details fetched successfully.', { household });
     } catch (error) {
         logger.error('Error fetching household details:', { error: error.message });
         return next(new AppError('Failed to fetch household details.', 500));
     }
 };
+
+
+/**
+ * @desc    Update household details (e.g., name)
+ * @route   PATCH /api/v1/households/:id
+ * @access  Private (Household Head only)
+ */
+exports.updateHousehold = async (req, res, next) => {
+    const { householdName } = req.body;
+    if (!householdName) {
+        return next(new AppError('Household name is required.', 400));
+    }
+    try {
+        const household = req.household; // from isHouseholdHead middleware
+        household.householdName = householdName;
+        await household.save();
+        logger.info(`Household ${household._id} name updated by ${req.user.email}`);
+        sendSuccess(res, 200, 'Household updated successfully.', { household });
+    } catch (error) {
+        logger.error('Error updating household:', { error: error.message });
+        return next(new AppError('Failed to update household.', 500));
+    }
+};
+
 
 /**
  * @desc    Generate an invite link for a household
@@ -271,5 +298,68 @@ exports.deleteHousehold = async (req, res, next) => {
         return next(new AppError('Failed to delete household.', 500));
     } finally {
         session.endSession();
+    }
+};
+
+
+/**
+ * @desc    Update a member's details (role, relationship)
+ * @route   PATCH /api/v1/households/:id/members/:memberId
+ * @access  Private (Household Head only)
+ */
+exports.updateMemberDetails = async (req, res, next) => {
+    const { memberId } = req.params;
+    const { role, relationship } = req.body;
+    const household = req.household;
+
+    if (memberId === req.user._id.toString()) {
+        return next(new AppError('You cannot change your own role or relationship.', 400));
+    }
+
+    try {
+        const memberIndex = household.members.findIndex(m => m.userId.toString() === memberId);
+        if (memberIndex === -1) {
+            return next(new AppError('Member not found in this household.', 404));
+        }
+
+        if (role) household.members[memberIndex].role = role;
+        if (relationship) household.members[memberIndex].relationship = relationship;
+
+        await household.save();
+        logger.info(`Member ${memberId} details updated in household ${household._id} by ${req.user.email}`);
+        sendSuccess(res, 200, 'Member details updated successfully.', { household });
+    } catch (error) {
+        logger.error('Error updating member details:', { error: error.message });
+        return next(new AppError('Failed to update member details.', 500));
+    }
+};
+
+// --- Survey Management ---
+
+/**
+ * @desc    Submit or update household survey data
+ * @route   PATCH /api/v1/households/:id/survey
+ * @access  Private (Household Head only)
+ */
+exports.submitSurvey = async (req, res, next) => {
+    const { vehicleOwnership, householdSize, incomeRange } = req.body;
+    const household = req.household;
+
+    try {
+        const surveyData = {
+            vehicleOwnership,
+            householdSize,
+            incomeRange,
+            lastUpdated: new Date()
+        };
+
+        household.surveyData = surveyData;
+        await household.save();
+
+        logger.info(`Survey data submitted for household ${household._id} by ${req.user.email}`);
+        sendSuccess(res, 200, 'Survey data submitted successfully.', { household });
+    } catch (error) {
+        logger.error('Error submitting survey data:', { error: error.message });
+        return next(new AppError('Failed to submit survey data.', 500));
     }
 };

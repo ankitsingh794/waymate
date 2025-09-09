@@ -51,14 +51,19 @@ const anonymizeTrip = (trip) => {
         purpose: trip.purpose,
         source: trip.source,
         members: anonymizedMembers,
-        purpose: trip.purpose,
-        ransportMode: trip.preferences.transportMode,
+        transportMode: trip.preferences.transportMode,
+        accommodationType: trip.preferences.accommodationType,
         tripCreatedAt: trip.createdAt.toISOString(),
         tripUpdatedAt: trip.updatedAt.toISOString(),
         itinerary: trip.itinerary || []
     };
 };
 
+/**
+ * Constructs a Mongoose query object from request query parameters.
+ * @param {object} queryParams - The request query parameters.
+ * @returns {object} A Mongoose query object.
+ */
 const buildQuery = (queryParams) => {
     const query = {};
     const { startDate, endDate } = queryParams;
@@ -78,6 +83,11 @@ const buildQuery = (queryParams) => {
     return query;
 };
 
+/**
+ * Returns a readable stream of anonymized trip data from the database.
+ * @param {object} filters - The filters to apply to the trip query.
+ * @returns {Readable} A readable stream in object mode.
+ */
 const getAnonymizedTripDataStream = (filters = {}) => {
     try {
         const query = buildQuery(filters);
@@ -86,6 +96,7 @@ const getAnonymizedTripDataStream = (filters = {}) => {
                 path: 'group.members.userId',
                 select: 'householdId _id',
             })
+            .lean() // Use .lean() for better performance with streams
             .cursor();
 
         const readableStream = new Readable({
@@ -94,7 +105,7 @@ const getAnonymizedTripDataStream = (filters = {}) => {
         });
 
         cursor.on('data', (doc) => {
-            readableStream.push(anonymizeTrip(doc.toObject()));
+            readableStream.push(anonymizeTrip(doc));
         });
 
         cursor.on('end', () => {
@@ -108,13 +119,18 @@ const getAnonymizedTripDataStream = (filters = {}) => {
 
         return readableStream;
     } catch (error) {
-        throw error;
+        // Rethrow client errors (like bad date formats) to be handled by the controller
+        if (error instanceof AppError) {
+            throw error;
+        }
+        // Log and wrap server errors
+        logger.error('Failed to create trip data stream.', { error: error.message });
+        throw new AppError('Could not initiate the data export stream.', 500);
     }
 };
+
 /**
- * [FINAL, CORRECTED VERSION]
  * Transforms a single, anonymized trip object into a flat, detailed trip-chain format for NATPAC.
- * It creates a distinct row for each itinerary item for each member of the trip.
  * @param {object} anonymizedTrip - The trip object from the anonymizeTrip function.
  * @returns {Array<object>} An array of NATPAC-formatted records.
  */
@@ -143,7 +159,7 @@ const transformToNatpacSchema = (anonymizedTrip) => {
             }];
         }
 
-        return anonymizedTrip.itinerary.map(item => ({
+        return anonymizedTrip.itinerary.map((item, index) => ({
             trip_id: anonymizedTrip.tripId,
             household_id_hashed: anonymizedTrip.householdHash,
             member_id_hashed: member.memberHash,
@@ -152,9 +168,8 @@ const transformToNatpacSchema = (anonymizedTrip) => {
             start_date: anonymizedTrip.startDate,
             end_date: anonymizedTrip.endDate,
             data_source: anonymizedTrip.source,
-
-            sequence_id: item.sequence,
-            event_type: item.type, 
+            sequence_id: item.sequence || (index + 1),
+            event_type: item.type || 'N/A', 
             event_description: item.description || 'N/A',
             start_time: item.startTime ? new Date(item.startTime).toISOString() : '',
             end_time: item.endTime ? new Date(item.endTime).toISOString() : '',

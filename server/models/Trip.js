@@ -26,7 +26,7 @@ const placeSchema = new mongoose.Schema({
   image: { type: String },
   website: { type: String },
   vicinity: { type: String },
-  photo_reference: { type: String } 
+  photo_reference: { type: String }
 }, { _id: false });
 
 // Sub-schema for richer weather data
@@ -86,6 +86,33 @@ const itineraryItemSchema = new mongoose.Schema({
 }, { _id: true });
 
 
+const segmentSchema = new mongoose.Schema({
+  mode: {
+    type: String,
+    enum: ['still', 'walking', 'running', 'cycling', 'driving', 'public_transport', 'unknown'],
+    required: true
+  },
+  startTime: { type: Date, required: true },
+  endTime: { type: Date },
+  path: {
+    type: {
+      type: String,
+      enum: ['LineString'],
+    },
+    coordinates: {
+      type: [[Number]],
+    },
+  },
+  rawDataPoints: { type: Array, default: [] },
+  confidence: { type: Number },
+  isConfirmed: { type: Boolean, default: false },
+  confirmedMode: {
+    type: String,
+    enum: ['still', 'walking', 'running', 'cycling', 'driving', 'public_transport', 'unknown'],
+  },
+}, { _id: false });
+
+
 const TripSchema = new mongoose.Schema({
   destination: { type: String, required: true, trim: true },
   origin: {
@@ -105,9 +132,10 @@ const TripSchema = new mongoose.Schema({
   },
   endDate: {
     type: Date,
-    required: true,
     validate: {
-      validator: function () { return this.endDate >= this.startDate; },
+      validator: function () {
+        return !this.endDate || this.endDate >= this.startDate;
+      },
       message: 'End date must be after start date'
     }
   },
@@ -135,7 +163,7 @@ const TripSchema = new mongoose.Schema({
         type: String,
         enum: ['male', 'female', 'other', 'prefer_not_to_say'],
       },
-      relation: { // e.g., 'Spouse', 'Child', 'Friend', 'Colleague'
+      relation: {
         type: String,
         trim: true
       }
@@ -144,13 +172,26 @@ const TripSchema = new mongoose.Schema({
   householdId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Household',
-    index: true 
+    index: true
+  },
+  companions: [{
+    _id: false,
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    relation: {
+      type: String,
+      trim: true
+    }
+  }],
+  purpose: {
+    type: String,
+    enum: ['work', 'education', 'shopping', 'leisure', 'personal_business', 'other'],
+    default: 'leisure'
   },
   preferences: {
-    transportMode: { 
-        type: String,
-        enum: ['flight', 'train', 'bus', 'car', 'any'], 
-        default: 'any'
+    transportMode: {
+      type: String,
+      enum: ['flight', 'train', 'bus', 'car', 'any'],
+      default: 'any'
     },
     accommodationType: { type: String },
     currency: { type: String, default: 'USD' },
@@ -159,21 +200,21 @@ const TripSchema = new mongoose.Schema({
   coverImage: { type: String },
   routeInfo: routeInfoSchema,
   weather: { forecast: [weatherForecastSchema] },
-  attractions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Place' }],
-  foodRecommendations: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Place' }],
-  accommodationSuggestions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Place' }],
+  attractions: [placeSchema],
+  foodRecommendations: [placeSchema],
+  accommodationSuggestions: [placeSchema],
   budget: budgetSchema,
   localEvents: [localEventSchema],
   alerts: [String],
-   itinerary: [itineraryItemSchema],
+  itinerary: [itineraryItemSchema],
   aiSummary: aiSummarySchema,
-  
+
   inviteTokens: [{
     token: { type: String, required: true },
     expires: { type: Date, required: true },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
   }],
-    purpose: {
+  purpose: {
     type: String,
     enum: ['work', 'education', 'shopping', 'leisure', 'personal_business', 'other'],
     default: 'leisure'
@@ -184,26 +225,31 @@ const TripSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['planned', 'ongoing', 'completed', 'canceled', 'unconfirmed'],
+    enum: ['planned', 'ongoing', 'completed', 'canceled', 'unconfirmed', 'pending_confirmation', 'in_progress'],
     default: 'planned',
   },
-  source: { 
-      type: String,
-      enum: ['user_created', 'passive_detection'],
-      default: 'user_created'
+  source: {
+    type: String,
+    enum: ['user_created', 'passive_detection', 'passive_detection_v3_ml'],
+    default: 'user_created'
   },
+  segments: [segmentSchema],
   sentAlerts: {
     type: [String],
     default: []
   },
-  favorite: { type: Boolean, default: false }
+  favorite: { type: Boolean, default: false },
 }, { timestamps: true });
 
+
+// --- VIRTUALS and INDEXES ---
 TripSchema.virtual('dayCount').get(function () {
   if (!this.startDate || !this.endDate) return 0;
   return Math.ceil((this.endDate - this.startDate) / (1000 * 60 * 60 * 24));
 });
 
+// Index for segments path for geospatial queries
+TripSchema.index({ 'segments.path': '2dsphere' });
 TripSchema.index({ 'group.members.userId': 1, startDate: -1 });
 TripSchema.index({ destination: 'text' });
 TripSchema.index(
@@ -215,3 +261,4 @@ TripSchema.index(
 );
 
 module.exports = mongoose.model('Trip', TripSchema);
+

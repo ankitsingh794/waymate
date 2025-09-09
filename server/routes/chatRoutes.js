@@ -4,26 +4,41 @@ const chatController = require('../controllers/chatController');
 const { body } = require('express-validator');
 const { protect, isChatMember } = require('../middlewares/authMiddleware');
 const { messageLimiter, generalLimiter } = require('../middlewares/rateLimiter');
+const { mongoIdValidation } = require('../utils/validationHelpers');
 const validate = require('../middlewares/validateMiddleware');
 
+// All routes in this file are protected and require authentication
 router.use(protect);
 
-// Validation middleware for sending a message
-const sendMessageValidation = [
-    body('sessionId').isMongoId().withMessage('A valid session ID is required.'),
-    body('message').notEmpty().withMessage('Message text cannot be empty.').trim()
-];
+// --- AI Session Management ---
 
-// This route now correctly points to the main exported function for handling AI interactions.
-router.post('/message/ai', messageLimiter, sendMessageValidation, validate, isChatMember, chatController.handleChatMessage);
-
-// THIS ROUTE IS FOR CLEARING AI CHAT HISTORY
-router.post('/sessions/ai/clear', generalLimiter, chatController.clearAiChatHistory);
-
-// This route is correct as findOrCreateAiSession is properly exported.
+// Finds an existing AI chat session for the user or creates a new one.
 router.post('/sessions/ai', generalLimiter, chatController.findOrCreateAiSession);
 
-// I have left the route as is, assuming you have this function defined elsewhere.
-router.post('/message/group', messageLimiter, sendMessageValidation, validate, isChatMember, chatController.handleGroupChatMessage);
+// Clears all messages from the user's private AI chat session.
+router.post('/sessions/ai/clear', generalLimiter, chatController.clearAiChatHistory);
+
+// --- Group Session Management ---
+
+// NEW: Gets all group chat sessions for the authenticated user.
+router.get('/sessions/group', generalLimiter, chatController.getGroupSessions);
+
+
+// --- AI Message Handling ---
+
+// The primary endpoint for sending a message to the AI assistant.
+// It handles complex conversational flows, intent detection, and trip creation logic.
+router.post(
+    '/message/ai/:sessionId',
+    messageLimiter,
+    [
+        mongoIdValidation('sessionId'),
+        body('message').notEmpty().withMessage('Message text cannot be empty.').trim()
+    ],
+    validate,
+    isChatMember, // Ensures the user is a participant of this AI session
+    chatController.handleChatMessage
+);
 
 module.exports = router;
+

@@ -366,7 +366,7 @@ const processTripSync = async (user, trips) => {
         const { clientId, ...newTripData } = tripData;
         newTripData.group = { members: [{ userId: user._id, role: 'owner' }] };
 
-        const [createdTrip] = await Trip.create([newTripData], { session });
+        const [createdTrip] = await trips.create([newTripData], { session });
         idMap[clientId] = createdTrip._id;
         logger.info(`Synced new offline trip ${createdTrip._id} for user ${user.email}`);
 
@@ -375,7 +375,7 @@ const processTripSync = async (user, trips) => {
         const { _id, ...updatedTripData } = tripData;
 
         // Ensure the user has permission to edit this trip
-        const existingTrip = await Trip.findOne({ _id, 'group.members.userId': user._id }).session(session);
+        const existingTrip = await trips.findOne({ _id, 'group.members.userId': user._id }).session(session);
 
         if (existingTrip) {
           Object.assign(existingTrip, updatedTripData);
@@ -410,19 +410,29 @@ const generateTemplateItinerary = (aggregatedData) => {
   const start = new Date(startDate);
   const end = new Date(endDate);
   const days = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
+  const purposeTitle = purpose.charAt(0).toUpperCase() + purpose.slice(1);
 
   const itinerary = [];
-  const purposeTitle = purpose.charAt(0).toUpperCase() + purpose.slice(1); // Capitalize purpose
-
+  let sequence = 0;
   for (let i = 1; i <= days; i++) {
+    const currentDate = new Date(start);
+    currentDate.setDate(start.getDate() + i - 1);
+    
+    // Morning Activity
     itinerary.push({
-      day: i,
-      title: `${purposeTitle} Activities - Day ${i}`,
-      activities: [
-        `Morning: Scheduled ${purpose} activities.`,
-        `Afternoon: Continue ${purpose} commitments.`,
-        `Evening: Dinner and free time.`
-      ],
+      sequence: sequence++,
+      type: 'activity',
+      activityPurpose: purpose,
+      description: `Morning: Scheduled ${purpose} activities for Day ${i}.`,
+      startTime: new Date(currentDate.setHours(9, 0, 0, 0)).toISOString()
+    });
+    // Afternoon Activity
+    itinerary.push({
+      sequence: sequence++,
+      type: 'activity',
+      activityPurpose: purpose,
+      description: `Afternoon: Continue ${purpose} commitments.`,
+      startTime: new Date(currentDate.setHours(14, 0, 0, 0)).toISOString()
     });
   }
 
@@ -430,9 +440,9 @@ const generateTemplateItinerary = (aggregatedData) => {
     itinerary,
     aiSummary: {
       overview: `This is a structured plan for your ${purpose} trip to ${destinationName}.`,
-      highlights: ["Focus on your primary objectives for the trip."],
+      highlights: [`Focus on your primary objectives for the trip.`],
       tips: ["Prepare all necessary documents and materials.", "Confirm meeting times and locations in advance."],
-      mustEats: [], // Left blank as it's not a leisure trip
+      mustEats: [],
       packingChecklist: ["Laptop/Charger", "Business Attire", "Notebook and Pen"]
     }
   };

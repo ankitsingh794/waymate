@@ -1,3 +1,5 @@
+// models/SocioEconomicSurvey.js
+
 const mongoose = require('mongoose');
 
 const socioEconomicSurveySchema = new mongoose.Schema({
@@ -5,7 +7,7 @@ const socioEconomicSurveySchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true,
-        unique: true, 
+        unique: true,
         index: true,
     },
     householdIncome: {
@@ -20,12 +22,11 @@ const socioEconomicSurveySchema = new mongoose.Schema({
         type: String,
         enum: ['private_car', 'private_bike', 'public_transport', 'walk_cycle', 'work_from_home', 'other'],
     },
-    lastUpdated: {
-        type: Date,
-        default: Date.now,
-    },
-}, { timestamps: true });
+}, { 
+    timestamps: true 
+});
 
-socioEconomicSurveySchema.index({ updatedAt: 1 });
+// Indexing updatedAt can be useful for queries that sort or filter by the last modification time.
+socioEconomicSurveySchema.index({ updatedAt: -1 });
 
 module.exports = mongoose.model('SocioEconomicSurvey', socioEconomicSurveySchema);

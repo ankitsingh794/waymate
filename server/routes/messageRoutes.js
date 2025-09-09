@@ -5,35 +5,39 @@ const { protect, isChatMember } = require('../middlewares/authMiddleware');
 const { messageLimiter } = require('../middlewares/rateLimiter');
 const { uploadMedia } = require('../middlewares/multer'); 
 const { mongoIdValidation } = require('../utils/validationHelpers');
+const { body } = require('express-validator');
 const validate = require('../middlewares/validateMiddleware');
 
-// Define middleware chain for session-based routes for clarity
-const sessionAccess = [protect, mongoIdValidation('sessionId'), validate, isChatMember];
+// All routes in this file are protected and require authentication
+router.use(protect);
 
-// Get paginated message history for a chat session
+// Middleware chain to validate session ID and membership for all session-based routes
+const sessionAccess = [mongoIdValidation('sessionId'), validate, isChatMember];
+
+// --- Message History ---
+
+// Get paginated message history for any chat session (AI or group).
 router.get('/session/:sessionId', sessionAccess, messageController.getMessages);
 
-// Send a media message (image, video, file)
+// --- Message Sending ---
+
+// Send a text message to a chat session.
+router.post(
+    '/session/:sessionId/text',
+    sessionAccess,
+    messageLimiter,
+    [ body('message').notEmpty().withMessage('Message text cannot be empty.').trim() ],
+    validate,
+    messageController.sendTextMessage
+);
+
+// Send a media message (image, video, file) to a chat session.
 router.post(
     '/session/:sessionId/media',
     sessionAccess,
     messageLimiter,
-    uploadMedia('media'), 
+    uploadMedia('media'), // Multer middleware for file handling
     messageController.sendMediaMessage
 );
-
-router.post(
-  "/test-upload",
-  uploadMedia("media"),
-  (req, res) => {
-    console.log("req.file:", req.file);
-    console.log("req.body:", req.body);
-    if (!req.file) {
-      return res.status(400).json({ error: "No file received" });
-    }
-    res.json({ file: req.file });
-  }
-);
-
 
 module.exports = router;

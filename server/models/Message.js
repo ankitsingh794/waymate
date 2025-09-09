@@ -48,7 +48,7 @@ const messageSchema = new mongoose.Schema(
       default: null
     }
   },
-  { timestamps: true } // Adds createdAt & updatedAt
+  { timestamps: true } 
 );
 
 messageSchema.index({ chatSession: 1, createdAt: -1 });

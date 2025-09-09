@@ -38,6 +38,58 @@ exports.getMessages = async (req, res) => {
     }
 };
 
+
+// Add this new function to your controllers/messageController.js file
+
+exports.sendTextMessage = async (req, res, next) => {
+    const { sessionId } = req.params;
+    const { message: messageText } = req.body;
+    const senderId = req.user._id;
+
+    const dbSession = await mongoose.startSession();
+    dbSession.startTransaction();
+
+    try {
+        const chatSession = await ChatSession.findOne({ _id: sessionId, participants: senderId }).session(dbSession);
+        if (!chatSession) {
+            throw new AppError('Access denied. You cannot send messages to this session.', 403);
+        }
+
+        const newMessage = new Message({
+            chatSession: sessionId,
+            sender: senderId,
+            messageType: 'text',
+            text: messageText,
+        });
+        await newMessage.save({ session: dbSession });
+
+        chatSession.lastMessage = {
+            text: messageText,
+            sentAt: new Date(),
+        };
+        await chatSession.save({ session: dbSession });
+
+        await dbSession.commitTransaction();
+
+        // Populate sender details for the socket event and response
+        const populatedMessage = await Message.findById(newMessage._id).populate('sender', 'name email profileImage');
+        
+        // Emit event to other clients in the room
+        const io = getSocketIO();
+        io.to(sessionId).emit('newMessage', populatedMessage);
+
+        logger.info(`Text message sent by ${senderId} in session ${sessionId}`);
+        sendSuccess(res, 201, 'Message sent successfully.', { message: populatedMessage });
+
+    } catch (error) {
+        await dbSession.abortTransaction();
+        next(error); // Pass error to the global error handler
+    } finally {
+        dbSession.endSession();
+    }
+};
+
+
 exports.sendMediaMessage = async (req, res, next) => {
     console.log('req.file:', req.file);
     console.log('req.body:', req.body);

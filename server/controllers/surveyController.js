@@ -1,62 +1,63 @@
+// controllers/surveyController.js
+
 const SocioEconomicSurvey = require('../models/SocioEconomicSurvey');
 const { sendSuccess } = require('../utils/responseHelper');
 const logger = require('../utils/logger');
 
 /**
  * @desc    Get the current user's socio-economic survey data
- * @route   GET /api/v1/surveys
+ * @route   GET /api/v1/surveys/my-data
  * @access  Private
  */
 exports.getMySurveyData = async (req, res, next) => {
     try {
-        // Find the survey data linked to the authenticated user's ID
         const surveyData = await SocioEconomicSurvey.findOne({ userId: req.user._id });
 
-        // If no survey exists, return a default empty object.
-        // This is a good practice as it allows the client-side to easily
-        // determine if it needs to render a new survey form.
+        // If no survey exists, return `null` data.
+        // This is a clear, unambiguous signal to the client.
         if (!surveyData) {
-            return sendSuccess(res, 200, 'No survey data found for user.', { survey: {} });
+            return sendSuccess(res, 200, 'No survey data found for this user.', { data: null });
         }
 
-        sendSuccess(res, 200, 'Survey data fetched successfully.', { survey: surveyData });
+        // IMPORTANT: The response key is now 'data' to align with the Flutter client's expectation.
+        sendSuccess(res, 200, 'Survey data fetched successfully.', { data: surveyData });
     } catch (error) {
-        // Pass any errors to the central error handling middleware
         next(error);
     }
 };
 
 /**
  * @desc    Submit or update the current user's socio-economic survey data
- * @route   POST /api/v1/surveys
+ * @route   POST /api/v1/surveys/my-data
  * @access  Private
  */
 exports.submitOrUpdateSurveyData = async (req, res, next) => {
     try {
         const { householdIncome, vehicleCount, primaryTransportModeToWork } = req.body;
 
-        // Use findOneAndUpdate with 'upsert: true' to either create a new survey
-        // if one doesn't exist, or update the existing one. This is an efficient
-        // way to handle both creation and update operations in a single database call.
+        // Using findOneAndUpdate with 'upsert: true' efficiently handles both creation and updates.
         const surveyData = await SocioEconomicSurvey.findOneAndUpdate(
-            { userId: req.user._id }, // The query to find the document
+            { userId: req.user._id },
             { 
-                $set: { // The fields to update or set
+                // The $set operator updates specified fields.
+                // The manual `lastUpdated` field is removed as `timestamps: true` handles it automatically.
+                $set: { 
                     householdIncome,
                     vehicleCount,
                     primaryTransportModeToWork,
-                    lastUpdated: new Date()
                 }
             },
             { 
-                new: true,           // Option to return the modified document instead of the original
-                upsert: true,        // Create the document if it doesn't exist
-                runValidators: true  // Ensure the update operation respects schema validations
+                new: true,           // Return the modified document
+                upsert: true,        // Create if it doesn't exist
+                runValidators: true  // Run schema validations
             }
         );
 
         logger.info(`Socio-economic survey data updated for user ${req.user.email}`);
-        sendSuccess(res, 200, 'Survey data saved successfully.', { survey: surveyData });
+        
+        // IMPORTANT: The response key is now 'data' for consistency.
+        sendSuccess(res, 200, 'Survey data saved successfully.', { data: surveyData });
 
     } catch (error) {
         next(error);

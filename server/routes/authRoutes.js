@@ -11,9 +11,8 @@ const router = express.Router();
 // --- Validation Chains with Enhanced Security ---
 
 const registerValidation = [
-  body('name').notEmpty().withMessage('Name is required.'),
+  body('name').trim().notEmpty().withMessage('Name is required.'),
   body('email').isEmail().withMessage('Please provide a valid email.').normalizeEmail(),
-  // Use the strong password validator
   passwordValidation('password'),
 ];
 
@@ -24,13 +23,11 @@ const loginValidation = [
 
 const resetPasswordValidation = [
   body('token').notEmpty().withMessage('Reset token is required.'),
-  // Enforce strong passwords on reset
   passwordValidation('password'),
 ];
 
 const updatePasswordValidation = [
   body('currentPassword').notEmpty().withMessage('Current password is required.'),
-  // Enforce strong passwords on update
   passwordValidation('newPassword'),
 ];
 
@@ -42,16 +39,43 @@ router.post('/verify-email', generalLimiter, [body('token').notEmpty()], validat
 
 router.post('/login', loginRateLimiter, loginValidation, validate, authController.loginUser);
 
-router.post('/refresh-token', refreshLimiter, authController.refreshToken); 
+// UPDATED: Added validation for refreshToken in the body to support mobile clients
+router.post(
+    '/refresh-token', 
+    refreshLimiter, 
+    [
+        // Allow token from either cookie or body to support both web and mobile
+        body('refreshToken').optional().isJWT().withMessage('Invalid refresh token format.')
+    ], 
+    validate, 
+    authController.refreshToken
+);
 
 router.post('/forgot-password', generalLimiter, [body('email').isEmail()], validate, authController.forgotPassword);
 
 router.post('/reset-password', generalLimiter, resetPasswordValidation, validate, authController.resetPassword);
 
+// --- Protected (Authenticated) Routes ---
 
-// Use PATCH for partial updates, a semantic improvement
 router.patch('/update-password', protect, updatePasswordValidation, validate, authController.updatePassword);
 
-router.post('/logout', protect, authController.logoutUser);
+// UPDATED: Added validation for refreshToken for server-side logout
+router.post(
+    '/logout', 
+    protect, 
+    [
+        body('refreshToken').optional().isJWT().withMessage('Invalid refresh token format.')
+    ], 
+    validate, 
+    authController.logoutUser
+);
+
+router.post(
+    '/resend-verification',
+    generalLimiter, // Added rate limiting
+    [body('email').isEmail().withMessage('Please provide a valid email address.')],
+    validate,
+    authController.resendVerificationEmail
+);
 
 module.exports = router;

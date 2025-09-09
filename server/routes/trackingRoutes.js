@@ -1,16 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middlewares/authMiddleware');
-const { requireConsent } = require('../middlewares/consentMiddleware'); 
+const { requireConsent } = require('../middlewares/consentMiddleware');
 const trackingController = require('../controllers/trackingController');
 
-router.use(protect);
+router.use(protect, requireConsent('passive_tracking'));
 
-/**
- * @route   POST /api/v1/tracking/data
- * @desc    Accepts a batch of tracking data from a client device
- * @access  Private, Consent Required
- */
-router.post('/data', requireConsent('passive_tracking'), trackingController.processDataBatch);
+router.post('/start', trackingController.startTrip);
+router.post('/confirm-start', trackingController.confirmTripStart);
+router.post('/cancel-start', trackingController.cancelTripStart);
+router.post('/change-mode', trackingController.changeTripMode);
+router.post('/append', trackingController.appendDataToTrip);
+router.post('/end', trackingController.endTrip);
+router.post('/trips/:tripId/confirm', trackingController.confirmOrCorrectTripMode); 
 
 module.exports = router;
+

@@ -212,36 +212,44 @@ export default function Dashboard() {
     const { t } = useTranslation('dashboard');
     const { user, upcomingTrips, setUpcomingTrips } = useAuth();
     const [pastTrips, setPastTrips] = useState([]);
+    
+    // FIX: Added new state specifically for ongoing trips.
+    const [ongoingTrips, setOngoingTrips] = useState([]);
+
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const hasFetchedTrips = useRef(false);
 
-
     useEffect(() => {
-  const fetchInitialTrips = async () => {
-    try {
-      const pastResponse = await api.get('/trips?status=ongoing');
-      setPastTrips(pastResponse.data.data.data || []);
+        // FIX: Renamed and updated the function to fetch all trip types concurrently.
+        const fetchAllTrips = async () => {
+            try {
+                // Fetch ongoing, planned, and completed trips in parallel for better performance.
+                const [ongoingRes, upcomingRes, pastRes] = await Promise.all([
+                    api.get('/trips?status=ongoing'),
+                    api.get('/trips?status=planned'),
+                    api.get('/trips?status=completed') // Now correctly fetches completed trips
+                ]);
+                
+                setOngoingTrips(ongoingRes.data.data.data || []);
+                setUpcomingTrips(upcomingRes.data.data.data || []);
+                setPastTrips(pastRes.data.data.data || []);
 
-      const upcomingResponse = await api.get('/trips?status=planned');
-      setUpcomingTrips(upcomingResponse.data.data.data || []);
+            } catch (err) {
+                setError('Could not fetch dashboard data. Please try again later.');
+                console.error("Dashboard fetch error:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-    } catch (err) {
-      setError('Could not fetch dashboard data. Please try again later.');
-      console.error("Dashboard fetch error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (user && !hasFetchedTrips.current) {
-    hasFetchedTrips.current = true; 
-    fetchInitialTrips();
-  } else if (!user) {
-    setLoading(false);
-  }
-}, [user, setUpcomingTrips]);
-
+        if (user && !hasFetchedTrips.current) {
+            hasFetchedTrips.current = true;
+            fetchAllTrips();
+        } else if (!user) {
+            setLoading(false);
+        }
+    }, [user, setUpcomingTrips]);
 
     if (loading) {
         return (
@@ -290,10 +298,17 @@ export default function Dashboard() {
                     </header>
 
                     <TripCarousel
+                        title={t('ongoingTrips', 'Ongoing Trips')}
+                        subtitle={t('ongoingSubtitle', 'Adventures currently in motion')}
+                        trips={ongoingTrips}
+                    />
+
+                    <TripCarousel
                         title={t('upcomingTrips')}
                         subtitle={t('upcomingSubtitle')}
                         trips={upcomingTrips}
                     />
+                    
                     <section className="trip-carousel-section">
                         <header className="carousel-header">
                             <div>
@@ -307,13 +322,12 @@ export default function Dashboard() {
                             ))}
                         </div>
                     </section>
+                    
                     <TripCarousel
                         title={t('pastAdventures')}
                         subtitle={t('pastSubtitle')}
                         trips={pastTrips}
                     />
-
-
                 </main>
             </div>
         </div>

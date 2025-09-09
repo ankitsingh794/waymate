@@ -26,6 +26,10 @@ async function handleNewTripIntent(req, res, conversationManager, message, detai
         type: 'ai',
         inReplyTo: userMessageId
     });
+    if (response.action === 'trigger_trip_creation' && req.body.origin) {
+        response.data.origin = req.body.origin;
+    }
+
     updateLastMessage(req.body.sessionId, aiMessage);
     notificationService.emitToUser(req.user._id, 'newMessage', aiMessage);
     return handleManagerResponse(res, req.user, response);
@@ -287,6 +291,8 @@ async function processTripCreation(creator, collectedData) {
             preferences: collectedData.preferences
         });
 
+        
+
         logger.info('[DEBUG Step 4/7] Trip data successfully aggregated from external APIs.');
 
         if (collectedData.purpose === 'leisure' || !collectedData.purpose) {
@@ -298,6 +304,12 @@ async function processTripCreation(creator, collectedData) {
             logger.info(`[DEBUG Step 5/7] Generating itinerary via template for '${collectedData.purpose}' trip.`);
             aiResponse = tripService.generateTemplateItinerary(aggregatedData);
         };
+
+        const formattedItinerary = aiResponse.itinerary.map((item, index) => ({
+            ...item,
+            type: 'activity', // Set the required 'type' field (defaulting to 'activity')
+            sequence: index   // Set the required 'sequence' field
+        }));
 
         session = await mongoose.startSession();
         await session.withTransaction(async () => {
@@ -317,7 +329,7 @@ async function processTripCreation(creator, collectedData) {
                 accommodationSuggestions: aggregatedData.accommodationSuggestions,
                 budget: aggregatedData.budget,
                 alerts: aggregatedData.alerts,
-                itinerary: aiResponse.itinerary,
+                itinerary: formattedItinerary,
                 aiSummary: aiResponse.aiSummary,
                 status: 'planned',
                 purpose: collectedData.purpose,
@@ -416,5 +428,32 @@ exports.clearAiChatHistory = async (req, res) => {
     } catch (error) {
         logger.error(`Error clearing AI chat history for user ${userId}: ${error.message}`);
         return sendError(res, 500, 'Failed to clear chat history.');
+    }
+};
+
+// Add this new function to controllers/chatController.js
+
+/**
+ * @desc    Gets all group chat sessions for the authenticated user.
+ * @route   GET /api/chat/sessions/group
+ * @access  Private
+ */
+exports.getGroupSessions = async (req, res) => {
+    const userId = req.user._id;
+    try {
+        const groupSessions = await ChatSession.find({
+            sessionType: 'group',
+            participants: userId
+        })
+            .populate('tripId', 'destination startDate endDate coverImage') // Populate with useful trip info
+            .sort({ 'lastMessage.sentAt': -1 }); // Show the most recent chats first
+
+        logger.info(`Fetched ${groupSessions.length} group sessions for user ${userId}`);
+
+        return sendSuccess(res, 200, 'Group sessions fetched successfully.', { sessions: groupSessions });
+
+    } catch (error) {
+        logger.error(`Error fetching group sessions for user ${userId}: ${error.message}`);
+        return sendError(res, 500, 'Failed to fetch group sessions.');
     }
 };

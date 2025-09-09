@@ -357,6 +357,7 @@
   font-size: 1.5rem;
   font-weight: 700;
   text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
+  color: white;
 }
 
 .trip-summary-duration {
@@ -364,6 +365,7 @@
   font-size: 0.9rem;
   font-weight: 500;
   opacity: 0.9;
+  color: #f0f0f0;
 }
 
 .trip-summary-details,
@@ -375,6 +377,7 @@
   font-weight: 500;
   opacity: 0.9;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+  color: #f0f0f0;
 }
 
 .view-trip-button {
