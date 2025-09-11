@@ -16,30 +16,36 @@ const checkForNewAlerts = async () => {
     const relevantTrips = await Trip.find({
       status: { $in: ['planned', 'ongoing'] },
       startDate: { $lte: sevenDaysFromNow },
-      endDate: { $gte: new Date() } 
+      endDate: { $gte: new Date() }
     });
 
     if (relevantTrips.length === 0) {
       logger.info('No upcoming or ongoing trips to monitor for alerts.');
       return;
     }
-    
+
     logger.info(`Found ${relevantTrips.length} relevant trips to check for new alerts.`);
 
     for (const trip of relevantTrips) {
       const latestAlerts = await alertService.fetchThreatAlertsForDestination(trip.destination);
-      
+
       const newAlerts = latestAlerts.filter(alertTitle => !trip.sentAlerts.includes(alertTitle));
 
       if (newAlerts.length > 0) {
         logger.info(`Found ${newAlerts.length} new alert(s) for trip to ${trip.destination} (ID: ${trip._id})`);
         const alertMessage = `❗ New Travel Advisory for your trip to ${trip.destination}: ${newAlerts.join('; ')}`;
-        
+
         trip.group.members.forEach(member => {
-            notificationService.emitToUser(member.userId, 'newTravelAlert', {
-                tripId: trip._id,
-                message: alertMessage,
-            });
+          notificationService.emitToUser(member.userId, 'newTravelAlert', {
+            tripId: trip._id,
+            message: alertMessage,
+          });
+          notificationService.sendPushNotification(
+            member.userId,
+            `❗ New Travel Advisory for ${trip.destination}`,
+            newAlerts.join('; '),
+            { tripId: trip._id.toString() }
+          );
         });
 
         trip.sentAlerts.push(...newAlerts);

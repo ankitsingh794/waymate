@@ -56,6 +56,7 @@ const sendTokenResponse = (res, statusCode, message, tokens, userData = {}) => {
     message,
     data: {
       accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
       user: userData, 
     },
   });
@@ -66,5 +67,4 @@ module.exports = {
   sendSuccess,
   sendError,
   sendTokenResponse,
-  
 };

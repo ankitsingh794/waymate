@@ -84,13 +84,11 @@ function makeAliases(code, name, thesaurus) {
   const aliases = new Set([code, name, titleCase(name)]);
   const n = name.toLowerCase();
 
-  // expand common patterns (Jn/Junction, Terminus, etc.)
   if (n.includes('junction')) aliases.add(name.replace(/junction/i, 'Jn'));
   if (/\bjn\b/i.test(n)) aliases.add(name.replace(/\bjn\b/i, 'Junction'));
   if (/\bterminus\b/i.test(n)) aliases.add(name.replace(/\bterminus\b/i, 'Terminal'));
   if (/\bterminal\b/i.test(n)) aliases.add(name.replace(/\bterminal\b/i, 'Terminus'));
 
-  // map words using thesaurus
   for (const [canon, vars] of Object.entries(thesaurus)) {
     for (const v of vars) {
       const re = new RegExp(`\\b${v}\\b`, 'i');
@@ -123,7 +121,6 @@ function merge() {
   for (const { code, name } of railCodes) {
     let geoRec = geo.byCode.get(code);
 
-    // fallback: try name-based match (normalized)
     if (!geoRec) {
       const matches = geo.byNameNorm.get(norm(name)) || [];
       if (matches.length) {
@@ -137,7 +134,6 @@ function merge() {
     const city = geoRec?.city || '';
     const state = geoRec?.state || '';
 
-    // skip if we somehow got coords outside India (bad data)
     if (lat != null && lon != null && !withinIndia(lat, lon)) {
       report.droppedOutsideIndia++;
       continue;
