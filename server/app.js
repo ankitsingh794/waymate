@@ -95,7 +95,7 @@ apiRouter.use('/households', householdRoutes);
 apiRouter.use('/export', exportRoutes);
 apiRouter.use('/analytics', analyticsRoutes);
 apiRouter.use('/metrics', metrics);
-app.use('/notifications', notificationRoutes);
+apiRouter.use('/notifications', notificationRoutes);
 apiRouter.use('/surveys', surveyRoutes);
 
 app.use('/api/v1', apiRouter);
