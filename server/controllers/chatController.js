@@ -190,8 +190,6 @@ exports.handleChatMessage = async (req, res) => {
             }
 
             case 'create_trip':
-                // --- FIX: Pass 'sessionId' as an argument ---
-                // The line 'req.body.sessionId = sessionId;' has been removed.
                 return handleNewTripIntent(req, res, conversationManager, message, details, userMessage._id, sessionId);
 
             case 'find_place':
