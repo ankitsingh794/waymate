@@ -15,27 +15,35 @@ const { invalidateUserCache } = require('../services/cacheInvalidationService')
 const { updateLastMessage } = require('../services/chatService');
 
 
-
-async function handleNewTripIntent(req, res, conversationManager, message, details, userMessageId) {
+/**
+ * Handles the conversational flow for creating a new trip.
+ */
+async function handleNewTripIntent(req, res, conversationManager, message, details, userMessageId, sessionId) {
     if (req.body.origin) { details.origin = req.body.origin; }
     const response = await conversationManager.handleMessage(message, details);
+
     const aiMessage = await Message.create({
-        chatSession: req.body.sessionId,
+        chatSession: sessionId,
         sender: null,
         text: response.reply,
         type: 'ai',
         inReplyTo: userMessageId
     });
+
     if (response.action === 'trigger_trip_creation' && req.body.origin) {
         response.data.origin = req.body.origin;
     }
 
-    updateLastMessage(req.body.sessionId, aiMessage);
+    // --- FIX: Use the 'sessionId' argument directly ---
+    updateLastMessage(sessionId, aiMessage);
     notificationService.emitToUser(req.user._id, 'newMessage', aiMessage);
     return handleManagerResponse(res, req.user, response);
 }
 
-async function handleFinderIntent(req, res, details, userMessageId, liveOrigin) {
+/**
+ * Handles finding places of interest near a location.
+ */
+async function handleFinderIntent(req, res, details, userMessageId, liveOrigin, sessionId) { // <-- FIX: Added sessionId
     const searchLocationCoords = liveOrigin;
     const searchLocationName = details.location || req.user.location?.city || "your area";
 
@@ -49,21 +57,28 @@ async function handleFinderIntent(req, res, details, userMessageId, liveOrigin) 
             places.map(p => `**${p.name}**\n*Rating: ${p.rating || 'N/A'}*\n${p.reason}\n📍 ${p.address}`).join('\n\n');
     }
 
-    await createAndUpdateAiReply(req.body.sessionId, reply, userMessageId, req.user._id);
+    // --- FIX: Use the 'sessionId' argument directly ---
+    await createAndUpdateAiReply(sessionId, reply, userMessageId, req.user._id);
     return sendSuccess(res, 200, 'Finder response sent via socket.');
 }
 
+/**
+ * Handles casual, non-transactional chat messages.
+ */
+async function handleCasualChatIntent(req, res, message, userMessageId, sessionId) { // <-- FIX: Added sessionId
+    // --- FIX: Removed 'const { sessionId } = req.body;' ---
 
-async function handleCasualChatIntent(req, res, message, userMessageId) {
-    const { sessionId } = req.body;
     const recentMessages = await Message.find({ chatSession: sessionId }).sort({ createdAt: -1 }).limit(10);
     const formattedHistory = recentMessages.reverse().map(msg => ({
         role: msg.type === 'ai' ? 'assistant' : 'user',
         content: msg.text
     }));
+
     const casualResponse = await aiService.getCasualResponse(message, formattedHistory);
     const aiMessage = await Message.create({ chatSession: sessionId, sender: null, text: casualResponse, type: 'ai', inReplyTo: userMessageId });
-    updateLastMessage(req.body.sessionId, aiMessage);
+
+    // --- FIX: Use the 'sessionId' argument directly ---
+    updateLastMessage(sessionId, aiMessage);
     notificationService.emitToUser(req.user._id, 'newMessage', aiMessage);
     return sendSuccess(res, 200, 'Casual chat response sent via socket.');
 }
@@ -81,9 +96,16 @@ async function createAndUpdateAiReply(sessionId, replyText, inReplyTo, userId) {
     return aiMessage;
 }
 
-async function handleTravelAdviceIntent(req, res, details, userMessageId) {
+/**
+ * Generates and sends a travel advice message.
+ * @param {object} details - The extracted intent details {topic, destination}.
+ * @param {string} userMessageId - The ID of the user's message we're replying to.
+ * @param {string} sessionId - The ID of the current chat session.
+ */
+async function handleTravelAdviceIntent(req, res, details, userMessageId, sessionId) {
     const { topic, destination } = details;
-    const { sessionId } = req.body;
+
+    // The line 'const { sessionId } = req.body;' has been removed.
 
     const advicePrompt = `As a travel expert, briefly answer the following question: "${topic} in ${destination}"`;
     const advice = await aiService.getCasualResponse(advicePrompt);
@@ -92,9 +114,16 @@ async function handleTravelAdviceIntent(req, res, details, userMessageId) {
     return sendSuccess(res, 200, 'Travel advice provided.');
 }
 
-async function handleBudgetEstimateIntent(req, res, details, userMessageId) {
+/**
+ * Generates and sends a budget estimate message.
+ * @param {object} details - The extracted intent details {destination, duration, etc.}.
+ * @param {string} userMessageId - The ID of the user's message we're replying to.
+ * @param {string} sessionId - The ID of the current chat session.
+ */
+async function handleBudgetEstimateIntent(req, res, details, userMessageId, sessionId) {
     const { destination, duration, travelers, budget } = details;
-    const { sessionId } = req.body;
+
+    // The line 'const { sessionId } = req.body;' has been removed.
 
     let reply;
     if (!destination || !duration) {
@@ -115,10 +144,10 @@ async function handleBudgetEstimateIntent(req, res, details, userMessageId) {
 
 exports.handleChatMessage = async (req, res) => {
     const { message, origin } = req.body;
-    const sessionId = req.params.sessionId || req.body.sessionId; 
+    const sessionId = req.params.sessionId || req.body.sessionId;
     const userId = req.user._id;
 
-     if (!sessionId) {
+    if (!sessionId) {
         return sendError(res, 400, 'Session ID is required.');
     }
 
@@ -140,49 +169,56 @@ exports.handleChatMessage = async (req, res) => {
         const { intent, details } = await aiParsingService.detectIntentAndExtractEntity(message);
 
 
-        if (intent === 'get_trip_detail' || intent === 'edit_trip') {
-            const latestTrip = await Trip.findOne({ 'group.members.userId': userId }).sort({ createdAt: -1 });
-            if (latestTrip) {
-                const latestTripSession = await ChatSession.findOne({ tripId: latestTrip._id });
-                if (latestTripSession) {
-                    if (intent === 'get_trip_detail') {
-                        handleWaymateCommand(latestTripSession, req.user, intent, details);
-                    }
-                    const contextualReply = `That sounds like a question about your trip to ${latestTrip.destination}. For complex edits, it's best to use the dedicated group chat for that trip.`;
-                    const aiMessage = await Message.create({ chatSession: sessionId, sender: null, text: contextualReply, type: 'ai', inReplyTo: userMessage._id });
-                    updateLastMessage(sessionId, aiMessage);
-                    notificationService.emitToUser(userId, 'newMessage', aiMessage);
-                    return sendSuccess(res, 200, 'Context required.');
-                }
-            }
-        }
-
+        // This 'switch' statement replaces the 'if' block and the old 'switch' block.
         switch (intent) {
+            case 'get_trip_detail':
+            case 'edit_trip': { // Braces create a new scope for the 'latestTrip' variable
+                const latestTrip = await Trip.findOne({ 'group.members.userId': userId }).sort({ createdAt: -1 });
+                if (latestTrip) {
+                    const latestTripSession = await ChatSession.findOne({ tripId: latestTrip._id });
+                    if (latestTripSession) {
+                        if (intent === 'get_trip_detail') {
+                            handleWaymateCommand(latestTripSession, req.user, intent, details);
+                        }
+                        const contextualReply = `That sounds like a question about your trip to ${latestTrip.destination}. For complex edits, it's best to use the dedicated group chat for that trip.`;
+                        await createAndUpdateAiReply(sessionId, contextualReply, userMessage._id, userId);
+                        return sendSuccess(res, 200, 'Context required.');
+                    }
+                }
+                // Fall through to default casual chat if no trip is found
+                return handleCasualChatIntent(req, res, message, userMessage._id, sessionId);
+            }
+
             case 'create_trip':
-                req.body.sessionId = sessionId; 
-                return handleNewTripIntent(req, res, conversationManager, message, details, userMessage._id);
+                // --- FIX: Pass 'sessionId' as an argument ---
+                // The line 'req.body.sessionId = sessionId;' has been removed.
+                return handleNewTripIntent(req, res, conversationManager, message, details, userMessage._id, sessionId);
+
             case 'find_place':
-                return handleFinderIntent(req, res, details, userMessage._id, origin);
-            case 'suggest_destination':
+                return handleFinderIntent(req, res, details, userMessage._id, origin, sessionId);
+
+            case 'suggest_destination': {
                 const suggestReply = "That sounds like a fun trip! I can give the best recommendations if you have a destination in mind. Where are you thinking of going?";
                 await createAndUpdateAiReply(sessionId, suggestReply, userMessage._id, userId);
                 return sendSuccess(res, 200, 'Suggestion provided.');
+            }
 
             case 'get_travel_advice':
-                return handleTravelAdviceIntent(req, res, details, userMessage._id);
+                return handleTravelAdviceIntent(req, res, details, userMessage._id, sessionId);
 
             case 'estimate_budget':
-                return handleBudgetEstimateIntent(req, res, details, userMessage._id);
+                return handleBudgetEstimateIntent(req, res, details, userMessage._id, sessionId);
 
             case 'find_transport':
-            case 'plan_day_trip':
+            case 'plan_day_trip': {
                 const comingSoonReply = `Thanks for asking! The ability to plan ${intent === 'plan_day_trip' ? 'day trips' : 'transport'} is a feature I'm currently learning. For now, I can help you plan a full multi-day trip!`;
                 await createAndUpdateAiReply(sessionId, comingSoonReply, userMessage._id, userId);
                 return sendSuccess(res, 200, 'Feature in development response sent.');
+            }
 
             case 'casual_chat':
             default:
-                return handleCasualChatIntent(req, res, message, userMessage._id);
+                return handleCasualChatIntent(req, res, message, userMessage._id, sessionId);
         }
     } catch (error) {
         logger.error(`Error in chat controller: ${error.message}`, { userId });
@@ -299,7 +335,7 @@ async function processTripCreation(creator, collectedData) {
             preferences: collectedData.preferences
         });
 
-        
+
 
         logger.info('[DEBUG Step 4/7] Trip data successfully aggregated from external APIs.');
 
