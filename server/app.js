@@ -23,6 +23,7 @@ const householdRoutes = require('./routes/householdRoutes');
 const exportRoutes = require('./routes/exportRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
 const metrics = require('./routes/metricsRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 
 const app = express();
 
@@ -93,6 +94,7 @@ apiRouter.use('/households', householdRoutes);
 apiRouter.use('/export', exportRoutes);
 apiRouter.use('/analytics', analyticsRoutes);
 apiRouter.use('/metrics', metrics);
+app.use('/notifications', notificationRoutes);
 
 app.use('/api/v1', apiRouter);
 
