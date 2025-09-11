@@ -13,6 +13,18 @@ const initNotificationService = (socketIoInstance) => {
     logger.info('✅ Notification service initialized.');
 };
 
+/**
+ * Emits a socket event to a specific user's room.
+ * @param {string} userId - The ID of the user.
+ * @param {string} event - The name of the event to emit.
+ * @param {object} payload - The data to send.
+ */
+const emitToUser = (userId, event, payload) => {
+    if (!io) return logger.warn(`Socket.IO not initialized. Cannot emit '${event}'.`);
+    io.to(userId.toString()).emit(event, payload);
+    logger.info(`Socket event '${event}' emitted to user ${userId}`);
+};
+
 // --- CORE: Centralized Notification Creation and Dispatch ---
 
 /**
@@ -22,25 +34,16 @@ const initNotificationService = (socketIoInstance) => {
  * @returns {Promise<object|null>} The created notification object or null if failed.
  */
 const createAndDispatchNotification = async (notificationData) => {
-    // 1. Validate required fields
     if (!notificationData.user || !notificationData.message) {
         logger.error('Notification failed: Missing user or message.', { data: notificationData });
         return null;
     }
-
     try {
-        // 2. Save the notification to the database
         const notification = await Notification.create(notificationData);
         logger.info(`Notification created in DB for user ${notificationData.user}`);
-
-        // 3. Dispatch the notification via WebSocket in real-time
-        if (io) {
-            io.to(notification.user.toString()).emit('newNotification', notification);
-            logger.info(`Socket event 'newNotification' emitted to user ${notification.user}`);
-        } else {
-            logger.warn(`Socket.IO not initialized. Cannot emit 'newNotification'.`);
-        }
-
+        
+        emitToUser(notification.user, 'newNotification', notification);
+        
         return notification;
     } catch (error) {
         logger.error('Failed to create and dispatch notification', { 
@@ -50,6 +53,7 @@ const createAndDispatchNotification = async (notificationData) => {
         return null;
     }
 };
+
 
 // --- Public-Facing Notification Triggers ---
 
@@ -108,22 +112,14 @@ const sendItineraryUpdate = async (tripId, updatedByUserId) => {
         if (!trip) return logger.warn(`Trip not found for itinerary update notification: ${tripId}`);
 
         const message = "The trip itinerary has been updated.";
-
-        // Create a notification for each member of the trip except the one who made the change
         const promises = trip.members
             .filter(memberId => memberId.toString() !== updatedByUserId.toString())
             .map(memberId => createAndDispatchNotification({
-                user: memberId,
-                message: message,
-                type: 'trip',
-                tripId: tripId,
-                link: `/trips/${tripId}`
+                user: memberId, message: message, type: 'trip', tripId: tripId, link: `/trips/${tripId}`
             }));
-            
         await Promise.all(promises);
-
-        // Broadcast the updated data to the trip's socket room
-        if (io) io.to(tripId.toString()).emit('itineraryUpdated', { tripId });
+        
+        broadcastToTrip(tripId, 'itineraryUpdated', { tripId });
 
     } catch (error) {
         logger.error('Failed to send itinerary update notifications', { error: error.message, tripId });
@@ -137,28 +133,17 @@ const sendItineraryUpdate = async (tripId, updatedByUserId) => {
  */
 const sendSystemMessageToTrip = async (tripId, text) => {
     try {
-        // 1. Create the chat message itself
-        const message = await Message.create({
-            chatSession: tripId,
-            type: 'system',
-            text: text,
-        });
-
-        if (io) io.to(tripId.toString()).emit('newMessage', message);
+        const message = await Message.create({ chatSession: tripId, type: 'system', text: text });
         
-        // 2. Create a persistent notification for all trip members
+        broadcastToTrip(tripId, 'newMessage', message);
+        
         const trip = await Trip.findById(tripId).select('members').lean();
         if (!trip) return logger.warn(`Trip not found for system message notification: ${tripId}`);
 
         const notificationMessage = `New system message in your trip: "${text.substring(0, 50)}..."`;
         const promises = trip.members.map(memberId => createAndDispatchNotification({
-            user: memberId,
-            message: notificationMessage,
-            type: 'group',
-            tripId: tripId,
-            link: `/trips/${tripId}/chat`
+            user: memberId, message: notificationMessage, type: 'group', tripId: tripId, link: `/trips/${tripId}/chat`
         }));
-
         await Promise.all(promises);
 
     } catch (error) {
@@ -169,9 +154,11 @@ const sendSystemMessageToTrip = async (tripId, text) => {
 
 module.exports = {
   initNotificationService,
-  createAndDispatchNotification, // Export the core function for direct use if needed
+  createAndDispatchNotification,
   sendTripSuccess,
   sendTripError,
   sendItineraryUpdate,
   sendSystemMessageToTrip,
+  emitToUser,
+  broadcastToTrip,
 };
