@@ -5,7 +5,6 @@ const { createClient } = require('redis');
 const User = require('../models/User');
 const logger = require('../utils/logger');
 const redisCache = require('../config/redis');
-const notificationService = require('../services/notificationService');
 
 let io = null;
 
@@ -36,8 +35,8 @@ const authenticateSocket = async (socket, next) => {
       return next(new Error('Authentication failed: Token has been invalidated'));
     }
     logger.debug('[5/7] Token is not blacklisted.');
-    
-    const user = await User.findById(decoded.id).select('+passwordChangedAt'); 
+
+    const user = await User.findById(decoded.id).select('+passwordChangedAt');
     if (!user || user.accountStatus !== 'active') {
       const reason = !user ? 'User not found' : `User account status is ${user.accountStatus}`;
       logger.warn(`[FAIL] Authentication failed: ${reason}.`);
@@ -50,7 +49,7 @@ const authenticateSocket = async (socket, next) => {
       return next(new Error('Authentication failed: Credentials changed'));
     }
     logger.debug('[7/7] Password change check passed.');
-    
+
     logger.debug('--- [SOCKET AUTHENTICATION SUCCESS] ---');
     socket.user = user;
     next();
@@ -66,26 +65,28 @@ const authenticateSocket = async (socket, next) => {
  * @param {object} httpServer The Node.js HTTP server instance.
  * @returns {object} The configured Socket.IO server instance.
  */
-// In your src/utils/socket.js file
-
 const initSocketIO = (httpServer) => {
-  const allowedOrigins = process.env.NODE_ENV === 'production'
-    ? [process.env.CLIENT_URL]
-    : [process.env.CLIENT_URL, 'http://localhost:5173', 'https://localhost:5173'];
+
+  // --- FIX: A more robust, environment-aware CORS configuration ---
+  const corsOptions = {
+    methods: ['GET', 'POST'],
+    credentials: true,
+  };
+
+  if (process.env.NODE_ENV === 'production') {
+    // In production, be very strict and only allow your deployed client URL.
+    corsOptions.origin = process.env.CLIENT_URL;
+    logger.info(`Socket.IO CORS configured for production origin: ${process.env.CLIENT_URL}`);
+  } else {
+    // In development, allow any origin (*) for easier testing from mobile devices.
+    corsOptions.origin = "*";
+    logger.warn('Socket.IO CORS configured to allow ALL origins in development mode.');
+  }
 
   io = new Server(httpServer, {
-    cors: {
-      origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin)) {
-          callback(null, true);
-        } else {
-          callback(new Error('Not allowed by CORS'));
-        }
-      },
-      methods: ['GET', 'POST'],
-      credentials: true,
-    },
+    cors: corsOptions,
   });
+
   // Define the connection handler logic once to be reused
   const onConnection = (socket) => {
     logger.info(`✅ Socket connected: ${socket.id} for user ${socket.user.email}`);
@@ -134,12 +135,16 @@ const initSocketIO = (httpServer) => {
 
     io.use(authenticateSocket);
     io.on('connection', onConnection);
-     notificationService.initNotificationService(io);
+
+    // Late-import to prevent circular dependencies
+    const notificationService = require('../services/notificationService');
+    notificationService.initNotificationService(io);
   })();
 
   return io;
 };
 
-module.exports = { initSocketIO,
+module.exports = {
+  initSocketIO,
   authenticateSocket,
- };
+};
