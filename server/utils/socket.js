@@ -74,7 +74,17 @@ const initSocketIO = (httpServer) => {
     : [process.env.CLIENT_URL, 'http://localhost:5173', 'https://localhost:5173'];
 
   io = new Server(httpServer, {
-    cors: { origin, methods: ['GET', 'POST'], credentials: true },
+    cors: {
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
+      methods: ['GET', 'POST'],
+      credentials: true,
+    },
   });
 
   // Define the connection handler logic once to be reused
