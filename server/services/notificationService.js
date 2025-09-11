@@ -46,6 +46,10 @@ async function createAndDispatchNotification(notificationData) {
     }
 }
 
+async function sendStatusUpdate(userId, message) {
+    emitToUser(userId, 'statusUpdate', { status: message });
+}
+
 async function sendTripSuccess(user, tripSummary) {
     const message = `Your trip to ${tripSummary.destinationName} is ready!`;
     await createAndDispatchNotification({
@@ -108,6 +112,7 @@ module.exports = {
   sendTripError,
   sendItineraryUpdate,
   sendSystemMessageToTrip,
+  sendStatusUpdate,
   emitToUser,
   broadcastToTrip,
 };
