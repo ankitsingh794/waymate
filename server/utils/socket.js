@@ -69,7 +69,7 @@ const authenticateSocket = async (socket, next) => {
 // In your src/utils/socket.js file
 
 const initSocketIO = (httpServer) => {
-  const origin = process.env.NODE_ENV === 'production'
+  const allowedOrigins = process.env.NODE_ENV === 'production'
     ? [process.env.CLIENT_URL]
     : [process.env.CLIENT_URL, 'http://localhost:5173', 'https://localhost:5173'];
 
@@ -86,7 +86,6 @@ const initSocketIO = (httpServer) => {
       credentials: true,
     },
   });
-
   // Define the connection handler logic once to be reused
   const onConnection = (socket) => {
     logger.info(`✅ Socket connected: ${socket.id} for user ${socket.user.email}`);
