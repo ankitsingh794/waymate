@@ -3,8 +3,8 @@
 const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
-const { protect } = require('../middleware/authMiddleware');
-const validate = require('../middleware/validateMiddleware');
+const { protect } = require('../middlewares/authMiddleware');
+const validate = require('../middlewares/validateMiddleware');
 const surveyController = require('../controllers/surveyController');
 
 // All routes in this file are protected and require user authentication.
