@@ -68,21 +68,14 @@ const authenticateSocket = async (socket, next) => {
 const initSocketIO = (httpServer) => {
 
   // --- FIX: A more robust, environment-aware CORS configuration ---
-  const corsOptions = {
-    methods: ['GET', 'POST'],
-    credentials: true,
-  };
-
-  if (process.env.NODE_ENV === 'production') {
-    // In production, be very strict and only allow your deployed client URL.
-    corsOptions.origin = process.env.CLIENT_URL;
-    logger.info(`Socket.IO CORS configured for production origin: ${process.env.CLIENT_URL}`);
-  } else {
-    // In development, allow any origin (*) for easier testing from mobile devices.
-    corsOptions.origin = "*";
-    logger.warn('Socket.IO CORS configured to allow ALL origins in development mode.');
-  }
-
+ const corsOptions = {
+  // Allow connections from any origin. Your socket authentication 
+  // middleware will handle security.
+  origin: "*", 
+  methods: ['GET', 'POST'],
+  credentials: true,
+};
+logger.info('Socket.IO CORS configured to allow all origins.');
   io = new Server(httpServer, {
     cors: corsOptions,
   });
