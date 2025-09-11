@@ -14,7 +14,7 @@ exports.getUserProfile = async (req, res, next) => {
   try {
     logger.info(`Fetching profile for user: ${req.user.email}`);
     // Consistent success response signature
-    return sendSuccess(res, 200, true, 'User profile fetched successfully', { user: req.user });
+    return sendSuccess(res, 200, 'User profile fetched successfully', { user: req.user });
   } catch (error) {
     logger.error(`Error fetching profile: ${error.message}`);
     next(error);
@@ -50,7 +50,7 @@ exports.updateUserProfile = async (req, res, next) => {
         ).select('-password');
 
         logger.info(`User profile updated for: ${req.user.email}`);
-        return sendSuccess(res, 200, true, 'Profile updated successfully', { user: updatedUser });
+        return sendSuccess(res, 200, 'Profile updated successfully', { user: updatedUser });
     } catch (error) {
         next(error);
     }
@@ -103,7 +103,7 @@ exports.updateUserPhoto = async (req, res, next) => {
 
         logger.info(`Profile photo updated for user: ${user.email}`);
         // Return the entire updated user object for consistency
-        sendSuccess(res, 200, true, 'Profile photo updated successfully.', { user: updatedUser });
+        sendSuccess(res, 200,'Profile photo updated successfully.', { user: updatedUser });
 
     } catch (error) {
         next(error);
@@ -133,7 +133,7 @@ exports.updateUserLocation = async (req, res, next) => {
         }, { new: true, runValidators: true });
         
         logger.info(`Location updated for user ${req.user.email}`);
-        sendSuccess(res, 200, true, 'Location updated successfully.');
+        sendSuccess(res, 200, 'Location updated successfully.');
     } catch (error) {
         logger.error(`Error updating location for user ${req.user.email}:`, { error: error.message });
         next(new AppError('Failed to update location.', 500));
@@ -163,7 +163,7 @@ exports.changeAccountStatus = async (req, res, next) => {
         }
 
         logger.info(`Account status for ${user.email} changed to '${req.body.status}' by admin ${req.user.email}`);
-        return sendSuccess(res, 200, true, `Account status updated to ${req.body.status}`, { user });
+        return sendSuccess(res, 200,`Account status updated to ${req.body.status}`, { user });
     } catch (error) {
         next(error);
     }
@@ -187,7 +187,7 @@ exports.updateUserConsent = async (req, res, next) => {
         });
 
         logger.info(`Consent status for '${consentType}' updated to '${status}' for user ${req.user.email}`);
-        sendSuccess(res, 200, true, 'Consent status updated successfully.');
+        sendSuccess(res, 200,'Consent status updated successfully.');
     } catch (error) {
         next(error);
     }
