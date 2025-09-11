@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "com.example.waymate",
+      "package_name": "com.example.waymate",
+      "sha256_cert_fingerprints": [
+        "C9:CF:B2:E0:C1:17:CB:BA:05:A2:CA:33:DC:D4:FB:95:81:00:73:C4:DB:3E:F2:46:DA:34:AA:44:ED:2D:21:8E"
+      ]
+    }
+  }
+]
