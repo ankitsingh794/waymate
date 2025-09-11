@@ -114,8 +114,14 @@ async function handleBudgetEstimateIntent(req, res, details, userMessageId) {
 }
 
 exports.handleChatMessage = async (req, res) => {
-    const { message, sessionId, origin } = req.body;
+    const { message, origin } = req.body;
+    const sessionId = req.params.sessionId || req.body.sessionId; 
     const userId = req.user._id;
+
+     if (!sessionId) {
+        return sendError(res, 400, 'Session ID is required.');
+    }
+
     try {
         const userMessage = await Message.create({ chatSession: sessionId, sender: userId, text: message, type: 'user' });
         notificationService.emitToUser(userId, 'newMessage', userMessage);
@@ -132,6 +138,7 @@ exports.handleChatMessage = async (req, res) => {
         }
 
         const { intent, details } = await aiParsingService.detectIntentAndExtractEntity(message);
+
 
         if (intent === 'get_trip_detail' || intent === 'edit_trip') {
             const latestTrip = await Trip.findOne({ 'group.members.userId': userId }).sort({ createdAt: -1 });
@@ -152,6 +159,7 @@ exports.handleChatMessage = async (req, res) => {
 
         switch (intent) {
             case 'create_trip':
+                req.body.sessionId = sessionId; 
                 return handleNewTripIntent(req, res, conversationManager, message, details, userMessage._id);
             case 'find_place':
                 return handleFinderIntent(req, res, details, userMessage._id, origin);
