@@ -23,6 +23,16 @@ router.post('/sessions/ai/clear', generalLimiter, chatController.clearAiChatHist
 // NEW: Gets all group chat sessions for the authenticated user.
 router.get('/sessions/group', generalLimiter, chatController.getGroupSessions);
 
+// Creates a new group chat session for a trip
+router.post(
+    '/sessions/group',
+    generalLimiter,
+    [
+        body('tripId').isMongoId().withMessage('Valid trip ID is required'),
+    ],
+    validate,
+    chatController.createGroupSession
+);
 
 // --- AI Message Handling ---
 

@@ -38,43 +38,41 @@ exports.getMessages = async (req, res) => {
     }
 };
 
-
-// Add this new function to your controllers/messageController.js file
-
+// Alternative implementation with cleaner transaction handling:
 exports.sendTextMessage = async (req, res, next) => {
     const { sessionId } = req.params;
     const { message: messageText } = req.body;
     const senderId = req.user._id;
 
     const dbSession = await mongoose.startSession();
-    dbSession.startTransaction();
 
     try {
-        const chatSession = await ChatSession.findOne({ _id: sessionId, participants: senderId }).session(dbSession);
-        if (!chatSession) {
-            throw new AppError('Access denied. You cannot send messages to this session.', 403);
-        }
+        await dbSession.withTransaction(async () => {
+            const chatSession = await ChatSession.findOne({ _id: sessionId, participants: senderId }).session(dbSession);
+            if (!chatSession) {
+                throw new AppError('Access denied. You cannot send messages to this session.', 403);
+            }
 
-        const newMessage = new Message({
-            chatSession: sessionId,
-            sender: senderId,
-            messageType: 'text',
-            text: messageText,
+            const newMessage = new Message({
+                chatSession: sessionId,
+                sender: senderId,
+                messageType: 'text',
+                text: messageText,
+            });
+            await newMessage.save({ session: dbSession });
+
+            chatSession.lastMessage = {
+                text: messageText,
+                sentAt: new Date(),
+            };
+            await chatSession.save({ session: dbSession });
+
+            return newMessage._id;
         });
-        await newMessage.save({ session: dbSession });
 
-        chatSession.lastMessage = {
-            text: messageText,
-            sentAt: new Date(),
-        };
-        await chatSession.save({ session: dbSession });
-
-        await dbSession.commitTransaction();
-
-        // Populate sender details for the socket event and response
+        // After successful transaction, do the post-processing
         const populatedMessage = await Message.findById(newMessage._id).populate('sender', 'name email profileImage');
         
-        // Emit event to other clients in the room
         const io = getSocketIO();
         io.to(sessionId).emit('newMessage', populatedMessage);
 
@@ -82,14 +80,14 @@ exports.sendTextMessage = async (req, res, next) => {
         sendSuccess(res, 201, 'Message sent successfully.', { message: populatedMessage });
 
     } catch (error) {
-        await dbSession.abortTransaction();
-        next(error); // Pass error to the global error handler
+        logger.error(`Error sending text message: ${error.message}`);
+        next(error);
     } finally {
-        dbSession.endSession();
+        await dbSession.endSession();
     }
 };
 
-
+// FIX: Updated sendMediaMessage with proper transaction handling
 exports.sendMediaMessage = async (req, res, next) => {
     console.log('req.file:', req.file);
     console.log('req.body:', req.body);
@@ -102,10 +100,12 @@ exports.sendMediaMessage = async (req, res, next) => {
 
     let uploadResult = null;
     const dbSession = await mongoose.startSession();
-    dbSession.startTransaction();
+    let transactionCommitted = false;
 
     try {
-        const chatSession = await ChatSession.findOne({ _id: sessionId, participants: senderId });
+        dbSession.startTransaction();
+
+        const chatSession = await ChatSession.findOne({ _id: sessionId, participants: senderId }).session(dbSession);
         if (!chatSession) {
             throw new AppError('Access denied. You cannot send messages to this session.', 403);
         }
@@ -142,6 +142,7 @@ exports.sendMediaMessage = async (req, res, next) => {
         await chatSession.save({ session: dbSession });
 
         await dbSession.commitTransaction();
+        transactionCommitted = true;
 
         const populatedMessage = await Message.findById(newMessage._id).populate('sender', 'name email profileImage');
         const io = getSocketIO();
@@ -151,8 +152,12 @@ exports.sendMediaMessage = async (req, res, next) => {
         sendSuccess(res, 201, 'Media message sent successfully.', { message: populatedMessage });
 
     } catch (error) {
-        await dbSession.abortTransaction();
+        // FIX: Only abort if transaction hasn't been committed
+        if (!transactionCommitted) {
+            await dbSession.abortTransaction();
+        }
 
+        // Clean up uploaded file if there was an error after upload
         if (uploadResult?.public_id) {
             try {
                 await cloudinary.uploader.destroy(uploadResult.public_id);

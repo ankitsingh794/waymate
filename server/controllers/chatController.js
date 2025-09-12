@@ -506,3 +506,69 @@ exports.getGroupSessions = async (req, res) => {
         return sendError(res, 500, 'Failed to fetch group sessions.');
     }
 };
+
+// Add this method to your chatController:
+
+/**
+ * @desc    Create a new group chat session for a trip
+ * @route   POST /api/v1/chat/sessions/group
+ * @access  Private
+ */
+exports.createGroupSession = async (req, res, next) => {
+    try {
+        const { tripId } = req.body;
+        const userId = req.user._id;
+
+        // Check if user is a member of this trip
+        const trip = await Trip.findById(tripId);
+        if (!trip) {
+            return next(new AppError('Trip not found', 404));
+        }
+
+        const isMember = trip.group.members.some(member => 
+            member.userId.toString() === userId.toString()
+        );
+
+        if (!isMember) {
+            return next(new AppError('You are not a member of this trip', 403));
+        }
+
+        // Check if session already exists
+        const existingSession = await ChatSession.findOne({ 
+            tripId: tripId,
+            type: 'group' 
+        });
+
+        if (existingSession) {
+            return sendSuccess(res, 200, 'Group session already exists', {
+                session: existingSession
+            });
+        }
+
+        // Create new session with all trip members as participants
+        const participants = trip.group.members.map(member => member.userId);
+        
+        const newSession = new ChatSession({
+            type: 'group',
+            participants: participants,
+            tripId: tripId
+        });
+
+        await newSession.save();
+        await newSession.populate('participants', 'name email profileImage');
+        await newSession.populate('tripId', 'destination startDate endDate');
+
+        logger.info(`Group chat session created for trip ${tripId}`, {
+            sessionId: newSession._id,
+            createdBy: userId
+        });
+
+        return sendSuccess(res, 201, 'Group session created successfully', {
+            session: newSession
+        });
+
+    } catch (error) {
+        logger.error('Error creating group session:', error);
+        next(error);
+    }
+};
