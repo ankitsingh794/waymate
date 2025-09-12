@@ -2,11 +2,18 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/models/socio_economic_survey_models.dart';
+import 'package:mobile/models/user_model.dart';
+import 'package:mobile/screens/auth/login_screen.dart';
 import 'package:mobile/screens/profile/change_password_screen.dart';
 import 'package:mobile/screens/profile/edit_profile_screen.dart';
 import 'package:mobile/screens/profile/household_management_screen.dart';
 import 'package:mobile/screens/profile/privacy_consent_screen.dart';
+import 'package:mobile/screens/profile/survey_screen.dart';
 import 'package:mobile/screens/researcher/researcher_tools_screen.dart';
+import 'package:mobile/screens/trip_details/join_trip_screen.dart';
+import 'package:mobile/services/auth_service.dart';
+import 'package:mobile/services/survey_service.dart'; // --- NEW: Import SurveyService ---
 import 'package:mobile/services/user_service.dart';
 import 'package:mobile/widgets/survey_card.dart';
 
@@ -19,13 +26,52 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final UserService _userService = UserService();
-  late Future<Map<String, dynamic>> _userProfileFuture;
-  bool _showSurveyCard = true;
+  final AuthService _authService = AuthService();
+  final SurveyService _surveyService =
+      SurveyService(); // --- NEW: Instantiate SurveyService ---
+
+  // --- UPDATED: Future now fetches a map of all required data ---
+  late Future<Map<String, dynamic>> _profileDataFuture;
+  bool _isLoggingOut = false;
 
   @override
   void initState() {
     super.initState();
-    _userProfileFuture = _userService.getUserProfile();
+    _loadProfileData();
+  }
+
+  void _loadProfileData() {
+    setState(() {
+      _profileDataFuture = _fetchAllProfileData();
+    });
+  }
+
+  // --- NEW: A method to fetch user and survey data concurrently for performance ---
+  Future<Map<String, dynamic>> _fetchAllProfileData() async {
+    try {
+      final results = await Future.wait([
+        _userService.getUserProfile(),
+        _surveyService.getMySurveyData(),
+      ]);
+      return {
+        'user': results[0] as User,
+        'survey': results[1] as SocioEconomicSurvey?,
+      };
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> _logout() async {
+    setState(() => _isLoggingOut = true);
+    await _authService.logout();
+
+    if (mounted) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        (Route<dynamic> route) => false,
+      );
+    }
   }
 
   @override
@@ -50,7 +96,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 color: Colors.white, fontWeight: FontWeight.bold)),
       ),
       body: FutureBuilder<Map<String, dynamic>>(
-        future: _userProfileFuture,
+        future: _profileDataFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -58,22 +104,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          if (!snapshot.hasData) {
             return const Center(child: Text('No user data found.'));
           }
 
-          final user = snapshot.data!;
-          final String userRole = user['role'] ?? 'user';
-          final String profileImageUrl = user['profileImage'] ?? '';
+          final User user = snapshot.data!['user'];
+          final SocioEconomicSurvey? survey = snapshot.data!['survey'];
+          final bool shouldShowSurveyCard =
+              survey == null; // Logic to show card
 
           return ListView(
             children: [
-              if (_showSurveyCard)
-                SurveyCard(onDismiss: () {
-                  setState(() {
-                    _showSurveyCard = false;
-                  });
-                }),
+              // --- UPDATED: Conditionally render the SurveyCard ---
+              if (shouldShowSurveyCard)
+                SurveyCard(
+                  onDismiss: () {
+                    // This could be enhanced to hide for the session,
+                    // but it will reappear on next app launch, which is intended.
+                  },
+                  onTakeSurvey: () async {
+                    final surveyCompleted = await Navigator.push<bool>(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const SurveyScreen()),
+                    );
+                    // If SurveyScreen pops with 'true', it means the survey was submitted.
+                    if (surveyCompleted == true) {
+                      _loadProfileData(); // Reload data to hide the card
+                    }
+                  },
+                ),
               const SizedBox(height: 20),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -81,10 +141,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     CircleAvatar(
                       radius: 35,
-                      backgroundImage: profileImageUrl.isNotEmpty
-                          ? NetworkImage(profileImageUrl)
+                      backgroundImage: (user.profileImage != null &&
+                              user.profileImage!.isNotEmpty)
+                          ? NetworkImage(user.profileImage!)
                           : null,
-                      child: profileImageUrl.isEmpty
+                      child: (user.profileImage == null ||
+                              user.profileImage!.isEmpty)
                           ? const Icon(Icons.person, size: 35)
                           : null,
                     ),
@@ -92,10 +154,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(user['name'] ?? 'User Name',
+                        Text(user.name,
                             style: GoogleFonts.poppins(
                                 fontSize: 20, fontWeight: FontWeight.bold)),
-                        Text(user['email'] ?? 'user.email@example.com',
+                        Text(user.email,
                             style: GoogleFonts.poppins(
                                 fontSize: 14, color: Colors.grey.shade600)),
                       ],
@@ -108,11 +170,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _buildMenuOption(
                 icon: Icons.person_outline,
                 title: 'Edit Profile',
-                onTap: () => Navigator.push(
+                onTap: () async {
+                  final updatedUser = await Navigator.push<User>(
                     context,
                     MaterialPageRoute(
-                        builder: (context) =>
-                            EditProfileScreen(userData: user))),
+                        builder: (context) => EditProfileScreen(user: user)),
+                  );
+                  if (updatedUser != null) {
+                    _loadProfileData();
+                  }
+                },
               ),
               _buildMenuOption(
                 icon: Icons.shield_outlined,
@@ -134,6 +201,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             const HouseholdManagementScreen())),
               ),
               const SizedBox(height: 20),
+              _buildSectionHeader('Trips'),
+              _buildMenuOption(
+                icon: Icons.group_add,
+                title: 'Join Trip',
+                subtitle: 'Join a trip using an invite token',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const JoinTripScreen()),
+                ),
+              ),
+              const SizedBox(height: 20),
               _buildSectionHeader('Settings'),
               _buildMenuOption(
                 icon: Icons.lock_outline,
@@ -143,7 +222,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     MaterialPageRoute(
                         builder: (context) => const PrivacyConsentScreen())),
               ),
-              if (userRole == 'researcher') ...[
+              if (user.role == 'researcher') ...[
                 const SizedBox(height: 20),
                 _buildSectionHeader('Researcher'),
                 _buildMenuOption(
@@ -159,12 +238,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: TextButton(
-                  onPressed: () {/* TODO: Add logout logic */},
-                  child: Text('Logout',
-                      style: GoogleFonts.poppins(
-                          color: Colors.red.shade700,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600)),
+                  onPressed: _isLoggingOut ? null : _logout,
+                  child: _isLoggingOut
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2))
+                      : Text('Logout',
+                          style: GoogleFonts.poppins(
+                              color: Colors.red.shade700,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600)),
                 ),
               ),
             ],
@@ -174,7 +258,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Helper methods are now correctly part of the State class
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -189,13 +272,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildMenuOption(
-      {required IconData icon,
-      required String title,
-      required VoidCallback onTap}) {
+  Widget _buildMenuOption({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    required VoidCallback onTap,
+  }) {
     return ListTile(
       leading: Icon(icon),
       title: Text(title, style: GoogleFonts.poppins()),
+      subtitle: subtitle != null
+          ? Text(
+              subtitle,
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: Colors.grey.shade600,
+              ),
+            )
+          : null,
       trailing: const Icon(Icons.chevron_right),
       onTap: onTap,
     );

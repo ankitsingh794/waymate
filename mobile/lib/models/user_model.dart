@@ -1,10 +1,19 @@
 import 'package:flutter/foundation.dart';
+import 'package:isar/isar.dart';
+import 'dart:convert';
 
+part 'user_model.g.dart';
+
+@embedded
 class UserPreferences {
-  final String language;
-  final String currency;
+  late String language;
+  late String currency;
 
-  UserPreferences({required this.language, required this.currency});
+  // FIX: Add constructor with defaults
+  UserPreferences({
+    this.language = 'en',
+    this.currency = 'INR',
+  });
 
   factory UserPreferences.fromJson(Map<String, dynamic> json) {
     return UserPreferences(
@@ -12,78 +21,212 @@ class UserPreferences {
       currency: json['currency'] ?? 'INR',
     );
   }
-}
 
-class UserLocation {
-  final String? city;
-  final String? country;
-  final List<double>? coordinates; // [longitude, latitude]
-
-  UserLocation({this.city, this.country, this.coordinates});
-
-  factory UserLocation.fromJson(Map<String, dynamic> json) {
-    return UserLocation(
-      city: json['city'],
-      country: json['country'],
-      coordinates: json['point']?['coordinates'] != null
-          ? List<double>.from(json['point']['coordinates'].map((c) => (c as num).toDouble()))
-          : null,
-    );
+  Map<String, dynamic> toJson() {
+    return {
+      'language': language,
+      'currency': currency,
+    };
   }
 }
 
-class User {
-  final String id;
-  final String name;
-  final String email;
-  final String role;
-  final String accountStatus;
-  final bool isEmailVerified;
-  final String? profileImage;
-  final UserPreferences preferences;
-  final UserLocation? location;
-  final List<String> favoriteTrips;
-  final String? householdId;
-  final DateTime? passwordChangedAt;
+@embedded
+class UserLocation {
+  String? city;
+  String? country;
+  List<double>? coordinates;
 
+  // FIX: Add constructor
+  UserLocation({
+    this.city,
+    this.country,
+    this.coordinates,
+  });
+
+  factory UserLocation.fromJson(Map<String, dynamic> json) {
+    return UserLocation()
+      ..city = json['city']
+      ..country = json['country']
+      ..coordinates = json['point']?['coordinates'] != null
+          ? List<double>.from(
+              json['point']['coordinates'].map((c) => (c as num).toDouble()))
+          : null;
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'city': city,
+      'country': country,
+      'point': coordinates != null
+          ? {'type': 'Point', 'coordinates': coordinates}
+          : null,
+    };
+  }
+}
+
+@embedded
+class ConsentEntry {
+  late String key;
+  late String value;
+
+  ConsentEntry();
+}
+
+@embedded
+class User {
+  late String id;
+  late String name;
+  late String email;
+  late String role;
+  late String accountStatus;
+  late bool isEmailVerified;
+  String? profileImage;
+  late UserPreferences preferences;
+  UserLocation? location;
+  late List<String> favoriteTrips;
+  String? householdId;
+  DateTime? passwordChangedAt;
+  // ADD: Consents field
+  final Map<String, ConsentInfo> consents;
+  final String? anonymizedHash;
+
+  // FIX: Add constructor with optional parameters
   User({
-    required this.id,
-    required this.name,
-    required this.email,
-    required this.role,
-    required this.accountStatus,
-    required this.isEmailVerified,
+    this.id = '',
+    this.name = '',
+    this.email = '',
+    this.role = 'user',
+    this.accountStatus = 'pending',
+    this.isEmailVerified = false,
     this.profileImage,
-    required this.preferences,
+    UserPreferences? preferences,
     this.location,
-    required this.favoriteTrips,
+    this.favoriteTrips = const [],
     this.householdId,
     this.passwordChangedAt,
-  });
+    this.consents = const {},
+    this.anonymizedHash,
+  }) : preferences = preferences ?? UserPreferences();
 
   factory User.fromJson(Map<String, dynamic> json) {
     try {
       return User(
-        id: json['_id'],
-        name: json['name'],
-        email: json['email'],
+        id: json['_id'] ?? '',
+        name: json['name'] ?? '',
+        email: json['email'] ?? '',
         role: json['role'] ?? 'user',
         accountStatus: json['accountStatus'] ?? 'pending',
         isEmailVerified: json['isEmailVerified'] ?? false,
         profileImage: json['profileImage'],
         preferences: UserPreferences.fromJson(json['preferences'] ?? {}),
-        location:
-            json['location'] != null ? UserLocation.fromJson(json['location']) : null,
+        location: json['location'] != null
+            ? UserLocation.fromJson(json['location'])
+            : null,
         favoriteTrips: List<String>.from(json['favoriteTrips'] ?? []),
         householdId: json['householdId'],
         passwordChangedAt: json['passwordChangedAt'] != null
             ? DateTime.parse(json['passwordChangedAt'])
             : null,
+        consents: _parseConsents(json['consents']),
+        anonymizedHash: json['anonymizedHash'],
       );
     } catch (e) {
       debugPrint('Error parsing User from JSON: $e');
       rethrow;
     }
   }
+
+  static Map<String, ConsentInfo> _parseConsents(dynamic consentsJson) {
+    if (consentsJson == null) return {};
+
+    final Map<String, ConsentInfo> consents = {};
+
+    for (final entry in (consentsJson as Map<String, dynamic>).entries) {
+      consents[entry.key] = ConsentInfo.fromJson(entry.value);
+    }
+
+    return consents;
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      '_id': id,
+      'name': name,
+      'email': email,
+      'role': role,
+      'accountStatus': accountStatus,
+      'isEmailVerified': isEmailVerified,
+      'profileImage': profileImage,
+      'preferences': preferences.toJson(),
+      'location': location?.toJson(),
+      'favoriteTrips': favoriteTrips,
+      'householdId': householdId,
+      'passwordChangedAt': passwordChangedAt?.toIso8601String(),
+      'consents': {for (var entry in consents.entries) entry.key: entry.value.toJson()},
+      'anonymizedHash': anonymizedHash,
+    };
+  }
+
+  // Helper methods for consent
+  String getConsent(String consentType) {
+    return consents[consentType]?.status ?? 'revoked';
+  }
+
+  bool hasConsent(String consentType) {
+    return getConsent(consentType) == 'granted';
+  }
+
+  // Create a copy with updated consent (for setState)
+  User copyWithConsent(String consentType, String status) {
+    final newConsents = Map<String, ConsentInfo>.from(consents);
+    newConsents[consentType] = ConsentInfo(
+      status: status,
+      updatedAt: DateTime.now(),
+    );
+
+    return User(
+      id: id,
+      name: name,
+      email: email,
+      role: role,
+      accountStatus: accountStatus,
+      isEmailVerified: isEmailVerified,
+      profileImage: profileImage,
+      preferences: preferences,
+      location: location,
+      favoriteTrips: favoriteTrips,
+      householdId: householdId,
+      passwordChangedAt: passwordChangedAt,
+      consents: newConsents,
+      anonymizedHash: anonymizedHash,
+    );
+  }
+
+  // ... rest of existing methods
 }
 
+// ADD: ConsentInfo class
+class ConsentInfo {
+  final String status;
+  final DateTime updatedAt;
+
+  ConsentInfo({
+    required this.status,
+    required this.updatedAt,
+  });
+
+  factory ConsentInfo.fromJson(Map<String, dynamic> json) {
+    return ConsentInfo(
+      status: json['status'] ?? 'revoked',
+      updatedAt:
+          DateTime.parse(json['updatedAt'] ?? DateTime.now().toIso8601String()),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'status': status,
+      'updatedAt': updatedAt.toIso8601String(),
+    };
+  }
+}

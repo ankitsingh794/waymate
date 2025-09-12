@@ -2,11 +2,16 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mobile/screens/profile/survey_screen.dart';
 
 class SurveyCard extends StatelessWidget {
   final VoidCallback onDismiss;
-  const SurveyCard({super.key, required this.onDismiss});
+  final VoidCallback onTakeSurvey;
+
+  const SurveyCard({
+    super.key, 
+    required this.onDismiss,
+    required this.onTakeSurvey, // Make it required
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +45,8 @@ class SurveyCard extends StatelessWidget {
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SurveyScreen())),
+                // --- UPDATED: Use the new callback ---
+                onPressed: onTakeSurvey,
                 child: const Text('Take Survey'),
               ),
             ),

@@ -1,10 +1,12 @@
-// lib/widgets/notifications/notification_list_item.dart
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/models/notification_models.dart' as app_notification;
+import 'package:timeago/timeago.dart' as timeago;
 
 class NotificationListItem extends StatelessWidget {
-  final Map<String, dynamic> notificationData;
+  // --- UPDATED: Use the strongly-typed Notification model ---
+  final app_notification.Notification notificationData;
 
   const NotificationListItem({super.key, required this.notificationData});
 
@@ -24,35 +26,36 @@ class NotificationListItem extends StatelessWidget {
     }
   }
 
-  @override
+ @override
   Widget build(BuildContext context) {
-    final String type = notificationData['type'];
-    final String message = notificationData['message'];
-    final String timeAgo = notificationData['timeAgo'];
-    final bool isRead = notificationData['isRead'];
+    // --- UPDATED: Access data from the model ---
+    final String type = notificationData.type;
+    final String message = notificationData.message;
+    final bool isRead = notificationData.read;
+    // --- UPDATED: Use timeago for a user-friendly date ---
+    final String timeAgo = timeago.format(notificationData.createdAt);
 
     return Container(
       color: isRead ? Colors.white : Colors.blue.shade50,
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
-          child: Icon(
-            _getIconForType(type),
-            color: Theme.of(context).primaryColor,
-          ),
+          child: Icon(_getIconForType(type), color: Theme.of(context).primaryColor),
         ),
         title: Text(
           message,
-          style: GoogleFonts.poppins(
-            fontWeight: isRead ? FontWeight.normal : FontWeight.w600,
-          ),
+          style: GoogleFonts.poppins(fontWeight: isRead ? FontWeight.normal : FontWeight.w600),
         ),
         subtitle: Text(
           timeAgo,
           style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade600),
         ),
         onTap: () {
-          // TODO: Navigate to the relevant context (e.g., the specific chat or expense)
+          // TODO: Navigate to the relevant context (e.g., the specific trip or chat)
+          // Example:
+          // if (notificationData.tripId != null) {
+          //   Navigator.push(context, MaterialPageRoute(builder: (context) => TripDetailsScreen(tripId: notificationData.tripId!)));
+          // }
         },
       ),
     );

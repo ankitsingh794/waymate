@@ -1,3 +1,5 @@
+// lib/services/api_client.dart
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -36,27 +38,22 @@ class ApiClient {
   // --- Public HTTP Methods ---
 
   Future<dynamic> get(String endpoint) async {
-    final response = await _makeRequest('GET', endpoint);
-    return response;
+    return _makeRequest('GET', endpoint);
   }
 
   Future<dynamic> post(String endpoint, {Map<String, dynamic>? body}) async {
-    final response = await _makeRequest('POST', endpoint, body: body);
-    return response;
+    return _makeRequest('POST', endpoint, body: body);
   }
 
   Future<dynamic> patch(String endpoint, {Map<String, dynamic>? body}) async {
-    final response = await _makeRequest('PATCH', endpoint, body: body);
-    return response;
+    return _makeRequest('PATCH', endpoint, body: body);
   }
   
   Future<dynamic> delete(String endpoint, {Map<String, dynamic>? body}) async {
-    final response = await _makeRequest('DELETE', endpoint, body: body);
-    return response;
+    return _makeRequest('DELETE', endpoint, body: body);
   }
   
-  /// **NEW**: Handles file downloads by streaming the response.
-  /// This method is memory-efficient and suitable for large files.
+  /// Handles file downloads by streaming the response.
   Future<http.StreamedResponse> download(String endpoint) async {
     final uri = Uri.parse('$baseUrl/$endpoint');
     await _waitForRefresh();
@@ -70,14 +67,12 @@ class ApiClient {
         final streamedResponse = await request.send().timeout(const Duration(minutes: 5));
 
         if (streamedResponse.statusCode == 401) {
-            // If unauthorized, attempt to refresh and retry the download.
             return _handle401AndRetry(() => download(endpoint));
         }
 
         if (streamedResponse.statusCode >= 200 && streamedResponse.statusCode < 300) {
             return streamedResponse;
         } else {
-            // Try to read the error message from the stream without consuming it.
             final body = await streamedResponse.stream.bytesToString();
             final message = json.decode(body)['message'] ?? 'Failed to download file.';
             throw ApiException(message, streamedResponse.statusCode);
@@ -87,6 +82,7 @@ class ApiClient {
     } on TimeoutException {
         throw ApiException('The connection has timed out.');
     } catch (e) {
+        if (e is ApiException) rethrow;
         throw ApiException(e.toString());
     }
   }
@@ -131,8 +127,9 @@ class ApiClient {
     } on SocketException {
       throw ApiException('No internet connection.');
     } on TimeoutException {
-       throw ApiException('The connection has timed out.');
+        throw ApiException('The connection has timed out.');
     } catch (e) {
+      if (e is ApiException) rethrow;
       throw ApiException('An unexpected error occurred during file upload.');
     }
   }
@@ -155,16 +152,16 @@ class ApiClient {
       http.Response response;
       switch (method) {
         case 'GET':
-          response = await http.get(uri, headers: headers).timeout(const Duration(seconds: 15));
+          response = await http.get(uri, headers: headers).timeout(const Duration(seconds: 20));
           break;
         case 'POST':
-          response = await http.post(uri, headers: headers, body: requestBody).timeout(const Duration(seconds: 15));
+          response = await http.post(uri, headers: headers, body: requestBody).timeout(const Duration(seconds: 20));
           break;
         case 'PATCH':
-          response = await http.patch(uri, headers: headers, body: requestBody).timeout(const Duration(seconds: 15));
+          response = await http.patch(uri, headers: headers, body: requestBody).timeout(const Duration(seconds: 20));
           break;
         case 'DELETE':
-          response = await http.delete(uri, headers: headers, body: requestBody).timeout(const Duration(seconds: 15));
+          response = await http.delete(uri, headers: headers, body: requestBody).timeout(const Duration(seconds: 20));
           break;
         default:
           throw ApiException('Unsupported HTTP method: $method');
@@ -174,34 +171,53 @@ class ApiClient {
         return await _handle401AndRetry(() => _makeRequest(method, endpoint, body: body));
       }
       
-      return _handleResponse(response);
+      // **UPDATED**: Centralize response handling and add specific parsing error catching.
+      try {
+        return _handleResponse(response);
+      } on FormatException {
+        throw ApiException('Failed to parse server response. The format was invalid.', response.statusCode);
+      }
 
     } on SocketException {
       throw ApiException('No internet connection. Please check your network.');
     } on TimeoutException {
-       throw ApiException('The server is not responding. Please try again later.');
+        throw ApiException('The server is not responding. Please try again later.');
     } catch (e) {
+      if (e is ApiException) rethrow; // Re-throw exceptions we've already handled.
       throw ApiException('An unexpected error occurred: ${e.toString()}');
     }
   }
 
+  // **UPDATED**: Made this function more robust to handle non-JSON error responses.
   dynamic _handleResponse(http.Response response) {
-    if (response.body.isEmpty) {
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-            return null;
-        } else {
-            throw ApiException('An unknown API error occurred.', response.statusCode);
-        }
-    }
-    final responseBody = json.decode(utf8.decode(response.bodyBytes));
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return responseBody;
+    final contentType = response.headers['content-type'];
+    
+    // Check if the response is JSON before trying to decode it.
+    if (contentType != null && contentType.contains('application/json')) {
+      final responseBody = json.decode(utf8.decode(response.bodyBytes));
+      
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return responseBody;
+      } else {
+        // Try to get a meaningful error from the JSON body.
+        final errorMessage = (responseBody is Map<String, dynamic>)
+          ? responseBody['error'] ?? responseBody['message'] ?? 'An unknown API error occurred.'
+          : response.body;
+        throw ApiException(errorMessage, response.statusCode);
+      }
     } else {
-      throw ApiException(responseBody['message'] ?? 'An unknown API error occurred.', response.statusCode);
+      // The response is not JSON (e.g., HTML error page from a server).
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+          // This is unexpected for a success code, but we return the raw body.
+          return response.body;
+      } else {
+        // For an error, the raw body is the most useful message.
+        throw ApiException('Server returned an invalid format. Body: ${response.body}', response.statusCode);
+      }
     }
   }
   
-  // --- Auth and Error Handling Helpers ---
+  // --- Auth and Error Handling Helpers (No changes needed below) ---
 
   Future<void> _waitForRefresh() async {
     if (_isRefreshing) {
@@ -243,8 +259,8 @@ class ApiClient {
         throw Exception("Refresh token failed");
       }
     } catch(e) {
-       _refreshCompleter!.completeError(e);
-       return false;
+        _refreshCompleter!.completeError(e);
+        return false;
     } finally {
       _isRefreshing = false;
     }

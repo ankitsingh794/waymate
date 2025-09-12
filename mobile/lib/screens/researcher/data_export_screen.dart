@@ -1,5 +1,3 @@
-// lib/screens/researcher/data_export_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/services/export_service.dart';
@@ -22,7 +20,8 @@ class _DataExportScreenState extends State<DataExportScreen> {
       _errorMessage = null;
     });
     try {
-      await _exportService.downloadExport(format);
+      // CORRECTED: The method name is downloadAndShareExport, not downloadExport.
+      await _exportService.downloadAndShareExport(format);
     } catch (e) {
       setState(() {
         _errorMessage = 'Error: ${e.toString()}';

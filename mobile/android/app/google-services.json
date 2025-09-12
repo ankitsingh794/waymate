@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "375126853101",
+    "project_id": "waymate-b43df",
+    "storage_bucket": "waymate-b43df.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:375126853101:android:2b3b0464ab4379cd5a13e4",
+        "android_client_info": {
+          "package_name": "com.example.waymate"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB2c59dfsLx8w11gnVyRGwidGkYUE_eIGs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

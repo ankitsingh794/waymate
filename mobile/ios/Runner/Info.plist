@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Mobile</string>
+	<string>WayMate</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>mobile</string>
+	<string>waymate</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -46,8 +46,37 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>MGLMapboxAccessToken</key>
-<string>pk.eyJ1IjoiYW5raXQtMTMxMSIsImEiOiJjbWQ4aml5MjQwMTI2MnJzZ2tyb3ZpY252In0.ho2m7X41R2ur3mLFFJiZtw</string>
-<key>io.flutter.embedded_views_preview</key>
-<true/>
+	<string>pk.eyJ1IjoiYW5raXQtMTMxMSIsImEiOiJjbWQ4aml5MjQwMTI2MnJzZ2tyb3ZpY252In0.ho2m7X41R2ur3mLFFJiZtw</string>
+	<key>io.flutter.embedded_views_preview</key>
+	<true/>
+	
+	<!-- ADD THIS: URL Schemes for Deep Linking -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<!-- Custom URL Scheme for Mobile App -->
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>waymate.deeplink</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>waymate</string>
+			</array>
+		</dict>
+		<!-- HTTPS Deep Links (Universal Links) -->
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>waymate.https</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>https</string>
+			</array>
+		</dict>
+	</array>
+	
+	<!-- ADD THIS: Associated Domains for Universal Links -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:waymate.vercel.app</string>
+	</array>
 </dict>
 </plist>

@@ -1,19 +1,20 @@
 import 'package:flutter/foundation.dart';
+import 'package:mobile/models/user_model.dart';
 
 class HouseholdMember {
-  final String userId;
+  final User user;
   final String role;
   final String relationship;
 
   HouseholdMember({
-    required this.userId,
+    required this.user,
     required this.role,
     required this.relationship,
   });
 
   factory HouseholdMember.fromJson(Map<String, dynamic> json) {
     return HouseholdMember(
-      userId: json['userId'],
+      user: User.fromJson(json['user']),
       role: json['role'],
       relationship: json['relationship'],
     );

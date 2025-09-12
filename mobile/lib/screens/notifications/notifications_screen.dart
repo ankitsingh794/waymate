@@ -1,42 +1,39 @@
 // lib/screens/notifications/notifications_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // --- NEW: Import Riverpod ---
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/widgets/notifications/notification_list_item.dart';
+import 'package:mobile/models/notification_models.dart' as app_notification;
+import 'package:mobile/providers.dart'; // --- NEW: Import the providers ---
 
-class NotificationsScreen extends StatelessWidget {
+// --- UPDATED: Changed from StatefulWidget to ConsumerStatefulWidget ---
+class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
 
-  // In a real app, this data would come from a real-time stream (Socket.IO)
-  final List<Map<String, dynamic>> _notifications = const [
-    {
-      'type': 'expense',
-      'message': 'Sarah added a new expense "Team Dinner" to your trip to Rome.',
-      'timeAgo': '15m ago',
-      'isRead': false,
-    },
-    {
-      'type': 'chat',
-      'message': 'John sent a new message in the "Trip to Rome" chat.',
-      'timeAgo': '1h ago',
-      'isRead': false,
-    },
-    {
-      'type': 'itinerary',
-      'message': 'The itinerary for Day 3 of your trip to Kyoto has been updated.',
-      'timeAgo': '1d ago',
-      'isRead': true,
-    },
-    {
-      'type': 'alert',
-      'message': 'Weather Alert: Heavy rain expected in Rome tomorrow.',
-      'timeAgo': '2d ago',
-      'isRead': true,
-    },
-  ];
+  @override
+  ConsumerState<NotificationsScreen> createState() =>
+      _NotificationsScreenState();
+}
+
+// --- UPDATED: Changed from State to ConsumerState ---
+class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
+  // --- REMOVED: Do not create the service instance directly ---
+  // final NotificationService _notificationService = NotificationService(context);
+
+  @override
+  void initState() {
+    super.initState();
+    // When the user opens this screen, mark all notifications as read.
+    // --- UPDATED: Access the service via ref.read() in initState ---
+    ref.read(notificationServiceProvider).markAllAsRead();
+  }
 
   @override
   Widget build(BuildContext context) {
+    // --- UPDATED: Access the service via ref.watch() in the build method ---
+    final notificationService = ref.watch(notificationServiceProvider);
+
     return Scaffold(
       appBar: AppBar(
         flexibleSpace: Container(
@@ -51,29 +48,39 @@ class NotificationsScreen extends StatelessWidget {
             ),
           ),
         ),
-        title: Text('Notifications', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text('Notifications',
+            style: GoogleFonts.poppins(
+                color: Colors.white, fontWeight: FontWeight.bold)),
       ),
-      body: _notifications.isEmpty
-          ? Center(
+      body: ValueListenableBuilder<List<app_notification.Notification>>(
+        // --- UPDATED: Get the notifications ValueNotifier from the service instance ---
+        valueListenable: notificationService.notifications,
+        builder: (context, notifications, child) {
+          if (notifications.isEmpty) {
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.notifications_off_outlined, size: 60, color: Colors.grey.shade400),
+                  Icon(Icons.notifications_off_outlined,
+                      size: 60, color: Colors.grey.shade400),
                   const SizedBox(height: 16),
-                  Text(
-                    'No Notifications Yet',
-                    style: GoogleFonts.poppins(fontSize: 18, color: Colors.grey.shade600),
-                  ),
+                  Text('No Notifications Yet',
+                      style: GoogleFonts.poppins(
+                          fontSize: 18, color: Colors.grey.shade600)),
                 ],
               ),
-            )
-          : ListView.separated(
-              itemCount: _notifications.length,
-              separatorBuilder: (context, index) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                return NotificationListItem(notificationData: _notifications[index]);
-              },
-            ),
+            );
+          }
+          return ListView.separated(
+            itemCount: notifications.length,
+            separatorBuilder: (context, index) => const Divider(height: 1),
+            itemBuilder: (context, index) {
+              return NotificationListItem(
+                  notificationData: notifications[index]);
+            },
+          );
+        },
+      ),
     );
   }
 }

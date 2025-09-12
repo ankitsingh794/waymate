@@ -2,17 +2,15 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/models/expense_models.dart'; // Import your new models
 
 class ExpenseSummaryCard extends StatelessWidget {
-  final Map<String, dynamic> summary;
+  // --- UPDATED: Using the strongly-typed ExpenseSummary model ---
+  final ExpenseSummary summary;
   const ExpenseSummaryCard({super.key, required this.summary});
 
   @override
   Widget build(BuildContext context) {
-    final List settlements = summary['settlements'] ?? [];
-    final double totalSpent = (summary['totalSpent'] ?? 0).toDouble();
-    final String currency = summary['currency'] ?? 'INR';
-
     return Card(
       margin: const EdgeInsets.all(16.0),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -24,12 +22,14 @@ class ExpenseSummaryCard extends StatelessWidget {
           children: [
             Text('Total Trip Spending', style: GoogleFonts.poppins(fontSize: 14, color: Colors.black54)),
             const SizedBox(height: 4),
-            Text('$currency ${totalSpent.toStringAsFixed(2)}', style: GoogleFonts.poppins(fontSize: 28, fontWeight: FontWeight.bold)),
-            if (settlements.isNotEmpty) ...[
+            // Accessing data from the model properties is cleaner
+            Text('${summary.currency} ${summary.totalSpent.toStringAsFixed(2)}', style: GoogleFonts.poppins(fontSize: 28, fontWeight: FontWeight.bold)),
+            if (summary.settlements.isNotEmpty) ...[
               const Divider(height: 24),
               Text('Settlement Plan', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
-              ...settlements.map((s) => _buildSettlementRow(s, currency)).toList(),
+              // Mapping over the typed List<Settlement>
+              ...summary.settlements.map((s) => _buildSettlementRow(s, summary.currency)).toList(),
             ]
           ],
         ),
@@ -37,29 +37,27 @@ class ExpenseSummaryCard extends StatelessWidget {
     );
   }
 
-  Widget _buildSettlementRow(Map<String, dynamic> settlement, String currency) {
-    // CORRECTED: Access the 'name' from the 'from' and 'to' objects
-    final String fromUser = settlement['from']?['name'] ?? 'Unknown';
-    final String toUser = settlement['to']?['name'] ?? 'Unknown';
-    final double amount = (settlement['amount'] ?? 0).toDouble();
-
+  // --- UPDATED: This method now accepts a Settlement object ---
+  Widget _buildSettlementRow(Settlement settlement, String currency) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Text(fromUser, style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8.0),
-                child: Icon(Icons.arrow_forward, size: 16),
-              ),
-              Text(toUser, style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
-            ],
+          Expanded(
+            child: Row(
+              children: [
+                Flexible(child: Text(settlement.from, style: GoogleFonts.poppins(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis)),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Icon(Icons.arrow_forward, size: 16),
+                ),
+                Flexible(child: Text(settlement.to, style: GoogleFonts.poppins(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis)),
+              ],
+            ),
           ),
           Text(
-            '$currency ${amount.toStringAsFixed(2)}',
+            '$currency ${settlement.amount.toStringAsFixed(2)}',
             style: GoogleFonts.poppins(color: Colors.green.shade800, fontWeight: FontWeight.bold),
           ),
         ],

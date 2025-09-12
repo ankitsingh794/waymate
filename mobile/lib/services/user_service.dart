@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:mobile/services/api_client.dart';
 import 'package:mobile/models/user_model.dart';
 
-
 // --- Service Class (Refactored for Production Readiness) ---
 
 class UserService {
@@ -16,10 +15,11 @@ class UserService {
     } on ApiException {
       rethrow;
     } catch (e) {
-      throw ApiException('An unexpected error occurred while fetching your profile.');
+      throw ApiException(
+          'An unexpected error occurred while fetching your profile.');
     }
   }
-  
+
   /// Updates user profile details. Only non-null values will be sent.
   Future<User> updateUserProfile({
     String? name,
@@ -49,7 +49,8 @@ class UserService {
     } on ApiException {
       rethrow;
     } catch (e) {
-      throw ApiException('An unexpected error occurred while updating your profile.');
+      throw ApiException(
+          'An unexpected error occurred while updating your profile.');
     }
   }
 
@@ -65,12 +66,14 @@ class UserService {
     } on ApiException {
       rethrow;
     } catch (e) {
-      throw ApiException('An unexpected error occurred while uploading the photo.');
+      throw ApiException(
+          'An unexpected error occurred while uploading the photo.');
     }
   }
 
   /// Updates the user's live geo-location.
-  Future<void> updateUserLocation({required double latitude, required double longitude}) async {
+  Future<void> updateUserLocation(
+      {required double latitude, required double longitude}) async {
     try {
       await _apiClient.patch(
         '/users/profile/location',
@@ -79,12 +82,14 @@ class UserService {
     } on ApiException {
       rethrow;
     } catch (e) {
-      throw ApiException('An unexpected error occurred while updating location.');
+      throw ApiException(
+          'An unexpected error occurred while updating location.');
     }
   }
 
   /// Records the user's consent status for a specific feature.
-  Future<void> updateUserConsent({required String consentType, required String status}) async {
+  Future<void> updateUserConsent(
+      {required String consentType, required String status}) async {
     try {
       // Ensure status is either 'granted' or 'revoked' before sending
       if (status != 'granted' && status != 'revoked') {
@@ -97,12 +102,14 @@ class UserService {
     } on ApiException {
       rethrow;
     } catch (e) {
-      throw ApiException('An unexpected error occurred while updating consent.');
+      throw ApiException(
+          'An unexpected error occurred while updating consent.');
     }
   }
 
   /// (Admin) Changes the account status of a specific user.
-  Future<User> changeAccountStatus({required String userId, required String status}) async {
+  Future<User> changeAccountStatus(
+      {required String userId, required String status}) async {
     try {
       // Ensure status is valid before sending
       if (!['active', 'suspended', 'banned'].contains(status)) {
@@ -116,7 +123,20 @@ class UserService {
     } on ApiException {
       rethrow;
     } catch (e) {
-      throw ApiException("An unexpected error occurred while changing account status.");
+      throw ApiException(
+          "An unexpected error occurred while changing account status.");
+    }
+  }
+
+  Future<List<User>> getAllUsers() async {
+    try {
+      final responseData = await _apiClient.get('users');
+      final usersJson = responseData['data']['users'] as List;
+      return usersJson.map((json) => User.fromJson(json)).toList();
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('An unexpected error occurred while fetching users.');
     }
   }
 }

@@ -2,16 +2,19 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/models/trip_models.dart';
 
 class PlaceCard extends StatelessWidget {
-  final Map<String, dynamic> placeData;
+  // --- UPDATED: Changed to accept a strongly-typed Recommendation object ---
+  final Recommendation placeData;
   const PlaceCard({super.key, required this.placeData});
 
   @override
   Widget build(BuildContext context) {
-    final String name = placeData['name'] ?? 'Unknown Place';
-    final String imageUrl = placeData['image'] ?? 'https://via.placeholder.com/150';
-    final double rating = (placeData['rating'] ?? 0).toDouble();
+    // Access properties directly from the placeData object
+    final String name = placeData.name;
+    final String? imageUrl = placeData.image;
+    final double rating = placeData.rating;
 
     return SizedBox(
       width: 160,
@@ -21,18 +24,28 @@ class PlaceCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Image.network(
-              imageUrl,
-              height: 100,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => const Center(child: Icon(Icons.image_not_supported)),
-            ),
+            // --- UPDATED: Handles null image URL gracefully ---
+            if (imageUrl != null)
+              Image.network(
+                imageUrl,
+                height: 100,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => const SizedBox(
+                  height: 100,
+                  child: Center(child: Icon(Icons.image_not_supported)),
+                ),
+              )
+            else
+              const SizedBox(
+                height: 100,
+                child: Center(child: Icon(Icons.image_not_supported)),
+              ),
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Text(
                 name,
-                style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 13),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),

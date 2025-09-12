@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:mobile/models/user_model.dart'; // Assuming a simple user model exists
+import 'package:mobile/models/user_model.dart';
+import 'package:mobile/models/trip_models.dart'; // Import Trip model
 
 /// Represents the last message sent in a chat session for display in a chat list.
 class LastMessage {
@@ -22,52 +23,94 @@ class LastMessage {
   }
 }
 
-/// Represents a chat session, aligning with the backend ChatSession schema.
 class ChatSession {
-  final String id;
-  final List<User> participants;
-  final String sessionType; // 'ai', 'private', 'group'
-  final String? tripId;
-  final String name;
-  final LastMessage? lastMessage;
-  final DateTime createdAt;
-  final DateTime updatedAt;
+  late String id;
+  late String type;
+  late List<User> participants;
+  Trip? tripId;
+  String? name; // Add name field from backend
+  LastMessage? lastMessage;
+  late DateTime createdAt;
+  late DateTime updatedAt;
 
   ChatSession({
-    required this.id,
-    required this.participants,
-    required this.sessionType,
+    this.id = '',
+    this.type = '',
+    this.participants = const [],
     this.tripId,
-    required this.name,
+    this.name,
     this.lastMessage,
-    required this.createdAt,
-    required this.updatedAt,
-  });
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  })  : createdAt = createdAt ?? DateTime.now(),
+        updatedAt = updatedAt ?? DateTime.now();
+
+  // Add this getter for display name
+  String get displayName {
+    if (name != null && name!.isNotEmpty) {
+      return name!;
+    }
+    if (tripId?.destination != null && tripId!.destination.isNotEmpty) {
+      return '${tripId!.destination} Chat';
+    }
+    return 'Group Chat';
+  }
 
   /// Factory constructor to create a ChatSession from a JSON map.
   factory ChatSession.fromJson(Map<String, dynamic> json) {
     try {
-      var participantList = <User>[];
-      if (json['participants'] != null) {
-        participantList = (json['participants'] as List)
-            .map((p) => User.fromJson(p))
-            .toList();
-      }
+      debugPrint(
+          'Parsing ChatSession JSON: ${json.toString().substring(0, 200)}...');
 
       return ChatSession(
-        id: json['_id'],
-        participants: participantList,
-        sessionType: json['sessionType'] ?? 'private',
-        tripId: json['tripId'],
-        name: json['name'] ?? 'Chat',
+        id: json['_id'] ?? '',
+        // FIX: Handle both 'type' and 'sessionType' from backend
+        type: json['type'] ?? json['sessionType'] ?? '',
+        participants: (json['participants'] as List<dynamic>? ?? []).map((p) {
+          if (p is String) {
+            return User(id: p);
+          } else if (p is Map<String, dynamic>) {
+            return User.fromJson(p);
+          } else {
+            debugPrint('Unexpected participant type: ${p.runtimeType}');
+            return User(id: p.toString());
+          }
+        }).toList(),
+        tripId: json['tripId'] != null
+            ? (json['tripId'] is String
+                ? Trip(
+                    id: json['tripId'],
+                    destination: '',
+                    startDate: DateTime.now(),
+                    endDate: DateTime.now(),
+                    travelers: 1,
+                    weather: [],
+                    attractions: [],
+                    foodRecommendations: [],
+                    accommodationSuggestions: [],
+                    alerts: [],
+                    itinerary: [],
+                    favorite: false,
+                    createdAt: DateTime.now(),
+                    updatedAt: DateTime.now(),
+                  )
+                : Trip.fromJson(json['tripId'] as Map<String, dynamic>))
+            : null,
+        // FIX: Add name field from backend
+        name: json['name'],
         lastMessage: json['lastMessage'] != null
             ? LastMessage.fromJson(json['lastMessage'])
             : null,
-        createdAt: DateTime.parse(json['createdAt']),
-        updatedAt: DateTime.parse(json['updatedAt']),
+        createdAt: json['createdAt'] != null
+            ? DateTime.parse(json['createdAt'])
+            : DateTime.now(),
+        updatedAt: json['updatedAt'] != null
+            ? DateTime.parse(json['updatedAt'])
+            : DateTime.now(),
       );
     } catch (e) {
-      debugPrint('Error parsing ChatSession from JSON: $e');
+      debugPrint('Error parsing ChatSession: $e');
+      debugPrint('JSON: $json');
       rethrow;
     }
   }

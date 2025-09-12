@@ -1,20 +1,28 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import 'package:mobile/models/expense_models.dart';
+import 'package:mobile/models/trip_models.dart';
+import 'package:mobile/models/user_model.dart';
+import 'package:mobile/screens/chat/group_chat_screen.dart';
+import 'package:mobile/screens/trip_details/itinerary_tab.dart';
+import 'package:mobile/screens/trip_details/manage_members_screen.dart';
+import 'package:mobile/screens/trip_details/edit_trip_screen.dart';
+import 'package:mobile/services/chat_service.dart';
+import 'package:mobile/services/expense_service.dart';
+import 'package:mobile/services/trip_service.dart';
+import 'package:mobile/services/user_service.dart';
+import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/widgets/expense_list_item.dart';
 import 'package:mobile/widgets/expense_summary_card.dart';
-import 'package:mobile/widgets/itinerary_item_card.dart';
-import 'package:mobile/screens/chat/group_chat_screen.dart';
-import 'package:mobile/screens/trip_details/manage_members_screen.dart';
 import 'package:mobile/widgets/place_card.dart';
-import 'package:mobile/screens/trip_details/smart_schedule_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class TripDetailsScreen extends StatefulWidget {
-  final Map<String, dynamic> tripData;
+  final String tripId;
 
-  const TripDetailsScreen({
-    super.key,
-    required this.tripData,
-  });
+  const TripDetailsScreen({super.key, required this.tripId});
 
   @override
   State<TripDetailsScreen> createState() => _TripDetailsScreenState();
@@ -23,527 +31,561 @@ class TripDetailsScreen extends StatefulWidget {
 class _TripDetailsScreenState extends State<TripDetailsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final TripService _tripService = TripService();
+  final ExpenseService _expenseService = ExpenseService();
+  final ChatService _chatService = ChatService();
+  final UserService _userService =
+      UserService(); // --- NEW: Instantiate UserService ---
+  bool _isNavigatingToChat = false;
 
-  final detailedTripData = {
-    "coverImage":
-        "https://images.unsplash.com/photo-1552832230-c0197dd311b5?q=80&w=1996&auto=format&fit=crop",
-    "aiSummary": {
-      "overview":
-          "Your 7-day trip to Rome is a deep dive into ancient history and vibrant culture. Expect to be amazed by architectural marvels, indulge in world-class cuisine, and soak up the lively atmosphere of the Eternal City.",
-      "highlights": [
-        "Ancient History",
-        "Art & Culture",
-        "Italian Cuisine",
-        "City Exploration"
-      ],
-    },
-    "weather": {
-      "forecast": [
-        {"day": 1, "date": "Sep 3", "temp": "28°C", "condition": "Sunny"},
-        {"day": 2, "date": "Sep 4", "temp": "27°C", "condition": "Cloudy"},
-        {"day": 3, "date": "Sep 5", "temp": "26°C", "condition": "Rainy"},
-      ]
-    },
-    "group": {
-      "members": [
-        {"name": "Ankit", "avatarUrl": "https://i.pravatar.cc/150?u=ankit"},
-        {"name": "Sarah", "avatarUrl": "https://i.pravatar.cc/150?u=sarah"},
-        {"name": "John", "avatarUrl": "https://i.pravatar.cc/150?u=john"},
-      ]
-    },
-    "itinerary": [
-      {
-        "sequence": 1,
-        "day": 1,
-        "type": "travel",
-        "startTime": "2025-09-03T09:00:00.000Z",
-        "description": "Flight to Rome"
-      },
-      {
-        "sequence": 2,
-        "day": 1,
-        "type": "accommodation",
-        "startTime": "2025-09-03T14:00:00.000Z",
-        "description": "Check-in at Hotel Romanico Palace"
-      },
-      {
-        "sequence": 1,
-        "day": 2,
-        "type": "activity",
-        "startTime": "2025-09-04T10:00:00.000Z",
-        "description": "Tour the Colosseum"
-      },
-    ],
-    "expenses": [
-      {
-        "description": "Team Dinner",
-        "category": "Food",
-        "amount": 85.50,
-        "paidBy": "Sarah"
-      },
-      {
-        "description": "Museum Tickets",
-        "category": "Activities",
-        "amount": 48.00,
-        "paidBy": "Ankit"
-      },
-    ],
-    "summary": {
-      "totalSpent": 133.50,
-      "currency": "\$",
-      "settlements": [
-        {"from": "Ankit", "to": "Sarah", "amount": 19.50}
-      ]
-    }
+  late Future<Trip> _tripDetailsFuture;
+  late Future<TripExpenseBundle> _expenseFuture;
+  late Future<User> _userFuture; // --- NEW: Future to get the current user ---
+
+  final Map<String, IconData> _weatherIcons = {
+    'sunny': Icons.wb_sunny_outlined,
+    'clear': Icons.nightlight_round_outlined,
+    'partly cloudy': Icons.cloud_outlined,
+    'cloudy': Icons.cloud,
+    'rain': Icons.grain,
+    'showers': Icons.shower,
+    'thunderstorm': Icons.thunderstorm_outlined,
+    'snow': Icons.ac_unit,
+    'mist': Icons.blur_on,
+    'default': Icons.thermostat,
   };
+
+  final SocketService _socketService = SocketService();
+  StreamSubscription? _alertSubscription;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-    // This listener is important to show/hide the FAB when switching tabs
-    _tabController.addListener(() {
-      if (mounted) setState(() {});
+    _tabController = TabController(length: 4, vsync: this, initialIndex: 0);
+    _loadTripData();
+    _userFuture = _userService.getUserProfile(); // --- NEW: Fetch the user ---
+
+    _alertSubscription = _socketService.onNewTravelAlert.listen((alertData) {
+      if (mounted && alertData['tripId'] == widget.tripId) {
+        debugPrint("Alert received for current trip. Reloading data...");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(alertData['message'] ?? 'New travel alert received!'),
+            backgroundColor: Colors.orange.shade800,
+          ),
+        );
+        _reloadData();
+      }
+    });
+  }
+
+  void _loadTripData() {
+    _tripDetailsFuture = _tripService.getTripById(widget.tripId);
+    _expenseFuture = _expenseService.getExpensesForTrip(widget.tripId);
+  }
+
+  void _reloadData() {
+    setState(() {
+      _loadTripData();
     });
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _alertSubscription?.cancel();
     super.dispose();
   }
 
-  List<T> _safelyCastList<T>(dynamic list) {
-    if (list is List) {
-      return List<T>.from(list.cast<T>());
+  Future<void> _toggleFavorite(Trip trip) async {
+    try {
+      final isNowFavorite = await _tripService.toggleFavoriteStatus(trip.id);
+      setState(() {
+        // Optimistically update the UI
+        _tripDetailsFuture =
+            Future.value(trip.copyWith(favorite: isNowFavorite));
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(isNowFavorite
+                ? 'Added to favorites!'
+                : 'Removed from favorites.')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error: $e')));
     }
-    return [];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final String destination =
-        detailedTripData['destinationName'] as String? ?? 'Unknown Location';
-    final String coverImage = detailedTripData['coverImage'] as String? ?? '';
-
-    return Scaffold(
-      // ADDED: The FloatingActionButton is now correctly placed here
-      floatingActionButton: _tabController.index == 2
-          ? FloatingActionButton(
-              onPressed: _showAddExpenseSheet,
-              child: const Icon(Icons.add),
-            )
-          : null,
-      body: NestedScrollView(
-        headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
-          return <Widget>[
-            SliverAppBar(
-              expandedHeight: 250.0,
-              pinned: true,
-              backgroundColor: const Color.fromARGB(255, 14, 59, 76),
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.chat_bubble_outline,
-                      color: Colors.white),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            GroupChatScreen(tripName: destination),
-                      ),
-                    );
-                  },
-                ),
-                PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert, color: Colors.white),
-                  onSelected: (value) {
-                    // UPDATE THIS LOGIC
-                    if (value == 'Manage Members') {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              ManageMembersScreen(tripData: detailedTripData),
-                        ),
-                      );
-                    }
-                  },
-                  itemBuilder: (BuildContext context) {
-                    return {'Manage Members', 'Invite Friends', 'Edit Trip'}
-                        .map((String choice) {
-                      return PopupMenuItem<String>(
-                        value: choice,
-                        child: Text(choice),
-                      );
-                    }).toList();
-                  },
-                ),
-              ],
-              flexibleSpace: FlexibleSpaceBar(
-                centerTitle: true,
-                titlePadding: const EdgeInsets.only(bottom: 56.0),
-                title: Text(
-                  destination,
-                  style: GoogleFonts.poppins(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20),
-                ),
-                background: Image.network(
-                  coverImage,
-                  fit: BoxFit.cover,
-                  color: Colors.black.withOpacity(0.5),
-                  colorBlendMode: BlendMode.darken,
-                ),
-              ),
-              // The TabBar is now the bottom element
-              bottom: TabBar(
-                controller: _tabController,
-                indicatorColor: Colors.white,
-                labelColor: Colors.white,
-                unselectedLabelColor: Colors.white70,
-                labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.bold),
-                unselectedLabelStyle: GoogleFonts.poppins(),
-                tabs: const [
-                  Tab(text: 'Overview'),
-                  Tab(text: 'Itinerary'),
-                  Tab(text: 'Expenses'),
-                ],
-              ),
-            ),
-          ];
-        },
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            _buildOverviewTab(),
-            _buildItineraryTab(),
-            _buildExpensesTab(),
-          ],
-        ),
-      ),
-    );
-  }
-  // ---- WIDGETS FOR THE OVERVIEW TAB ----
-
-  Widget _buildOverviewTab() {
-    final summary =
-        detailedTripData['aiSummary'] as Map<String, dynamic>? ?? {};
-    final alerts = _safelyCastList<String>(detailedTripData['alerts']);
-    final attractions =
-        _safelyCastList<Map<String, dynamic>>(detailedTripData['attractions']);
-    final food = _safelyCastList<Map<String, dynamic>>(
-        detailedTripData['foodRecommendations']);
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // NEW: Trip Alerts Section
-          if (alerts.isNotEmpty) ...[
-            _buildAlertCard(alerts.first),
-            const SizedBox(height: 24),
-          ],
-
-          _buildSectionHeader("AI Trip Summary"),
-          _buildAiSummary(summary),
-          const SizedBox(height: 24),
-
-          // NEW: AI Tips, Must-Eats, and Packing List
-          _buildInfoCard("✨ AI Tips", List<String>.from(summary['tips'] ?? []),
-              Icons.lightbulb_outline),
-          const SizedBox(height: 16),
-          _buildInfoCard(
-              "🍴 Must-Eats",
-              List<String>.from(summary['mustEats'] ?? []),
-              Icons.restaurant_menu_outlined),
-          const SizedBox(height: 16),
-          _buildInfoCard(
-              "🧳 Packing Checklist",
-              List<String>.from(summary['packingChecklist'] ?? []),
-              Icons.check_box_outline_blank),
-          const SizedBox(height: 24),
-
-          // NEW: Attractions Section
-          _buildSectionHeader("Top Attractions"),
-          _buildHorizontalPlaceList(attractions),
-          const SizedBox(height: 24),
-
-          // NEW: Food Recommendations Section
-          _buildSectionHeader("Food Recommendations"),
-          _buildHorizontalPlaceList(food),
-          const SizedBox(height: 24),
-
-          _buildSectionHeader("Weather Forecast"),
-          _buildWeatherForecast((detailedTripData['weather']
-                  as Map<String, dynamic>?)?['forecast'] as List? ??
-              []),
-          const SizedBox(height: 24),
-
-          _buildSectionHeader("Trip Members"),
-          _buildMembersSection((detailedTripData['group']
-                  as Map<String, dynamic>?)?['members'] as List? ??
-              []),
-          const SizedBox(height: 24),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAlertCard(String alertText) {
-    return Card(
-      color: Colors.amber.shade100,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.amber.shade800),
-            const SizedBox(width: 12),
-            Expanded(
-                child: Text(alertText,
-                    style: GoogleFonts.poppins(
-                        color: Colors.amber.shade900,
-                        fontWeight: FontWeight.w500))),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoCard(String title, List<String> items, IconData icon) {
-    if (items.isEmpty) return const SizedBox.shrink();
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title,
-                style: GoogleFonts.poppins(
-                    fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            ...items
-                .map((item) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(icon,
-                              size: 18, color: Theme.of(context).primaryColor),
-                          const SizedBox(width: 8),
-                          Expanded(
-                              child: Text(item,
-                                  style: GoogleFonts.poppins(fontSize: 15))),
-                        ],
-                      ),
-                    ))
-                .toList(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHorizontalPlaceList(List<Map<String, dynamic>> places) {
-    if (places.isEmpty) return const Text('No recommendations available.');
-    return SizedBox(
-      height: 200,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: places.length,
-        itemBuilder: (context, index) {
-          return PlaceCard(placeData: places[index]);
-        },
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: Text(title,
-          style:
-              GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
-    );
-  }
-
-  Widget _buildAiSummary(Map<String, dynamic> summary) {
-    List<String> highlights = List<String>.from(summary['highlights'] ?? []);
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(summary['overview'] ?? '',
-                style:
-                    GoogleFonts.poppins(fontSize: 15, color: Colors.black87)),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 8.0,
-              runSpacing: 4.0,
-              children: highlights
-                  .map((highlight) => Chip(label: Text(highlight)))
-                  .toList(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildWeatherForecast(List forecast) {
-    IconData _getWeatherIcon(String condition) {
-      switch (condition.toLowerCase()) {
-        case 'sunny':
-          return Icons.wb_sunny;
-        case 'cloudy':
-          return Icons.cloud;
-        case 'rainy':
-          return Icons.water_drop;
-        default:
-          return Icons.thermostat;
-      }
+  // --- NEW: Method to launch PDF download URL ---
+  Future<void> _downloadPdf(Trip trip) async {
+    final url = Uri.parse(_tripService.getTripPdfDownloadUrl(trip.id));
+    if (!await launchUrl(url)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not launch the download link.')),
+      );
     }
-
-    return SizedBox(
-      height: 120,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: forecast.length,
-        itemBuilder: (context, index) {
-          final day = forecast[index];
-          return Card(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: Container(
-              width: 80,
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(day['date'],
-                      style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  Icon(_getWeatherIcon(day['condition']),
-                      size: 28, color: Colors.blueAccent),
-                  const SizedBox(height: 8),
-                  Text(day['temp'], style: GoogleFonts.poppins()),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
   }
 
-  Widget _buildMembersSection(List members) {
-    return SizedBox(
-      height: 60,
-      child: Row(
-        children: [
-          ...members
-              .map((member) => Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: CircleAvatar(
-                      radius: 25,
-                      backgroundImage: NetworkImage(member['avatarUrl']),
-                    ),
-                  ))
-              .toList(),
-          const CircleAvatar(
-            radius: 25,
-            backgroundColor: Colors.grey,
-            child: Icon(Icons.add, color: Colors.white),
+  // --- NEW: Method to update trip status ---
+  Future<void> _updateStatus(Trip trip, String status) async {
+    try {
+      final updatedTrip = await _tripService.updateTripStatus(trip.id, status);
+      setState(() {
+        _tripDetailsFuture = Future.value(updatedTrip);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Trip has been ${status}.')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
+
+  // --- NEW: Confirmation dialog for canceling a trip ---
+  void _showCancelConfirmation(Trip trip) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Cancel Trip'),
+        content: const Text(
+            'Are you sure you want to cancel this trip? This action cannot be undone.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Keep Trip')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              _updateStatus(trip, 'canceled');
+            },
+            child: const Text('Yes, Cancel'),
           ),
         ],
       ),
     );
   }
 
-  // In lib/screens/trip_details/trip_details_screen.dart
-
-Widget _buildItineraryTab() {
-  final Map<String, dynamic>? smartSchedule = detailedTripData['smartSchedule'] as Map<String, dynamic>?;
-  final List itineraryItems = detailedTripData['itinerary'] as List;
-
-  // Group items by day
-  final Map<int, List<dynamic>> groupedByDay = {};
-  for (var item in itineraryItems) {
-    groupedByDay.putIfAbsent(item['day'], () => []).add(item);
+  Future<void> _deleteTrip(String tripId) async {
+    try {
+      await _tripService.deleteTrip(tripId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Trip deleted successfully.')));
+        // Pop back to the previous screen since this one no longer exists
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Failed to delete trip: $e')));
+    }
   }
 
-  if (itineraryItems.isEmpty && smartSchedule == null) {
-    return Center(child: Text("No itinerary planned yet.", style: GoogleFonts.poppins()));
+  // --- NEW: Confirmation dialog for deleting a trip ---
+  void _showDeleteConfirmation(Trip trip) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Trip'),
+        content: const Text(
+            'Are you sure you want to permanently delete this trip? This action cannot be undone.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              _deleteTrip(trip.id);
+            },
+            child: const Text('Yes, Delete'),
+          ),
+        ],
+      ),
+    );
   }
 
-  // Use a regular ListView for a mixed list of widgets
-  return ListView(
-    padding: const EdgeInsets.all(16.0),
-    children: [
-      if (smartSchedule != null) ...[
-        ElevatedButton.icon(
-          icon: const Icon(Icons.train_outlined),
-          label: const Text('View Smart Train Schedule'),
-          onPressed: () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const SmartScheduleScreen()));
-          },
-        ),
-        const Divider(height: 32),
-      ],
-      
-      ...groupedByDay.entries.map((entry) {
-        final day = entry.key;
-        final itemsForDay = entry.value;
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<dynamic>>(
+      future: Future.wait([_tripDetailsFuture, _userFuture]),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+              body: Center(child: CircularProgressIndicator()));
+        }
+        if (snapshot.hasError) {
+          return Scaffold(
+              body: Center(child: Text('Error: ${snapshot.error}')));
+        }
+        if (!snapshot.hasData) {
+          return const Scaffold(body: Center(child: Text('Trip not found.')));
+        }
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16.0, top: 8.0),
-              child: Text(
-                'Day $day',
-                style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold),
+        final Trip trip = snapshot.data![0];
+        final User currentUser = snapshot.data![1];
+
+        return _buildContent(trip, currentUser);
+      },
+    );
+  }
+
+  Widget _buildContent(Trip trip, User currentUser) {
+    final member = trip.group?.members.firstWhere(
+            (m) => m.user.id == currentUser.id,
+            orElse: () => Member(user: currentUser, role: 'viewer')) ??
+        Member(user: currentUser, role: 'viewer');
+    final bool canEdit = member.role == 'owner' || member.role == 'editor';
+    final bool isOwner = member.role == 'owner';
+
+    return Scaffold(
+      floatingActionButton: _tabController.index == 3
+          ? FloatingActionButton(
+              onPressed: () => _showAddExpenseSheet(trip),
+              child: const Icon(Icons.add),
+            )
+          : null,
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) => [
+          SliverAppBar(
+            backgroundColor: const Color(0xFF0E3B4C),
+            expandedHeight: 250.0,
+            pinned: true,
+            centerTitle: true,
+
+            // PART 1: The standard AppBar title.
+            // This is only visible when the header is COLLAPSED.
+            // The AppBar widget automatically handles spacing with action buttons.
+            title: Text(
+              trip.destination,
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
               ),
             ),
-            ...itemsForDay.map((item) {
-              final isLast = item == itemsForDay.last;
-              return ItineraryItemCard(itemData: item, isLastItem: isLast);
-            }).toList(),
-            const SizedBox(height: 24),
+
+            // PART 2: The FlexibleSpaceBar for the EXPANDED header.
+            // We manually place a large title in the background and leave the
+            // main 'title' property of the FlexibleSpaceBar empty.
+            flexibleSpace: FlexibleSpaceBar(
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // Your background image with its overlay
+                  Image.network(
+                    trip.coverImage ?? 'https://via.placeholder.com/400',
+                    fit: BoxFit.cover,
+                    color: Colors.black.withOpacity(0.5),
+                    colorBlendMode: BlendMode.darken,
+                  ),
+
+                  // Manually position the large title for the expanded view
+                  Positioned(
+                    left: 16,
+                    right: 16,
+                    bottom: kToolbarHeight +
+                        16, // Positioned safely above the TabBar
+                    child: Text(
+                      trip.destination,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 28, // A larger, more impactful font size
+                        shadows: [
+                          const Shadow(blurRadius: 4.0, color: Colors.black87),
+                        ],
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            bottom: TabBar(
+              controller: _tabController,
+              isScrollable: true,
+              labelColor: Colors.white,
+              unselectedLabelColor:
+                  const Color.fromARGB(255, 0, 0, 0).withOpacity(0.7),
+              indicatorColor: Colors.cyanAccent,
+              tabs: const [
+                Tab(text: 'Overview'),
+                Tab(text: 'Itinerary'),
+                Tab(text: 'Details'),
+                Tab(text: 'Expenses'),
+              ],
+            ),
+            actions: [
+              IconButton(
+                icon: Icon(
+                    trip.favorite ? Icons.favorite : Icons.favorite_border,
+                    color: trip.favorite ? Colors.red : Colors.white),
+                onPressed: () => _toggleFavorite(trip),
+              ),
+              _isNavigatingToChat
+                  ? const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2)),
+                    )
+                  : IconButton(
+                      icon: const Icon(Icons.chat_bubble_outline),
+                      onPressed: _openChat,
+                    ),
+              PopupMenuButton<String>(
+                onSelected: (value) async {
+                  if (value == 'Edit Trip') {
+                    final updatedTrip = await Navigator.push<Trip>(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => EditTripScreen(trip: trip)));
+                    if (updatedTrip != null) _reloadData();
+                  } else if (value == 'Manage Members') {
+                    final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) =>
+                                ManageMembersScreen(trip: trip)));
+                    if (result == true) _reloadData();
+                  } else if (value == 'Download PDF') {
+                    _downloadPdf(trip);
+                  } else if (value == 'Cancel Trip') {
+                    _showCancelConfirmation(trip);
+                  } else if (value == 'Delete Trip') {
+                    _showDeleteConfirmation(trip);
+                  }
+                },
+                itemBuilder: (context) => [
+                  // --- UPDATED: Conditionally show edit/delete options ---
+                  if (canEdit)
+                    const PopupMenuItem<String>(
+                        value: 'Edit Trip', child: Text('Edit Trip Details')),
+                  const PopupMenuItem<String>(
+                      value: 'Manage Members', child: Text('Manage Members')),
+                  const PopupMenuItem<String>(
+                      value: 'Download PDF',
+                      child: Text('Download Itinerary (PDF)')),
+                  if (canEdit)
+                    const PopupMenuItem<String>(
+                        value: 'Cancel Trip', child: Text('Cancel Trip')),
+                  if (isOwner)
+                    const PopupMenuItem<String>(
+                        value: 'Delete Trip',
+                        child: Text('Delete Trip',
+                            style: TextStyle(color: Colors.red))),
+                ],
+              ),
+            ],
+          ),
+        ],
+        body: TabBarView(
+          controller: _tabController,
+          children: [
+            _buildOverviewTab(trip),
+            ItineraryTab(
+                trip: trip,
+                currentUser: currentUser,
+                onItineraryUpdated: _reloadData),
+            _buildDetailsTab(trip),
+            _buildExpensesTab(trip),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOverviewTab(Trip trip) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildAlerts(trip),
+          _buildWeatherForecast(trip),
+          const SizedBox(height: 16),
+          if (trip.aiSummary != null) _buildAiSummaryCard(trip.aiSummary!),
+          const SizedBox(height: 16),
+          _buildRecommendationsSection("Top Attractions", trip.attractions),
+          const SizedBox(height: 16),
+          _buildRecommendationsSection(
+              "Recommended Eats", trip.foodRecommendations),
+          const SizedBox(height: 16),
+          _buildRecommendationsSection(
+              "Accommodation Suggestions", trip.accommodationSuggestions),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailsTab(Trip trip) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Card(
+          child: Column(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.info_outline),
+                title: const Text("Trip Status"),
+                subtitle: Text(trip.status?.toUpperCase() ?? 'UNKNOWN'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.work_outline),
+                title: const Text("Purpose"),
+                subtitle: Text(trip.purpose
+                        ?.replaceAll('_', ' ')
+                        .split(' ')
+                        .map((word) =>
+                            '${word[0].toUpperCase()}${word.substring(1)}')
+                        .join(' ') ??
+                    'Not specified'),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildSectionHeader("Budget Breakdown"),
+        Card(
+            child: Column(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.attach_money),
+              title: Text("Total Estimated Budget",
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+              subtitle: Text(
+                  "${trip.budget?.total ?? 'N/A'} ${trip.preferences?.currency ?? 'INR'}",
+                  style: const TextStyle(fontSize: 16)),
+            ),
+            const Divider(indent: 16, endIndent: 16),
+            ListTile(
+                leading: const Icon(Icons.flight_takeoff),
+                title: const Text("Travel"),
+                subtitle: Text(
+                    "${trip.budget?.travel ?? 'N/A'} ${trip.preferences?.currency ?? 'INR'}")),
+            ListTile(
+                leading: const Icon(Icons.hotel_outlined),
+                title: const Text("Accommodation"),
+                subtitle: Text(
+                    "${trip.budget?.accommodation ?? 'N/A'} ${trip.preferences?.currency ?? 'INR'}")),
+            ListTile(
+                leading: const Icon(Icons.local_activity_outlined),
+                title: const Text("Activities"),
+                subtitle: Text(
+                    "${trip.budget?.activities ?? 'N/A'} ${trip.preferences?.currency ?? 'INR'}")),
+            ListTile(
+                leading: const Icon(Icons.fastfood_outlined),
+                title: const Text("Food"),
+                subtitle: Text(
+                    "${trip.budget?.food ?? 'N/A'} ${trip.preferences?.currency ?? 'INR'}")),
+          ],
+        )),
+      ],
+    );
+  }
+
+  Widget _buildExpensesTab(Trip trip) {
+    return FutureBuilder<TripExpenseBundle>(
+      future: _expenseFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(
+              child: Text('Failed to load expenses: ${snapshot.error}'));
+        }
+        if (!snapshot.hasData || snapshot.data!.expenses.isEmpty) {
+          return const Center(child: Text('No expenses recorded yet.'));
+        }
+        final expenseBundle = snapshot.data!;
+        return Column(
+          children: [
+            ExpenseSummaryCard(summary: expenseBundle.summary),
+            Expanded(
+              child: ListView.builder(
+                itemCount: expenseBundle.expenses.length,
+                itemBuilder: (context, index) => ExpenseListItem(
+                  expenseData: expenseBundle.expenses[index],
+                  tripId: trip.id,
+                  // --- FIXED: Use the correct parameter name 'onActionCompleted' ---
+                  onActionCompleted: _reloadData,
+                ),
+              ),
+            ),
           ],
         );
-      }).toList(),
-    ],
-  );
-}
+      },
+    );
+  }
 
-  Widget _buildExpensesTab() {
-    final List expenses = detailedTripData['expenses'] as List;
-    final Map<String, dynamic> summary =
-        detailedTripData['summary'] as Map<String, dynamic>;
+  Widget _buildAlerts(Trip trip) {
+    if (trip.alerts.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      color: Colors.amber.shade100,
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Important Alerts",
+                style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 8),
+            ...trip.alerts.map((alert) => Text("⚠️ $alert",
+                style: TextStyle(color: Colors.red.shade900))),
+          ],
+        ),
+      ),
+    );
+  }
 
+  Widget _buildWeatherForecast(Trip trip) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ExpenseSummaryCard(summary: summary),
-        Expanded(
+        _buildSectionHeader("Weather Forecast"),
+        SizedBox(
+          height: 120,
           child: ListView.builder(
-            padding: const EdgeInsets.only(top: 0, bottom: 80),
-            itemCount: expenses.length,
+            scrollDirection: Axis.horizontal,
+            itemCount: trip.weather.length,
             itemBuilder: (context, index) {
-              return ExpenseListItem(expenseData: expenses[index]);
+              final forecast = trip.weather[index];
+              final conditionKey = forecast.condition.toLowerCase();
+              final icon =
+                  _weatherIcons[conditionKey] ?? _weatherIcons['default']!;
+              return Card(
+                child: Container(
+                  width: 100,
+                  padding: const EdgeInsets.all(8),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                          forecast.date != null
+                              ? DateFormat('EEE, d').format(forecast.date!)
+                              : 'No date',
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
+                      Icon(icon,
+                          size: 36, color: Theme.of(context).primaryColor),
+                      Text(forecast.temp, style: const TextStyle(fontSize: 16)),
+                    ],
+                  ),
+                ),
+              );
             },
           ),
         ),
@@ -551,52 +593,203 @@ Widget _buildItineraryTab() {
     );
   }
 
-  // MOVED INSIDE THE CLASS
-  void _showAddExpenseSheet() {
+  Widget _buildAiSummaryCard(AiSummary summary) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSectionHeader("AI Trip Summary"),
+            Text(summary.overview),
+            const Divider(height: 24),
+            _buildBulletedList("Highlights", summary.highlights),
+            _buildBulletedList("Travel Tips", summary.tips),
+            _buildBulletedList("Must-Eat Foods", summary.mustEats),
+            _buildBulletedList("Packing Checklist", summary.packingChecklist),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBulletedList(String title, List<String> items) {
+    if (items.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title,
+              style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.w600, fontSize: 16)),
+          ...items.map((item) => Text("• $item")),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecommendationsSection(
+      String title, List<Recommendation> recommendations) {
+    if (recommendations.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader(title),
+        SizedBox(
+          height: 200,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: recommendations.length,
+            itemBuilder: (context, index) =>
+                PlaceCard(placeData: recommendations[index]),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showAddExpenseSheet(Trip trip) {
+    final descriptionController = TextEditingController();
+    final amountController = TextEditingController();
+    ExpenseCategory selectedCategory = ExpenseCategory.other;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (ctx) {
-        // Use a different context name to avoid confusion
-        return Padding(
-          padding: EdgeInsets.only(
-              bottom: MediaQuery.of(ctx).viewInsets.bottom,
-              top: 20,
-              left: 20,
-              right: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Add New Expense',
-                  style: GoogleFonts.poppins(
-                      fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 20),
-              TextFormField(
-                  decoration: const InputDecoration(labelText: 'Description')),
-              const SizedBox(height: 12),
-              TextFormField(
-                  decoration: const InputDecoration(
-                      labelText: 'Amount', prefixText: '\$')),
-              const SizedBox(height: 20),
-              CheckboxListTile(
-                title: const Text('Split equally with all members'),
-                value: true,
-                onChanged: (val) {},
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: const Text('Add Expense'),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+            top: 20,
+            left: 20,
+            right: 20),
+        child: StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Add New Expense',
+                    style: GoogleFonts.poppins(
+                        fontSize: 20, fontWeight: FontWeight.bold)),
+                TextField(
+                    controller: descriptionController,
+                    decoration:
+                        const InputDecoration(labelText: 'Description')),
+                TextField(
+                    controller: amountController,
+                    decoration: const InputDecoration(labelText: 'Amount'),
+                    keyboardType: TextInputType.number),
+                DropdownButton<ExpenseCategory>(
+                  value: selectedCategory,
+                  isExpanded: true,
+                  onChanged: (ExpenseCategory? newValue) {
+                    if (newValue != null) {
+                      setModalState(() => selectedCategory = newValue);
+                    }
+                  },
+                  items: ExpenseCategory.values
+                      .map((cat) => DropdownMenuItem(
+                          value: cat, child: Text(cat.displayName)))
+                      .toList(),
                 ),
+                ElevatedButton(
+                  child: const Text('Add Expense'),
+                  onPressed: () async {
+                    final desc = descriptionController.text;
+                    final amount = double.tryParse(amountController.text);
+                    if (desc.isNotEmpty && amount != null) {
+                      try {
+                        await _expenseService.addExpense(
+                          tripId: trip.id,
+                          description: desc,
+                          amount: amount,
+                          category: selectedCategory.name,
+                          participantIds: trip.group?.members
+                                  .map((m) => m.user.id)
+                                  .toList() ??
+                              [],
+                        );
+                        if (!ctx.mounted) return;
+                        Navigator.of(ctx).pop();
+                        _reloadData();
+                      } catch (e) {
+                        if (!ctx.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text('Failed to add expense: $e')));
+                      }
+                    }
+                  },
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Text(title,
+          style:
+              GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
+    );
+  }
+
+  void _openChat() async {
+    if (!mounted) return;
+
+    setState(() => _isNavigatingToChat = true);
+
+    try {
+      final existingSession =
+          await _chatService.getSessionForTrip(widget.tripId);
+
+      if (!mounted) return;
+
+      setState(() => _isNavigatingToChat = false);
+
+      if (existingSession != null) {
+        // FIX: Navigate immediately without async/await
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => GroupChatScreen(session: existingSession),
+          ),
+        );
+      } else {
+        ;
+
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('No Chat Session'),
+            content: const Text(
+              'No chat session exists for this trip yet. Chat sessions are automatically created when trip members join.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('OK'),
               ),
-              const SizedBox(height: 20),
             ],
           ),
         );
-      },
-    );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isNavigatingToChat = false);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not access chat: ${e.toString()}'),
+            action: SnackBarAction(
+              label: 'Retry',
+              onPressed: _openChat,
+            ),
+          ),
+        );
+      }
+    }
   }
 }

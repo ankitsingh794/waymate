@@ -120,14 +120,29 @@ class AuthService {
     ));
   }
   
-  // NEW: Implemented updatePassword for authenticated users
-  // Note: This method should be called via ApiClient to handle auth headers and token refresh
-  Future<Map<String, dynamic>> updatePassword({required String currentPassword, required String newPassword}) async {
-      // This is a placeholder as the actual call will be made through ApiClient
-      // which will add the necessary auth headers.
-      // The implementation is in ApiClient.
-      throw UnimplementedError("updatePassword must be called via an ApiClient instance.");
+
+  Future<Map<String, dynamic>> updatePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final accessToken = await getAccessToken();
+    if (accessToken == null) {
+      return {'success': false, 'message': 'User not authenticated.'};
+    }
+
+    return _handleRequest(http.patch(
+      Uri.parse('$_baseUrl/update-password'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $accessToken',
+      },
+      body: json.encode({
+        'currentPassword': currentPassword,
+        'newPassword': newPassword,
+      }),
+    ));
   }
+
 
 
   Future<Map<String, dynamic>> refreshToken() async {

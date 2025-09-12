@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mobile/screens/auth/login_screen.dart';
-import 'package:mobile/screens/core/main_scaffold.dart';
 import 'package:mobile/services/auth_service.dart';
+import 'package:go_router/go_router.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -28,23 +27,20 @@ class _SplashScreenState extends State<SplashScreen> {
     if (refreshToken != null) {
       final result = await authService.refreshToken();
       if (result['success']) {
-        _navigateTo(const MainScaffold());
+        _navigateTo('/home');
       } else {
-        _navigateTo(const LoginScreen());
+        _navigateTo('/login');
       }
     } else {
-      _navigateTo(const LoginScreen());
+      _navigateTo('/login');
     }
   }
 
-  void _navigateTo(Widget screen) {
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => screen),
-      );
-    }
+  void _navigateTo(String routeName) {
+  if (mounted) {
+    context.go(routeName);
   }
+}
 
   @override
   Widget build(BuildContext context) {

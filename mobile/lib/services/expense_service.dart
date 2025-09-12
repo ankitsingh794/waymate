@@ -1,33 +1,41 @@
+// lib/services/expense_service.dart
+
+import 'package:mobile/models/expense_models.dart';
 import 'package:mobile/services/api_client.dart';
-import 'package:mobile/models/expense_models.dart'; // Import the new models
 
 class ExpenseService {
   final ApiClient _apiClient = ApiClient();
 
-  /// Fetches all expenses and the settlement summary for a trip.
-  /// Returns a bundle containing both lists of expenses and the summary.
-  Future<TripExpenseBundle> getTripExpenses(String tripId) async {
+  /// Fetches all expenses and the summary for a specific trip.
+  Future<TripExpenseBundle> getExpensesForTrip(String tripId) async {
     try {
-      final responseData = await _apiClient.get('trips/$tripId/expenses');
-      return TripExpenseBundle.fromJson(responseData['data']);
+      final response = await _apiClient.get('trips/$tripId/expenses');
+      return TripExpenseBundle.fromJson(response['data']);
     } on ApiException {
-      rethrow; // Re-throw the API exception to be handled by the UI layer
+      rethrow;
     } catch (e) {
-      // Catch any other unexpected errors during parsing or processing
-      throw ApiException('Failed to fetch trip expenses. Please try again.');
+      throw ApiException('Failed to parse expense data. Please try again.');
     }
   }
 
-  /// Adds a new expense to a specific trip.
-  /// The expenseData should be a map conforming to the backend's expected structure.
-  /// Returns the newly created Expense object.
-  Future<Expense> addExpense(String tripId, Map<String, dynamic> expenseData) async {
+  /// Adds a new expense to a trip.
+  Future<Expense> addExpense({
+    required String tripId,
+    required String description,
+    required double amount,
+    required String category, // Expecting the string name of the enum
+    required List<String> participantIds,
+  }) async {
     try {
-      final responseData = await _apiClient.post(
-        'trips/$tripId/expenses',
-        body: expenseData,
-      );
-      return Expense.fromJson(responseData['data']['expense']);
+      final body = {
+        'description': description,
+        'amount': amount,
+        'category': category,
+        'participants': participantIds,
+      };
+      final response =
+          await _apiClient.post('trips/$tripId/expenses', body: body);
+      return Expense.fromJson(response['data']['expense']);
     } on ApiException {
       rethrow;
     } catch (e) {
@@ -36,15 +44,23 @@ class ExpenseService {
   }
 
   /// Updates an existing expense.
-  /// The updateData can contain any of the mutable fields: description, amount, etc.
-  /// Returns the updated Expense object.
-  Future<Expense> updateExpense(String tripId, String expenseId, Map<String, dynamic> updateData) async {
+  Future<Expense> updateExpense({
+    required String tripId,
+    required String expenseId,
+    String? description,
+    double? amount,
+    ExpenseCategory? category,
+  }) async {
     try {
-      final responseData = await _apiClient.patch(
-        'trips/$tripId/expenses/$expenseId',
-        body: updateData,
-      );
-      return Expense.fromJson(responseData['data']['expense']);
+      final body = {
+        if (description != null) 'description': description,
+        if (amount != null) 'amount': amount,
+        if (category != null) 'category': category.name,
+      };
+      final response = await _apiClient.patch(
+          'trips/$tripId/expenses/$expenseId',
+          body: body);
+      return Expense.fromJson(response['data']['expense']);
     } on ApiException {
       rethrow;
     } catch (e) {
@@ -53,7 +69,6 @@ class ExpenseService {
   }
 
   /// Deletes an expense from a trip.
-  /// Returns a Future<void> as the API sends no data back on success.
   Future<void> deleteExpense(String tripId, String expenseId) async {
     try {
       await _apiClient.delete('trips/$tripId/expenses/$expenseId');
@@ -61,6 +76,19 @@ class ExpenseService {
       rethrow;
     } catch (e) {
       throw ApiException('Failed to delete expense. Please try again.');
+    }
+  }
+
+  // --- FIXED: This method is now correctly placed inside the class ---
+  /// Fetches the expense summary for a specific trip.
+  Future<ExpenseSummary> getExpenseSummary(String tripId) async {
+    try {
+      final response = await _apiClient.get('trips/$tripId/expenses/summary');
+      return ExpenseSummary.fromJson(response['data']);
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Failed to fetch expense summary. Please try again.');
     }
   }
 }

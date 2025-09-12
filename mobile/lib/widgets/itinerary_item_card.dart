@@ -3,9 +3,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:mobile/models/trip_models.dart';
 
 class ItineraryItemCard extends StatelessWidget {
-  final Map<String, dynamic> itemData;
+  final ItineraryItem itemData;
   final bool isLastItem;
 
   const ItineraryItemCard({
@@ -29,21 +30,26 @@ class ItineraryItemCard extends StatelessWidget {
     }
   }
 
-  String _formatTime(String isoDate) {
-    return DateFormat.jm().format(DateTime.parse(isoDate));
+  String _formatTime(DateTime date) {
+    return DateFormat.jm().format(date);
   }
 
   @override
   Widget build(BuildContext context) {
-    final type = itemData['type'] ?? 'activity';
-    final startTime = _formatTime(itemData['startTime']);
-    final description = itemData['description'] ?? 'No description';
+    final type = itemData.type;
+    
+    // --- FIXED: Handle the case where startTime can be null ---
+    final String startTime = itemData.startTime != null
+        ? _formatTime(itemData.startTime!)
+        : 'No time specified';
+        
+    // --- FIXED: Provide a default value if description is null ---
+    final String description = itemData.description ?? 'No description provided.';
 
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Timeline Column with Icon and Line
           Column(
             children: [
               Container(
@@ -68,27 +74,24 @@ class ItineraryItemCard extends StatelessWidget {
             ],
           ),
           const SizedBox(width: 16),
-          // Content Column
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
+              // Aligns the content to the top of the row instead of center
+              mainAxisAlignment: MainAxisAlignment.start,
               children: [
+                const SizedBox(height: 8), // Added padding for alignment
                 Text(
                   startTime,
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    color: Colors.black54,
-                  ),
+                  style: GoogleFonts.poppins(fontSize: 14, color: Colors.black54),
                 ),
                 Text(
-                  description,
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  description, // This is now guaranteed to be a non-null String
+                  style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
-                const SizedBox(height: 24), // Space between items
+                // Using a Spacer to push the Divider to the bottom
+                const Spacer(),
+                const Divider(height: 1, thickness: 1),
               ],
             ),
           ),

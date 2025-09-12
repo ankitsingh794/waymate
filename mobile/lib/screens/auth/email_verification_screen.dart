@@ -9,7 +9,13 @@ import 'package:mobile/services/auth_service.dart';
 
 class EmailVerificationScreen extends StatefulWidget {
   final String email;
-  const EmailVerificationScreen({super.key, required this.email});
+  final String? token;
+
+  const EmailVerificationScreen({
+    super.key,
+    required this.email,
+    this.token,
+  });
 
   @override
   State<EmailVerificationScreen> createState() =>
@@ -17,66 +23,78 @@ class EmailVerificationScreen extends StatefulWidget {
 }
 
 class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
-  final _tokenController = TextEditingController();
   final _authService = AuthService();
-  bool _isLoading = false;
+
+  // 3. Update initial state for the "check your email" view
+  String _statusMessage =
+      'Please check your email to find the verification link.';
   bool _isVerified = false;
+  bool _hasError = false;
+  bool _isLoading = false; // Start with no loading indicator
 
-  void _handleVerification() async {
-     if (_tokenController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter the verification token from the URL in your email.')),
-      );
-      return;
-    }
-    
-    setState(() => _isLoading = true);
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // FIX: Only try to verify if a token was actually provided (from a deep link)
+      if (widget.token != null && widget.token!.isNotEmpty) {
+        debugPrint('🔗 Deep link verification - Token: ${widget.token}');
+        _handleVerification();
+      } else {
+        // If no token, we just landed here from registration
+        debugPrint('📧 Registration flow - showing email check message');
+        setState(() {
+          _hasError = false; // FIX: Don't show as error, just instruction
+          _statusMessage =
+              'Please check your email for the verification link and tap it to verify your account.';
+        });
+      }
+    });
+  }
 
-    // NOTE: In a real app, you would use deep linking to get the token automatically.
-    // Here we use a text field for manual entry.
-    final result = await _authService.verifyEmail(_tokenController.text.trim());
+  Future<void> _handleVerification() async {
+    // This function is now only called when a real token exists.
+    setState(() => _isLoading = true); // Show loading indicator
+    final result =
+        await _authService.verifyEmail(widget.token!); // We can safely use '!'
 
     if (!mounted) return;
-    
-    setState(() => _isLoading = false);
 
     if (result['success']) {
-      setState(() => _isVerified = true);
-       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Success! You are now logged in.')),
-      );
-      // Wait a bit to show success animation, then navigate
+      setState(() {
+        _isLoading = false;
+        _isVerified = true;
+        _hasError = false; // Turn off error state
+        _statusMessage = 'Success! You are now logged in. Redirecting...';
+      });
+
       Timer(const Duration(seconds: 4), () {
-        if(mounted){
+        if (mounted) {
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (context) => const MainScaffold()),
-            (route) => false, 
+            (route) => false,
           );
         }
       });
     } else {
-       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result['message'] ?? 'Verification failed.')),
-      );
+      setState(() {
+        _isLoading = false;
+        _hasError = true;
+        _statusMessage = result['message'] ??
+            'Verification failed. The link may be invalid or expired.';
+      });
     }
   }
 
   void _handleResendEmail() async {
-    setState(() => _isLoading = true);
     final result = await _authService.resendVerificationEmail(widget.email);
     if (!mounted) return;
-    setState(() => _isLoading = false);
-
-     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(result['message'] ?? 'A request has been sent.')),
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+          content: Text(
+              result['message'] ?? 'A new verification email has been sent.')),
     );
-  }
-
-  @override
-  void dispose() {
-    _tokenController.dispose();
-    super.dispose();
   }
 
   @override
@@ -102,72 +120,98 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 500),
-                  child: _isVerified
-                      ? Lottie.asset('assets/animations/cat done.json', key: const ValueKey('verified'), width: 200, height: 200)
-                      : Lottie.asset('assets/animations/cat.json', key: const ValueKey('sending'), width: 200, height: 200),
-                ),
+                _buildVisuals(), // Helper for showing animation/icon
                 const SizedBox(height: 32),
                 Text(
-                  _isVerified ? 'Successfully Verified!' : 'A verification email has been sent.',
+                  _getHeadlineText(),
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                  style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  _isVerified ? 'Redirecting you to the app...' : 'Please check your inbox, find the token in the verification URL, and paste it below.',
+                  _statusMessage,
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(color: Colors.white70, fontSize: 16),
+                  style: GoogleFonts.poppins(
+                      color:
+                          _hasError ? Colors.yellow.shade200 : Colors.white70,
+                      fontSize: 16),
                 ),
                 const SizedBox(height: 40),
-                if (!_isVerified) ...[
-                  TextField(
-                    controller: _tokenController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      labelText: 'Verification Token',
-                      labelStyle: const TextStyle(color: Colors.white70),
-                      filled: true,
-                      fillColor: Colors.white.withOpacity(0.1),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _handleVerification,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFF16213E),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                      ),
-                      child: _isLoading
-                          ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 3, color: Color(0xFF16213E)))
-                          : Text('Verify Email', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  TextButton(
-                    onPressed: _isLoading ? null : _handleResendEmail,
-                    child: Text(
-                      'Resend Email',
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        decoration: TextDecoration.underline,
-                        decorationColor: Colors.white,
-                      ),
-                    ),
+                // FIX: Show different buttons based on the state
+                if (_hasError && widget.token != null)
+                  // Show retry button only if verification failed
+                  ElevatedButton(
+                    onPressed: _handleVerification,
+                    child: Text('Retry Verification'),
                   )
-                ]
+                else if (widget.token == null)
+                  // Show resend button only if in "check email" mode
+                  Column(
+                    children: [
+                      TextButton(
+                        onPressed: _handleResendEmail,
+                        child: Text(
+                          'Resend Verification Email',
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.underline,
+                            decorationColor: Colors.white,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      TextButton(
+                        onPressed: () =>
+                            Navigator.pushReplacementNamed(context, '/login'),
+                        child: Text(
+                          'Back to Login',
+                          style: GoogleFonts.poppins(
+                            color: Colors.white70,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
               ],
             ),
           ),
         ),
       ),
     );
+  }
+
+  // --- NEW: Helper widget to decide which visual to show ---
+  Widget _buildVisuals() {
+    if (_isLoading) {
+      return const CircularProgressIndicator(color: Colors.white);
+    }
+    if (_isVerified) {
+      return Lottie.asset('assets/animations/cat done.json',
+          width: 200, height: 200);
+    }
+    if (_hasError) {
+      return Lottie.asset('assets/animations/cat.json',
+          width: 200, height: 200);
+    }
+    // FIX: Add default state for "check email" mode
+    return Icon(
+      Icons.email_outlined,
+      size: 120,
+      color: Colors.white,
+    );
+  }
+
+  // --- NEW: Helper to get the correct headline text ---
+  String _getHeadlineText() {
+    if (_isVerified) return 'Successfully Verified!';
+    if (_hasError) return 'Verification Failed';
+    if (_isLoading) return 'Verifying Your Email...';
+    // FIX: Add headline for "check email" mode
+    return 'Check Your Email';
   }
 }

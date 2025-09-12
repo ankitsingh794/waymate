@@ -1,9 +1,11 @@
 // lib/screens/trips/my_trips_screen.dart
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/models/trip_models.dart';
 import 'package:mobile/screens/chat/ai_trip_creation_screen.dart';
-import 'package:mobile/services/notification_service.dart';
+import 'package:mobile/services/trip_service.dart';
 import 'package:mobile/widgets/trip_summary_card.dart';
 
 class MyTripsScreen extends StatefulWidget {
@@ -16,73 +18,63 @@ class MyTripsScreen extends StatefulWidget {
 
 class _MyTripsScreenState extends State<MyTripsScreen>
     with SingleTickerProviderStateMixin {
-  // --- FIX: Declare the TabController here ---
   late TabController _tabController;
+  final TripService _tripService = TripService();
 
-  // In a real app, this data would come from your backend API
-  final List<Map<String, dynamic>> _allTrips = [
-    {
-      "id": "1",
-      "destinationName": "Kyoto, Japan",
-      "dates": {
-        "start": "2025-10-20T00:00:00.000Z",
-        "end": "2025-10-28T00:00:00.000Z"
-      },
-      "highlights": [
-        "Arashiyama Bamboo Grove",
-        "Fushimi Inari Shrine",
-        "Gion District"
-      ],
-      "coverImage":
-          "https://images.unsplash.com/photo-1542051841857-5f90071e7989?q=80&w=2070&auto=format&fit=crop",
-      "status": "upcoming",
-    },
-    {
-      "id": "2",
-      "destinationName": "Rome, Italy",
-      "dates": {
-        "start": "2025-08-30T00:00:00.000Z",
-        "end": "2025-09-05T00:00:00.000Z"
-      },
-      "highlights": ["Colosseum", "Trevi Fountain", "Vatican City"],
-      "coverImage":
-          "https://images.unsplash.com/photo-1552832230-c0197dd311b5?q=80&w=1996&auto=format&fit=crop",
-      "status": "ongoing",
-    },
-    {
-      "id": "3",
-      "destinationName": "Cairo, Egypt",
-      "dates": {
-        "start": "2025-04-15T00:00:00.000Z",
-        "end": "2025-04-22T00:00:00.000Z"
-      },
-      "highlights": [
-        "Pyramids of Giza",
-        "Khan el-Khalili",
-        "Nile River Cruise"
-      ],
-      "coverImage":
-          "https://images.unsplash.com/photo-1569056466998-c18728d1f887?q=80&w=1934&auto=format&fit=crop",
-      "status": "past",
-    }
-  ];
+  final TextEditingController _searchController = TextEditingController();
+  Timer? _debounce;
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _searchController.addListener(_onSearchChanged);
   }
+
+  void _onSearchChanged() {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() {
+          _searchQuery = _searchController.text;
+        });
+      }
+    });
+  }
+
+  Future<List<Trip>> _fetchTrips(String status) async {
+    try {
+      final paginatedResponse = await _tripService.getAllTrips(
+        status: status,
+        destination: _searchQuery.isNotEmpty ? _searchQuery : null,
+        limit: 100,
+      );
+      return paginatedResponse.trips;
+    } catch (e) {
+      debugPrint('Failed to load $status trips: $e');
+      rethrow;
+    }
+  }
+
+  final Map<int, Key> _tabKeys = {
+    0: UniqueKey(),
+    1: UniqueKey(),
+    2: UniqueKey()
+  };
 
   @override
   void dispose() {
     _tabController.dispose();
+    _searchController.dispose();
+    _debounce?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100, // A light background for the cards
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
         flexibleSpace: Container(
           decoration: const BoxDecoration(
@@ -96,90 +88,124 @@ class _MyTripsScreenState extends State<MyTripsScreen>
             ),
           ),
         ),
-        title: Text('Hello, Ankit!',
+        title: Text('My Trips',
             style: GoogleFonts.poppins(
-                color: Colors.white, fontWeight: FontWeight.bold)),
+                fontWeight: FontWeight.bold, color: Colors.white)),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.help_outline, color: Colors.white),
-            onPressed: () {
-              NotificationService().showStopPurposeConfirmation();
-              NotificationService().showTransportConfirmation();
-            },
-          ),
+          // --- FIXED: Removed the temporary/unused "Help" button ---
           IconButton(
             icon: const Icon(Icons.person_outline, color: Colors.white),
             onPressed: widget.navigateToProfile,
           ),
         ],
-        // The TabBar for switching between trip lists
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.white,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.bold),
-          unselectedLabelStyle: GoogleFonts.poppins(),
-          tabs: const [
-            Tab(text: 'Upcoming'),
-            Tab(text: 'Ongoing'),
-            Tab(text: 'Past'),
-          ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(100.0),
+          child: Column(
+            mainAxisAlignment:
+                MainAxisAlignment.end, // Align children to the bottom
+            children: [
+              // Add some vertical padding for better spacing
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search by destination...',
+                    prefixIcon: const Icon(Icons.search, color: Colors.white70),
+                    hintStyle: const TextStyle(color: Colors.white70),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.2),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30.0),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding:
+                        EdgeInsets.zero, // Adjust padding for a tighter look
+                  ),
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+
+              // --- NEW: Wrap the TabBar in a Container for a distinct background ---
+              Container(
+                // A subtle background color to visually separate the tabs
+                color: Colors.black.withOpacity(0.2),
+                child: TabBar(
+                  controller: _tabController,
+                  indicatorColor: Colors.white,
+                  labelColor: Colors.white,
+                  unselectedLabelColor:
+                      Colors.white70, // Add for better unselected state
+                  tabs: const [
+                    Tab(text: 'PLANNED'),
+                    Tab(text: 'ONGOING'),
+                    Tab(text: 'COMPLETED')
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-      // The TabBarView displays the content for each tab
       body: TabBarView(
         controller: _tabController,
         children: [
           _buildTripList(
-              _allTrips.where((t) => t['status'] == 'upcoming').toList(),
-              "No upcoming trips. Time for an adventure!"),
+              _fetchTrips('planned'), "No planned trips found.", _tabKeys[0]!),
           _buildTripList(
-              _allTrips.where((t) => t['status'] == 'ongoing').toList(),
-              "No trips currently in progress."),
-          _buildTripList(_allTrips.where((t) => t['status'] == 'past').toList(),
-              "No trip history yet."),
+              _fetchTrips('ongoing'), "No ongoing trips.", _tabKeys[1]!),
+          _buildTripList(_fetchTrips('completed'),
+              "No completed trips in your history.", _tabKeys[2]!),
         ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-                builder: (context) => const AiTripCreationScreen()),
-          );
+          Navigator.of(context).push(MaterialPageRoute(
+              builder: (context) => const AiTripCreationScreen()));
         },
-        child: Ink(
-          decoration: const ShapeDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color.fromARGB(255, 87, 184, 203),
-                Color.fromARGB(255, 14, 59, 76)
-              ],
-            ),
-            shape: CircleBorder(),
-          ),
-          child: const Center(child: Icon(Icons.add, color: Colors.white)),
-        ),
+        child: const Icon(Icons.add),
       ),
     );
   }
 
-  // A helper widget to build the list for each tab
-  Widget _buildTripList(List<Map<String, dynamic>> trips, String emptyMessage) {
-    if (trips.isEmpty) {
-      return Center(
-        child: Text(emptyMessage,
-            style: GoogleFonts.poppins(color: Colors.black54, fontSize: 16)),
-      );
-    }
+  Widget _buildTripList(
+      Future<List<Trip>> future, String emptyMessage, Key key) {
+    return FutureBuilder<List<Trip>>(
+      key: key,
+      future: future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(
+              child: Text('Failed to load trips.',
+                  style: GoogleFonts.poppins(color: Colors.red.shade700)));
+        }
+        final trips = snapshot.data ?? [];
+        if (trips.isEmpty) {
+          return Center(
+              child:
+                  Text(emptyMessage, style: GoogleFonts.poppins(fontSize: 16)));
+        }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(8.0), // Added padding for better spacing
-      itemCount: trips.length,
-      itemBuilder: (context, index) {
-        return TripSummaryCard(tripData: trips[index]);
+        return RefreshIndicator(
+          onRefresh: () async {
+            setState(() {
+              // This rebuilds the FutureBuilder with a new key, forcing a refetch
+              _tabKeys[_tabController.index] = UniqueKey();
+            });
+          },
+          child: ListView.builder(
+            padding: const EdgeInsets.all(8.0),
+            itemCount: trips.length,
+            itemBuilder: (context, index) {
+              final trip = trips[index];
+              return TripSummaryCard(tripData: trip);
+            },
+          ),
+        );
       },
     );
   }

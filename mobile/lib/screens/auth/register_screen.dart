@@ -45,12 +45,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (result['success']) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result['message'] ?? 'Success! Please verify your email.')),
+        SnackBar(
+            content: Text(
+                result['message'] ?? 'Success! Please verify your email.')),
       );
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => EmailVerificationScreen(email: _emailController.text.trim()),
+          builder: (context) => EmailVerificationScreen(
+            email: _emailController.text.trim(),
+            token:
+                null, 
+          ),
         ),
       );
     } else {
@@ -92,21 +98,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 60),
-                  Text('Create Account', style: GoogleFonts.poppins(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+                  Text('Create Account',
+                      style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  Text('Get started with Waymate', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 18)),
+                  Text('Get started with Waymate',
+                      style: GoogleFonts.poppins(
+                          color: Colors.white70, fontSize: 18)),
                   const SizedBox(height: 48),
-
-                  _buildTextField(label: 'Full Name', controller: _nameController),
+                  _buildTextField(
+                      label: 'Full Name', controller: _nameController),
                   const SizedBox(height: 20),
-
-                  _buildTextField(label: 'Email', controller: _emailController, keyboardType: TextInputType.emailAddress),
+                  _buildTextField(
+                      label: 'Email',
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress),
                   const SizedBox(height: 20),
-
-                  _buildTextField(label: 'Password', controller: _passwordController, obscureText: true),
+                  _buildTextField(
+                      label: 'Password',
+                      controller: _passwordController,
+                      obscureText: true),
                   const SizedBox(height: 32),
-
-                  Text('Select your role', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 16)),
+                  Text('Select your role',
+                      style: GoogleFonts.poppins(
+                          color: Colors.white70, fontSize: 16)),
                   const SizedBox(height: 12),
                   Row(
                     children: [
@@ -116,7 +133,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ],
                   ),
                   const SizedBox(height: 40),
-
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -125,22 +141,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         backgroundColor: Colors.white,
                         foregroundColor: const Color(0xFF16213E),
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30)),
                       ),
                       child: _isLoading
-                          ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 3, color: Color(0xFF16213E)))
-                          : Text('Sign Up', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 3, color: Color(0xFF16213E)))
+                          : Text('Sign Up',
+                              style: GoogleFonts.poppins(
+                                  fontSize: 18, fontWeight: FontWeight.bold)),
                     ),
                   ),
                   const SizedBox(height: 24),
-
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text("Already have an account? ", style: GoogleFonts.poppins(color: Colors.white70)),
+                      Text("Already have an account? ",
+                          style: GoogleFonts.poppins(color: Colors.white70)),
                       GestureDetector(
                         onTap: () => Navigator.pop(context),
-                        child: Text('Login', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold)),
+                        child: Text('Login',
+                            style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),
@@ -154,7 +180,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _buildTextField({required String label, required TextEditingController controller, bool obscureText = false, TextInputType? keyboardType}) {
+  Widget _buildTextField(
+      {required String label,
+      required TextEditingController controller,
+      bool obscureText = false,
+      TextInputType? keyboardType}) {
     return TextField(
       controller: controller,
       obscureText: obscureText,
@@ -165,7 +195,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         labelStyle: const TextStyle(color: Colors.white70),
         filled: true,
         fillColor: Colors.white.withOpacity(0.1),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none),
       ),
     );
   }

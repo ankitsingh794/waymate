@@ -1,5 +1,4 @@
 import 'package:mobile/services/api_client.dart';
-import 'package:mobile/services/ml_service.dart';
 
 // --- ENUMS & Data Models ---
 enum TransportationMode { still, walking, running, cycling, driving, public_transport, unknown }
@@ -56,32 +55,28 @@ class TrackingPoint {
 class TrackingService {
   final ApiClient _apiClient = ApiClient();
 
-  Future<Map<String, dynamic>> startTrip(TrackingPoint startPoint, PredictedActivity mode, {required bool isConfirmed}) async {
+  Future<Map<String, dynamic>> startTrip(TrackingPoint startPoint) async {
     final response = await _apiClient.post(
       'tracking/start',
-      body: {
-        'startPoint': startPoint.toJson(),
-        'mode': mode.toString().split('.').last,
-        'isConfirmed': isConfirmed,
-      },
+      body: { 'startPoint': startPoint.toJson() },
     );
     return response as Map<String, dynamic>;
   }
 
   Future<String> confirmTripStart(String temporaryTripId) async {
-      final response = await _apiClient.post('tracking/confirm-start', body: {'tripId': temporaryTripId});
-      return response['tripId'];
+    final response = await _apiClient.post('tracking/confirm-start', body: {'tripId': temporaryTripId});
+    return response['tripId'];
   }
 
   Future<void> cancelTrip(String temporaryTripId) async {
-      await _apiClient.post('tracking/cancel-start', body: {'tripId': temporaryTripId});
+    await _apiClient.post('tracking/cancel-start', body: {'tripId': temporaryTripId});
   }
 
-  Future<void> changeTripMode(String tripId, PredictedActivity newMode) async {
-      await _apiClient.post('tracking/change-mode', body: {
-          'tripId': tripId,
-          'newMode': newMode.toString().split('.').last,
-      });
+  Future<void> changeTripMode(String tripId, TransportationMode newMode) async {
+    await _apiClient.post('tracking/change-mode', body: {
+        'tripId': tripId,
+        'newMode': newMode.name, 
+    });
   }
 
   Future<void> appendTripData(String tripId, List<TrackingPoint> dataBatch) async {

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 const Color primaryColor = Color(0xFF0E3B4C);
-const Color accentColor = Color(0xFF57B8CB); 
+const Color accentColor = Color(0xFF57B8CB);
 
 final ThemeData appTheme = ThemeData(
   primaryColor: primaryColor,
@@ -58,8 +58,9 @@ final ThemeData appTheme = ThemeData(
       borderSide: const BorderSide(color: primaryColor, width: 2.0),
     ),
   ),
-  
-  cardTheme: CardTheme(
+
+  // CORRECTED: Use CardThemeData instead of CardTheme.
+  cardTheme: CardThemeData(
     elevation: 2,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(12.0),

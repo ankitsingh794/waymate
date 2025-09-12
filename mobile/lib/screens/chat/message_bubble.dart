@@ -1,10 +1,11 @@
-// lib/screens/chat/message_bubble.dart
+// lib/widgets/message_bubble.dart
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/models/message_model.dart';
 
 class MessageBubble extends StatelessWidget {
-  final Map<String, dynamic> message;
+  final Message message;
   final bool isCurrentUser;
   final bool showSenderName;
 
@@ -17,12 +18,10 @@ class MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color bubbleColor = isCurrentUser
-        ? const Color.fromARGB(255, 14, 59, 76) // Dark blue for the current user
-        : Colors.grey.shade200; // Light grey for others
+    final Color bubbleColor = isCurrentUser ? Theme.of(context).primaryColor : Colors.grey.shade200;
     final Color textColor = isCurrentUser ? Colors.white : Colors.black87;
     final Alignment alignment = isCurrentUser ? Alignment.centerRight : Alignment.centerLeft;
-    final String senderName = message['sender']?['name'] ?? 'Unknown';
+    final String senderName = message.sender?.name ?? 'AI Assistant';
 
     return Align(
       alignment: alignment,
@@ -32,30 +31,47 @@ class MessageBubble extends StatelessWidget {
         child: Column(
           crossAxisAlignment: isCurrentUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
-            // Conditionally show the sender's name
             if (showSenderName)
               Padding(
                 padding: const EdgeInsets.only(left: 12.0, bottom: 4.0),
-                child: Text(
-                  senderName,
-                  style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade600),
-                ),
+                child: Text(senderName, style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade600)),
               ),
-            // The message bubble itself
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
               decoration: BoxDecoration(
                 color: bubbleColor,
                 borderRadius: BorderRadius.circular(16.0),
               ),
-              child: Text(
-                message['text'],
-                style: GoogleFonts.poppins(color: textColor, fontSize: 16),
-              ),
+              // --- NEW: Conditionally display text or media ---
+              child: _buildMessageContent(textColor),
             ),
           ],
         ),
       ),
     );
+  }
+
+  // --- NEW: Helper to build content based on message type ---
+  Widget _buildMessageContent(Color textColor) {
+    if (message.media?.type == 'image' && message.media?.url != null) {
+      // Display Image
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(16.0),
+        child: Image.network(
+          message.media!.url!,
+          loadingBuilder: (context, child, progress) {
+            return progress == null ? child : const CircularProgressIndicator();
+          },
+        ),
+      );
+    } else {
+      // Display Text
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
+        child: Text(
+          message.text ?? '...',
+          style: GoogleFonts.poppins(color: textColor, fontSize: 16),
+        ),
+      );
+    }
   }
 }

@@ -1,42 +1,88 @@
 // lib/screens/profile/edit_profile_screen.dart
 
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:mobile/models/user_model.dart';
+import 'package:mobile/services/api_client.dart';
+import 'package:mobile/services/user_service.dart';
 
 class EditProfileScreen extends StatefulWidget {
-  final Map<String, dynamic> userData;
-  const EditProfileScreen({super.key, required this.userData});
+  // --- UPDATED: Now accepts a strongly-typed User object ---
+  final User user;
+  const EditProfileScreen({super.key, required this.user});
 
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
+  final _userService = UserService();
   late TextEditingController _nameController;
   String? _selectedCurrency;
   String? _selectedLanguage;
+  File? _newProfileImage; // To hold the newly picked image file
+  String? _profileImageUrl; // To hold the current image URL for display
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.userData['name'] ?? '');
-    _selectedCurrency = widget.userData['preferences']?['currency'] ?? 'INR';
-    _selectedLanguage = widget.userData['preferences']?['language'] ?? 'en';
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    super.dispose();
+    _nameController = TextEditingController(text: widget.user.name);
+    _selectedCurrency = widget.user.preferences.currency;
+    _selectedLanguage = widget.user.preferences.language;
+    _profileImageUrl = widget.user.profileImage;
   }
   
-  void _pickImage() async {
+  Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
-    // In a real app, you would upload this file to your backend
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
-      // TODO: Handle image upload logic
+      setState(() {
+        _newProfileImage = File(image.path);
+      });
+      _uploadPhoto(); // Immediately upload after picking
+    }
+  }
+
+  Future<void> _uploadPhoto() async {
+    if (_newProfileImage == null) return;
+    setState(() => _isLoading = true);
+    try {
+      final updatedUser = await _userService.uploadProfilePhoto(_newProfileImage!);
+      setState(() {
+        _profileImageUrl = updatedUser.profileImage;
+        _newProfileImage = null; // Clear the selected file
+      });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile photo updated!')));
+    } on ApiException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload failed: ${e.message}')));
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _saveChanges() async {
+    setState(() => _isLoading = true);
+    try {
+      final updatedUser = await _userService.updateUserProfile(
+        name: _nameController.text,
+        currency: _selectedCurrency,
+        language: _selectedLanguage,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile saved successfully!')));
+        Navigator.of(context).pop(updatedUser); // Return updated user data
+      }
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.message}')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -66,10 +112,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               children: [
                 CircleAvatar(
                   radius: 50,
-                  backgroundImage: (widget.userData['profileImage'] as String?)?.isNotEmpty ?? false
-                      ? NetworkImage(widget.userData['profileImage'])
-                      : null,
-                  child: (widget.userData['profileImage'] as String?)?.isEmpty ?? true
+                  // --- UPDATED: Show picked image file or network image ---
+                  backgroundImage: _newProfileImage != null
+                      ? FileImage(_newProfileImage!)
+                      : (_profileImageUrl != null && _profileImageUrl!.isNotEmpty
+                          ? NetworkImage(_profileImageUrl!)
+                          : null) as ImageProvider?,
+                  child: _profileImageUrl == null && _newProfileImage == null
                       ? const Icon(Icons.person, size: 50)
                       : null,
                 ),
@@ -100,9 +149,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             items: ['INR', 'USD', 'EUR']
                 .map((label) => DropdownMenuItem(value: label, child: Text(label)))
                 .toList(),
-            onChanged: (value) {
-              setState(() => _selectedCurrency = value);
-            },
+            onChanged: (value) => setState(() => _selectedCurrency = value),
           ),
           const SizedBox(height: 20),
           DropdownButtonFormField<String>(
@@ -111,22 +158,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             items: ['en', 'hi', 'es']
                 .map((langCode) => DropdownMenuItem(value: langCode, child: Text({'en': 'English', 'hi': 'Hindi', 'es': 'Spanish'}[langCode]!)))
                 .toList(),
-            onChanged: (value) {
-              setState(() => _selectedLanguage = value);
-            },
+            onChanged: (value) => setState(() => _selectedLanguage = value),
           ),
           const SizedBox(height: 40),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
-                // TODO: Add logic to call the updateUserProfile API
-              },
-              child: const Text('Save Changes'),
+              onPressed: _isLoading ? null : _saveChanges,
+              child: _isLoading
+                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Text('Save Changes'),
             ),
           ),
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
   }
 }
