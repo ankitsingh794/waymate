@@ -44,15 +44,16 @@ const createEmailLayout = (title, content) => `
 </html>
 `;
 
-exports.generateVerificationEmailHTML = (name, verificationUrl) => {
+exports.generateVerificationEmailHTML = (name, mobileVerifyURL, webVerifyURL) => {
     const safeName = escapeHTML(name);
     const content = `
         <p>Hi ${safeName},</p>
         <p>Thanks for signing up! Please verify your email address by clicking the button below. This link is valid for 10 minutes.</p>
         <div class="button-container">
-            <a href="${verificationUrl}" class="button">Verify My Email</a>
+            <a href="${mobileVerifyURL}" class="button">📱 Open in WayMate App</a>
+            <a href="${webVerifyURL}" class="button" style="background-color: #4CAF50;">🌐 Verify in Browser</a>
         </div>
-        <p>If the button doesn't work, copy and paste this link into your browser:<br/><a href="${verificationUrl}">${verificationUrl}</a></p>
+        <p>If the buttons don't work, copy and paste this link into your browser:<br/><a href="${webVerifyURL}">${webVerifyURL}</a></p>
         <p>Thanks,<br/>The ${escapeHTML(APP_NAME)} Team</p>
     `;
     return createEmailLayout('Verify Your Email', content);
@@ -71,9 +72,6 @@ exports.generatePasswordResetEmailHTML = (name, resetUrl) => {
     `;
     return createEmailLayout('Reset Your Password', content);
 };
-
-// Add this to your services/emailTemplates.js file
-// ... (alongside your other generate... functions)
 
 exports.generateTripReadyEmailHTML = (name, tripSummary) => {
     const safeName = escapeHTML(name);

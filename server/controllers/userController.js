@@ -4,6 +4,7 @@ const AppError = require('../utils/AppError');
 const { sendSuccess } = require('../utils/responseHelper');
 const cloudinary = require('../config/cloudinary');
 const ConsentLog = require('../models/ConsentLog');
+const crypto = require('crypto');
 
 /**
  * @desc Get current user profile
@@ -12,11 +13,16 @@ const ConsentLog = require('../models/ConsentLog');
  */
 exports.getUserProfile = async (req, res, next) => {
   try {
-    logger.info(`Fetching profile for user: ${req.user.email}`);
-    // Consistent success response signature
-    return sendSuccess(res, 200, 'User profile fetched successfully', { user: req.user });
+    const user = await User.findById(req.user._id);
+    
+    // Sync consents from ConsentLog
+    await user.syncConsentsFromLog();
+    
+    res.json({
+      success: true,
+      data: user
+    });
   } catch (error) {
-    logger.error(`Error fetching profile: ${error.message}`);
     next(error);
   }
 };
@@ -170,25 +176,128 @@ exports.changeAccountStatus = async (req, res, next) => {
 };
 
 /**
- * @desc Record or update user consent status
- * @route POST /api/users/profile/consent
- * @access Private
+ * @desc    Update user consent
+ * @route   PUT /api/v1/users/consent
+ * @access  Private
  */
 exports.updateUserConsent = async (req, res, next) => {
-    try {
-        const { consentType, status } = req.body; // status is 'granted' or 'revoked'
-        const userId = req.user._id;
-
-        await ConsentLog.create({
-            userId,
-            consentType,
-            status,
-            source: 'user_dashboard'
-        });
-
-        logger.info(`Consent status for '${consentType}' updated to '${status}' for user ${req.user.email}`);
-        sendSuccess(res, 200,'Consent status updated successfully.');
-    } catch (error) {
-        next(error);
+  try {
+    const { consentType, status } = req.body;
+    
+    // Validate input
+    const validConsentTypes = ['data_collection', 'demographic_data', 'passive_tracking'];
+    const validStatuses = ['granted', 'revoked'];
+    
+    if (!validConsentTypes.includes(consentType)) {
+      return next(new AppError('Invalid consent type', 400));
     }
+    
+    if (!validStatuses.includes(status)) {
+      return next(new AppError('Invalid consent status', 400));
+    }
+
+    // Create consent log entry
+    await ConsentLog.create({
+      userId: req.user._id,
+      consentType,
+      status,
+      source: 'mobile_app'
+    });
+
+    // Update user's consent field
+    const user = await User.findById(req.user._id);
+    user.consents[consentType] = {
+      status,
+      updatedAt: new Date()
+    };
+    await user.save();
+
+    logger.info(`User consent updated: ${req.user.email} - ${consentType}: ${status}`);
+
+    res.json({
+      success: true,
+      message: 'Consent updated successfully',
+      data: {
+        consentType,
+        status,
+        updatedAt: new Date()
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get all users (for researchers/admins)
+ * @route   GET /api/v1/users
+ * @access  Researcher/Admin only
+ */
+exports.getAllUsers = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 50, search } = req.query;
+    
+    // Build query
+    const query = {};
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Execute query with pagination
+    const users = await User.find(query)
+      .select('name email accountStatus createdAt demographics location.city location.country')
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Get total count for pagination
+    const total = await User.countDocuments(query);
+
+    // Create anonymized hashes for research purposes
+    const usersWithHashes = users.map(user => ({
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      accountStatus: user.accountStatus,
+      createdAt: user.createdAt,
+      demographics: user.demographics,
+      location: {
+        city: user.location?.city,
+        country: user.location?.country
+      },
+      // Add anonymized hash for analytics
+      anonymizedHash: createAnonymousHash(user._id.toString())
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        users: usersWithHashes,
+        pagination: {
+          current: parseInt(page),
+          pages: Math.ceil(total / limit),
+          total,
+          hasNext: page < Math.ceil(total / limit),
+          hasPrev: page > 1
+        }
+      }
+    });
+
+    logger.info(`User list requested by: ${req.user.email}`);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Helper function for creating anonymous hashes (add this to the file)
+const createAnonymousHash = (id) => {
+  const ANONYMIZATION_SALT = process.env.ANONYMIZATION_SALT || 'waymate-analytics-salt';
+  return crypto.createHmac('sha256', ANONYMIZATION_SALT)
+    .update(id.toString())
+    .digest('hex')
+    .substring(0, 16);
 };

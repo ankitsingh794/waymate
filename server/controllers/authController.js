@@ -37,15 +37,18 @@ exports.registerUser = async (req, res, next) => {
             return next(new AppError('An account with this email already exists.', 409));
         }
 
-        // If user exists but is not verified, resend verification
         if (user && !user.isEmailVerified) {
             const verificationToken = user.createEmailVerifyToken();
             await user.save({ validateBeforeSave: false });
-            const verifyURL = `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}`;
+            
+            // FIX: Create mobile-friendly deep link
+            const verifyURL = `waymate://verify-email?token=${verificationToken}&email=${encodeURIComponent(user.email)}`;
+            const webVerifyURL = `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}&email=${encodeURIComponent(user.email)}`;
+            
             await sendEmail({
                 to: user.email,
                 subject: 'Action Required: Verify Your Email',
-                html: generateVerificationEmailHTML(user.name, verifyURL)
+                html: generateVerificationEmailHTML(user.name, verifyURL, webVerifyURL)
             });
             return sendSuccess(res, 200, 'An unverified account exists. A new verification email has been sent.');
         }
@@ -55,11 +58,14 @@ exports.registerUser = async (req, res, next) => {
         const verificationToken = user.createEmailVerifyToken();
         await user.save();
         
-        const verifyURL = `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}`;
+        // Create both mobile and web deep links
+        const mobileVerifyURL = `waymate://verify-email?token=${verificationToken}&email=${encodeURIComponent(user.email)}`;
+        const webVerifyURL = `https://waymate.vercel.app/verify-email?token=${verificationToken}&email=${encodeURIComponent(user.email)}`;
+        
         await sendEmail({
             to: user.email,
             subject: 'Welcome! Please Verify Your Email',
-            html: generateVerificationEmailHTML(user.name, verifyURL)
+            html: generateVerificationEmailHTML(user.name, mobileVerifyURL, webVerifyURL)
         });
 
         logger.info('User partially registered. Verification email sent.', { email, role: assignedRole });
@@ -135,11 +141,13 @@ exports.resendVerificationEmail = async (req, res, next) => {
         const verificationToken = user.createEmailVerifyToken();
         await user.save({ validateBeforeSave: false });
 
-        const verifyURL = `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}`;
+        const mobileVerifyURL = `waymate://verify-email?token=${verificationToken}&email=${encodeURIComponent(user.email)}`;
+        const webVerifyURL = `https://waymate.vercel.app/verify-email?token=${verificationToken}&email=${encodeURIComponent(user.email)}`;
+        
         await sendEmail({
             to: user.email,
             subject: 'Action Required: Verify Your Email',
-            html: generateVerificationEmailHTML(user.name, verifyURL)
+            html: generateVerificationEmailHTML(user.name, mobileVerifyURL, webVerifyURL)
         });
 
         logger.info(`Resent verification email to ${email}`);

@@ -9,7 +9,8 @@ const {
   updateUserPhoto,
   changeAccountStatus,
   updateUserLocation,
-  updateUserConsent
+  updateUserConsent,
+  getAllUsers // ADD THIS
 } = require('../controllers/userController');
 
 const { protect, authorizeRoles } = require('../middlewares/authMiddleware');
@@ -79,6 +80,9 @@ router.post('/profile/consent',
     updateUserConsent
 );
 
+// Add this route:
+router.put('/consent', protect, updateUserConsent);
+
 // --- Admin-Only Routes ---
 
 // Change a specific user's account status
@@ -88,6 +92,15 @@ router.patch('/:id/status',
   [body('status').isIn(['active', 'suspended', 'banned']).withMessage('Status must be one of: active, suspended, or banned')],
   validate,
   changeAccountStatus
+);
+
+// --- Admin/Researcher Routes ---
+
+// Get all users (for analytics and administration)
+router.get('/',
+  protect,
+  authorizeRoles('admin', 'researcher'),
+  getAllUsers
 );
 
 module.exports = router;

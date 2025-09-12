@@ -3,6 +3,8 @@ const { Transform: Json2CsvTransform } = require('json2csv');
 const exportService = require('../services/exportService');
 const AppError = require('../utils/AppError');
 const logger = require('../utils/logger');
+const Trip = require('../models/Trip'); // Import Trip model
+const User = require('../models/User'); // Import User model
 
 /**
  * @desc    Export anonymized trip data as a streaming JSON array.
@@ -183,4 +185,42 @@ exports.exportTripsAsNatpacCsv = (req, res, next) => {
         logger.error('NATPAC CSV export failed to initiate', { error: error.message });
         next(error);
     }
+};
+
+/**
+ * @desc    Get export statistics
+ * @route   GET /api/v1/export/stats
+ * @access  Researcher only
+ */
+exports.getExportStats = async (req, res, next) => {
+  try {
+    const [tripCount, userCount, householdCount] = await Promise.all([
+      Trip.countDocuments(),
+      User.countDocuments(),
+      User.distinct('householdId').then(ids => ids.filter(id => id != null).length),
+    ]);
+
+    // Get format counts from some logging mechanism if available
+    const formatCounts = {
+      'csv': 0,
+      'json': 0,
+      'natpac-csv': 0,
+      'comprehensive-csv': 0,
+      'trip-chains-csv': 0,
+      'mode-share-csv': 0,
+    };
+
+    res.json({
+      success: true,
+      data: {
+        totalTrips: tripCount,
+        totalUsers: userCount,
+        totalHouseholds: householdCount,
+        lastExport: new Date().toISOString(), // You might want to track this properly
+        formatCounts,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
 };

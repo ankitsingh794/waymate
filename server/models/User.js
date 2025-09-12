@@ -77,7 +77,22 @@ const userSchema = new mongoose.Schema(
     sessionHash: {
         type: String,
         select: false
-    }
+    },
+    // ADD: Consents field to sync with ConsentLog
+    consents: {
+      data_collection: {
+        status: { type: String, enum: ['granted', 'revoked'], default: 'revoked' },
+        updatedAt: { type: Date, default: Date.now }
+      },
+      demographic_data: {
+        status: { type: String, enum: ['granted', 'revoked'], default: 'revoked' },
+        updatedAt: { type: Date, default: Date.now }
+      },
+      passive_tracking: {
+        status: { type: String, enum: ['granted', 'revoked'], default: 'revoked' },
+        updatedAt: { type: Date, default: Date.now }
+      }
+    },
   },
   { timestamps: true }
 );
@@ -113,6 +128,30 @@ userSchema.methods.createPasswordResetToken = function () {
   this.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex');
   this.passwordResetTokenExpires = Date.now() + 15 * 60 * 1000; // 15 mins
   return resetToken;
+};
+
+// ADD: Method to sync consents from ConsentLog
+userSchema.methods.syncConsentsFromLog = async function() {
+  const ConsentLog = require('./ConsentLog');
+  
+  const consentTypes = ['data_collection', 'demographic_data', 'passive_tracking'];
+  
+  for (const consentType of consentTypes) {
+    const latestConsent = await ConsentLog.findOne({
+      userId: this._id,
+      consentType: consentType
+    }).sort({ createdAt: -1 });
+
+    if (latestConsent) {
+      this.consents[consentType] = {
+        status: latestConsent.status,
+        updatedAt: latestConsent.createdAt
+      };
+    }
+  }
+  
+  await this.save();
+  return this;
 };
 
 userSchema.set('toJSON', {

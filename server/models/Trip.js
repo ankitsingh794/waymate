@@ -245,6 +245,53 @@ const TripSchema = new mongoose.Schema({
     default: []
   },
   favorite: { type: Boolean, default: false },
+
+  // ADD: Passive tracking fields for NATPAC
+  passiveData: {
+    detectedMode: {
+      type: String,
+      enum: ['still', 'walking', 'running', 'cycling', 'driving', 'public_transport', 'unknown'],
+    },
+    confirmedMode: {
+      type: String,
+      enum: ['still', 'walking', 'running', 'cycling', 'driving', 'public_transport', 'unknown'],
+    },
+    modeConfidence: { type: Number, min: 0, max: 1 },
+    companionCount: { type: Number, min: 0, default: 0 },
+    companionConfidence: { type: Number, min: 0, max: 1 },
+    tripPurpose: {
+      type: String,
+      enum: ['work', 'education', 'shopping', 'personal_business', 'leisure', 'healthcare', 'social', 'other'],
+    },
+    isPassivelyDetected: { type: Boolean, default: false },
+    rawSensorData: {
+      totalDataPoints: { type: Number, default: 0 },
+      avgAccuracy: { type: Number },
+      sensorCompleteness: { type: Number, min: 0, max: 1 },
+      batteryOptimized: { type: Boolean, default: true }
+    }
+  },
+
+  // ADD: Trip chain information
+  tripChain: {
+    chainId: { type: String },
+    positionInChain: { type: Number },
+    isRoundTrip: { type: Boolean, default: false },
+    previousTripId: { type: mongoose.Schema.Types.ObjectId, ref: 'Trip' },
+    nextTripId: { type: mongoose.Schema.Types.ObjectId, ref: 'Trip' }
+  },
+
+  // ADD: NATPAC specific metrics
+  natpacMetrics: {
+    dataQualityScore: { type: Number, min: 0, max: 1 },
+    isPeakHour: { type: Boolean },
+    sustainableMode: { type: Boolean },
+    multiModalTrip: { type: Boolean, default: false },
+    weatherCondition: { type: String },
+    dayOfWeek: { type: String },
+    isWeekend: { type: Boolean }
+  },
+
 }, { timestamps: true });
 
 
