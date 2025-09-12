@@ -60,6 +60,14 @@ const authenticateSocket = async (socket, next) => {
   }
 };
 
+// FIX: Add the getSocketIO function
+const getSocketIO = () => {
+  if (!io) {
+    throw new Error('Socket.IO has not been initialized. Call initSocketIO first.');
+  }
+  return io;
+};
+
 /**
  * Initializes the Socket.IO server.
  * @param {object} httpServer The Node.js HTTP server instance.
@@ -68,14 +76,15 @@ const authenticateSocket = async (socket, next) => {
 const initSocketIO = (httpServer) => {
 
   // --- FIX: A more robust, environment-aware CORS configuration ---
- const corsOptions = {
-  // Allow connections from any origin. Your socket authentication 
-  // middleware will handle security.
-  origin: "*", 
-  methods: ['GET', 'POST'],
-  credentials: true,
-};
-logger.info('Socket.IO CORS configured to allow all origins.');
+  const corsOptions = {
+    // Allow connections from any origin. Your socket authentication 
+    // middleware will handle security.
+    origin: "*", 
+    methods: ['GET', 'POST'],
+    credentials: true,
+  };
+  logger.info('Socket.IO CORS configured to allow all origins.');
+  
   io = new Server(httpServer, {
     cors: corsOptions,
   });
@@ -84,14 +93,17 @@ logger.info('Socket.IO CORS configured to allow all origins.');
   const onConnection = (socket) => {
     logger.info(`✅ Socket connected: ${socket.id} for user ${socket.user.email}`);
     socket.join(socket.user._id.toString());
+    
     socket.on('joinSession', (sessionId) => {
       socket.join(sessionId);
       logger.debug(`Socket ${socket.id} joined session ${sessionId}`);
     });
+    
     socket.on('leaveSession', (sessionId) => {
       socket.leave(sessionId);
       logger.debug(`Socket ${socket.id} left session ${sessionId}`);
     });
+    
     socket.on('disconnect', (reason) => {
       logger.info(`🔌 Client disconnected: ${socket.id}. Reason: ${reason}`);
     });
@@ -137,7 +149,9 @@ logger.info('Socket.IO CORS configured to allow all origins.');
   return io;
 };
 
+// FIX: Export the getSocketIO function
 module.exports = {
   initSocketIO,
   authenticateSocket,
+  getSocketIO, // Add this export
 };

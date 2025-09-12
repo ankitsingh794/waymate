@@ -75,7 +75,6 @@ exports.sendTextMessage = async (req, res, next) => {
         // Populate sender details for the socket event and response
         const populatedMessage = await Message.findById(newMessage._id).populate('sender', 'name email profileImage');
         
-        // Emit event to other clients in the room
         const io = getSocketIO();
         io.to(sessionId).emit('newMessage', populatedMessage);
 
@@ -83,7 +82,6 @@ exports.sendTextMessage = async (req, res, next) => {
         sendSuccess(res, 201, 'Message sent successfully.', { message: populatedMessage });
 
     } catch (error) {
-        // Only abort if transaction hasn't been committed
         if (!transactionCommitted) {
             await dbSession.abortTransaction();
         }
@@ -94,7 +92,6 @@ exports.sendTextMessage = async (req, res, next) => {
     }
 };
 
-// FIX: Updated sendMediaMessage with proper transaction handling
 exports.sendMediaMessage = async (req, res, next) => {
     const { sessionId } = req.params;
     const senderId = req.user._id;
