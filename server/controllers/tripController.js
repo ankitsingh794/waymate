@@ -318,7 +318,7 @@ exports.updateTripStatus = async (req, res, next) => {
 };
 
 /**
- * @desc    Generate a short-lived invitation link for a trip.
+ * @desc    Generate a short-lived invitation token for a trip.
  * @route   POST /api/trips/:id/generate-invite
  * @access  Private (Owner or Editor)
  */
@@ -331,10 +331,13 @@ exports.generateInviteLink = async (req, res, next) => {
         trip.inviteTokens.push({ token: inviteToken, expires: inviteTokenExpires });
         await trip.save();
 
-        const inviteLink = `${process.env.CLIENT_URL}/join-trip?token=${inviteToken}`;
-
-        logger.info(`Invite link generated for trip ${trip._id} by ${req.user.email}`);
-        return sendSuccess(res, 200, 'Invite link generated successfully', { inviteLink });
+        // FIX: Return just the token instead of a web link
+        logger.info(`Invite token generated for trip ${trip._id} by ${req.user.email}`);
+        return sendSuccess(res, 200, 'Invite token generated successfully', { 
+            inviteToken: inviteToken,
+            expiresAt: new Date(inviteTokenExpires).toISOString(),
+            tripName: trip.destination || trip.name
+        });
     } catch (error) {
         next(error);
     }
