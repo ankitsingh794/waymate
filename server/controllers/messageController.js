@@ -38,41 +38,44 @@ exports.getMessages = async (req, res) => {
     }
 };
 
-// Alternative implementation with cleaner transaction handling:
+// FIX: Use the manual transaction approach (recommended)
 exports.sendTextMessage = async (req, res, next) => {
     const { sessionId } = req.params;
     const { message: messageText } = req.body;
     const senderId = req.user._id;
 
     const dbSession = await mongoose.startSession();
+    let transactionCommitted = false;
 
     try {
-        await dbSession.withTransaction(async () => {
-            const chatSession = await ChatSession.findOne({ _id: sessionId, participants: senderId }).session(dbSession);
-            if (!chatSession) {
-                throw new AppError('Access denied. You cannot send messages to this session.', 403);
-            }
+        dbSession.startTransaction();
 
-            const newMessage = new Message({
-                chatSession: sessionId,
-                sender: senderId,
-                messageType: 'text',
-                text: messageText,
-            });
-            await newMessage.save({ session: dbSession });
+        const chatSession = await ChatSession.findOne({ _id: sessionId, participants: senderId }).session(dbSession);
+        if (!chatSession) {
+            throw new AppError('Access denied. You cannot send messages to this session.', 403);
+        }
 
-            chatSession.lastMessage = {
-                text: messageText,
-                sentAt: new Date(),
-            };
-            await chatSession.save({ session: dbSession });
-
-            return newMessage._id;
+        const newMessage = new Message({
+            chatSession: sessionId,
+            sender: senderId,
+            messageType: 'text',
+            text: messageText,
         });
+        await newMessage.save({ session: dbSession });
 
-        // After successful transaction, do the post-processing
+        chatSession.lastMessage = {
+            text: messageText,
+            sentAt: new Date(),
+        };
+        await chatSession.save({ session: dbSession });
+
+        await dbSession.commitTransaction();
+        transactionCommitted = true;
+
+        // Populate sender details for the socket event and response
         const populatedMessage = await Message.findById(newMessage._id).populate('sender', 'name email profileImage');
         
+        // Emit event to other clients in the room
         const io = getSocketIO();
         io.to(sessionId).emit('newMessage', populatedMessage);
 
@@ -80,17 +83,19 @@ exports.sendTextMessage = async (req, res, next) => {
         sendSuccess(res, 201, 'Message sent successfully.', { message: populatedMessage });
 
     } catch (error) {
+        // Only abort if transaction hasn't been committed
+        if (!transactionCommitted) {
+            await dbSession.abortTransaction();
+        }
         logger.error(`Error sending text message: ${error.message}`);
         next(error);
     } finally {
-        await dbSession.endSession();
+        dbSession.endSession();
     }
 };
 
 // FIX: Updated sendMediaMessage with proper transaction handling
 exports.sendMediaMessage = async (req, res, next) => {
-    console.log('req.file:', req.file);
-    console.log('req.body:', req.body);
     const { sessionId } = req.params;
     const senderId = req.user._id;
 
@@ -152,7 +157,7 @@ exports.sendMediaMessage = async (req, res, next) => {
         sendSuccess(res, 201, 'Media message sent successfully.', { message: populatedMessage });
 
     } catch (error) {
-        // FIX: Only abort if transaction hasn't been committed
+        // Only abort if transaction hasn't been committed
         if (!transactionCommitted) {
             await dbSession.abortTransaction();
         }
@@ -167,6 +172,7 @@ exports.sendMediaMessage = async (req, res, next) => {
             }
         }
 
+        logger.error(`Error sending media message: ${error.message}`);
         next(error);
     } finally {
         dbSession.endSession();
