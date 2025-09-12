@@ -17,10 +17,15 @@ if (!ANONYMIZATION_SALT) {
  */
 const createAnonymousHash = (id) => {
     if (!id) return null;
-    return createHmac('sha256', ANONYMIZATION_SALT || 'default-secret-key-for-dev')
-        .update(id.toString())
-        .digest('hex')
-        .substring(0, 16);
+    try {
+        return createHmac('sha256', ANONYMIZATION_SALT || 'default-secret-key-for-dev')
+            .update(id.toString())
+            .digest('hex')
+            .substring(0, 16);
+    } catch (error) {
+        logger.error('Error creating anonymous hash', { id, error: error.message });
+        return null;
+    }
 };
 
 /**
@@ -29,34 +34,71 @@ const createAnonymousHash = (id) => {
  * @returns {object} Anonymized trip data.
  */
 const anonymizeTrip = (trip) => {
-    const firstMemberWithHousehold = trip.group.members.find(m => m.userId && m.userId.householdId);
-    const householdHash = firstMemberWithHousehold
-        ? createAnonymousHash(firstMemberWithHousehold.userId.householdId)
-        : null;
+    try {
+        // FIX: Add more detailed logging for debugging
+        logger.debug('Anonymizing trip', { tripId: trip?._id });
+        
+        // FIX: Add safety checks for nested objects
+        const members = trip.group?.members || [];
+        const firstMemberWithHousehold = members.find(m => m.userId && m.userId.householdId);
+        const householdHash = firstMemberWithHousehold
+            ? createAnonymousHash(firstMemberWithHousehold.userId.householdId)
+            : null;
 
-    const anonymizedMembers = trip.group.members.map(member => ({
-        memberHash: createAnonymousHash(member.userId._id),
-        role: member.role,
-        ageGroup: member.ageGroup || null,
-        gender: member.gender || null,
-        relation: member.relation || null
-    }));
+        const anonymizedMembers = members.map(member => ({
+            memberHash: createAnonymousHash(member.userId?._id),
+            role: member.role || 'unknown',
+            ageGroup: member.ageGroup || null,
+            gender: member.gender || null,
+            relation: member.relation || null
+        }));
 
-    return {
-        tripId: trip._id,
-        householdHash,
-        destination: trip.destination,
-        startDate: trip.startDate.toISOString().split('T')[0],
-        endDate: trip.endDate.toISOString().split('T')[0],
-        purpose: trip.purpose,
-        source: trip.source,
-        members: anonymizedMembers,
-        transportMode: trip.preferences.transportMode,
-        accommodationType: trip.preferences.accommodationType,
-        tripCreatedAt: trip.createdAt.toISOString(),
-        tripUpdatedAt: trip.updatedAt.toISOString(),
-        itinerary: trip.itinerary || []
-    };
+        const result = {
+            tripId: trip._id?.toString() || '',
+            householdHash,
+            destination: trip.destination || 'Unknown',
+            startDate: trip.startDate ? trip.startDate.toISOString().split('T')[0] : '',
+            endDate: trip.endDate ? trip.endDate.toISOString().split('T')[0] : '',
+            purpose: trip.purpose || 'Unknown',
+            source: trip.source || 'Unknown',
+            members: anonymizedMembers,
+            transportMode: trip.preferences?.transportMode || 'Unknown',
+            accommodationType: trip.preferences?.accommodationType || 'Unknown',
+            tripCreatedAt: trip.createdAt ? trip.createdAt.toISOString() : '',
+            tripUpdatedAt: trip.updatedAt ? trip.updatedAt.toISOString() : '',
+            itinerary: trip.itinerary || []
+        };
+
+        logger.debug('Trip anonymized successfully', { 
+            tripId: result.tripId, 
+            memberCount: result.members.length,
+            itineraryLength: result.itinerary.length
+        });
+
+        return result;
+    } catch (error) {
+        logger.error('Error anonymizing trip', { 
+            tripId: trip._id, 
+            error: error.message,
+            stack: error.stack
+        });
+        // Return a minimal valid object to prevent pipeline failure
+        return {
+            tripId: trip._id?.toString() || 'error',
+            householdHash: null,
+            destination: 'Error',
+            startDate: '',
+            endDate: '',
+            purpose: 'Error',
+            source: 'Error',
+            members: [],
+            transportMode: 'Error',
+            accommodationType: 'Error',
+            tripCreatedAt: '',
+            tripUpdatedAt: '',
+            itinerary: []
+        };
+    }
 };
 
 /**
@@ -91,6 +133,8 @@ const buildQuery = (queryParams) => {
 const getAnonymizedTripDataStream = (filters = {}) => {
     try {
         const query = buildQuery(filters);
+        logger.info('Starting trip export stream', { query, filters });
+        
         const cursor = Trip.find(query)
             .populate({
                 path: 'group.members.userId',
@@ -104,16 +148,37 @@ const getAnonymizedTripDataStream = (filters = {}) => {
             read() {}
         });
 
+        let processedCount = 0;
+
         cursor.on('data', (doc) => {
-            readableStream.push(anonymizeTrip(doc));
+            try {
+                processedCount++;
+                logger.debug('Processing trip document', { 
+                    tripId: doc._id, 
+                    processedCount 
+                });
+                
+                const anonymizedTrip = anonymizeTrip(doc);
+                readableStream.push(anonymizedTrip);
+            } catch (error) {
+                logger.error('Error processing trip document', { 
+                    tripId: doc._id, 
+                    error: error.message,
+                    stack: error.stack
+                });
+                // Continue with next document instead of breaking the stream
+            }
         });
 
         cursor.on('end', () => {
-            logger.info('Finished streaming all trips from the database for export.');
+            logger.info('Finished streaming all trips from the database for export.', { 
+                totalProcessed: processedCount 
+            });
             readableStream.push(null);
         });
 
         cursor.on('error', (err) => {
+            logger.error('Database cursor error during export', { error: err.message });
             readableStream.emit('error', new AppError('A database error occurred during the export.', 500));
         });
 
@@ -135,21 +200,36 @@ const getAnonymizedTripDataStream = (filters = {}) => {
  * @returns {Array<object>} An array of NATPAC-formatted records.
  */
 const transformToNatpacSchema = (anonymizedTrip) => {
-    return anonymizedTrip.members.flatMap(member => {
+    try {
+        // FIX: Add detailed logging for debugging
+        logger.debug('Transforming trip to NATPAC schema', { 
+            tripId: anonymizedTrip?.tripId,
+            hasMembers: !!(anonymizedTrip?.members?.length),
+            hasItinerary: !!(anonymizedTrip?.itinerary?.length)
+        });
+
+        // FIX: Validate input
+        if (!anonymizedTrip || typeof anonymizedTrip !== 'object') {
+            throw new Error('Invalid anonymizedTrip object provided');
+        }
+
+        const members = anonymizedTrip.members || [];
         
-        if (!anonymizedTrip.itinerary || anonymizedTrip.itinerary.length === 0) {
+        if (members.length === 0) {
+            logger.debug('No members found, creating summary record');
+            // Return a single record with no member info if no members
             return [{
-                trip_id: anonymizedTrip.tripId,
-                household_id_hashed: anonymizedTrip.householdHash,
-                member_id_hashed: member.memberHash,
+                trip_id: anonymizedTrip.tripId || '',
+                household_id_hashed: anonymizedTrip.householdHash || '',
+                member_id_hashed: 'no_members',
                 trip_purpose: anonymizedTrip.purpose || 'N/A',
-                destination_city: anonymizedTrip.destination,
-                start_date: anonymizedTrip.startDate,
-                end_date: anonymizedTrip.endDate,
-                data_source: anonymizedTrip.source,
+                destination_city: anonymizedTrip.destination || '',
+                start_date: anonymizedTrip.startDate || '',
+                end_date: anonymizedTrip.endDate || '',
+                data_source: anonymizedTrip.source || '',
                 sequence_id: 1,
                 event_type: 'trip_summary',
-                event_description: 'No detailed itinerary available.',
+                event_description: 'No members found.',
                 start_time: '',
                 end_time: '',
                 duration_minutes: '',
@@ -159,26 +239,170 @@ const transformToNatpacSchema = (anonymizedTrip) => {
             }];
         }
 
-        return anonymizedTrip.itinerary.map((item, index) => ({
-            trip_id: anonymizedTrip.tripId,
-            household_id_hashed: anonymizedTrip.householdHash,
-            member_id_hashed: member.memberHash,
-            trip_purpose: anonymizedTrip.purpose || 'N/A',
-            destination_city: anonymizedTrip.destination,
-            start_date: anonymizedTrip.startDate,
-            end_date: anonymizedTrip.endDate,
-            data_source: anonymizedTrip.source,
-            sequence_id: item.sequence || (index + 1),
-            event_type: item.type || 'N/A', 
-            event_description: item.description || 'N/A',
-            start_time: item.startTime ? new Date(item.startTime).toISOString() : '',
-            end_time: item.endTime ? new Date(item.endTime).toISOString() : '',
-            duration_minutes: item.durationMinutes || '',
-            travel_mode: item.mode || '',
-            travel_distance_km: item.distanceKm || '',
-            place_id_anonymized: item.placeId ? createAnonymousHash(item.placeId) : ''
-        }));
-    });
+        const result = members.flatMap((member, memberIndex) => {
+            try {
+                logger.debug('Processing member', { 
+                    tripId: anonymizedTrip.tripId,
+                    memberIndex,
+                    memberHash: member.memberHash
+                });
+
+                const itinerary = anonymizedTrip.itinerary || [];
+                
+                if (itinerary.length === 0) {
+                    return [{
+                        trip_id: anonymizedTrip.tripId || '',
+                        household_id_hashed: anonymizedTrip.householdHash || '',
+                        member_id_hashed: member.memberHash || '',
+                        trip_purpose: anonymizedTrip.purpose || 'N/A',
+                        destination_city: anonymizedTrip.destination || '',
+                        start_date: anonymizedTrip.startDate || '',
+                        end_date: anonymizedTrip.endDate || '',
+                        data_source: anonymizedTrip.source || '',
+                        sequence_id: 1,
+                        event_type: 'trip_summary',
+                        event_description: 'No detailed itinerary available.',
+                        start_time: '',
+                        end_time: '',
+                        duration_minutes: '',
+                        travel_mode: anonymizedTrip.transportMode || 'N/A',
+                        travel_distance_km: '',
+                        place_id_anonymized: ''
+                    }];
+                }
+
+                return itinerary.map((item, index) => {
+                    try {
+                        // FIX: Safely handle date parsing
+                        let startTimeISO = '';
+                        let endTimeISO = '';
+                        
+                        if (item.startTime) {
+                            try {
+                                startTimeISO = new Date(item.startTime).toISOString();
+                            } catch (e) {
+                                logger.warn('Invalid startTime format', { startTime: item.startTime });
+                            }
+                        }
+                        
+                        if (item.endTime) {
+                            try {
+                                endTimeISO = new Date(item.endTime).toISOString();
+                            } catch (e) {
+                                logger.warn('Invalid endTime format', { endTime: item.endTime });
+                            }
+                        }
+
+                        return {
+                            trip_id: anonymizedTrip.tripId || '',
+                            household_id_hashed: anonymizedTrip.householdHash || '',
+                            member_id_hashed: member.memberHash || '',
+                            trip_purpose: anonymizedTrip.purpose || 'N/A',
+                            destination_city: anonymizedTrip.destination || '',
+                            start_date: anonymizedTrip.startDate || '',
+                            end_date: anonymizedTrip.endDate || '',
+                            data_source: anonymizedTrip.source || '',
+                            sequence_id: item.sequence || (index + 1),
+                            event_type: item.type || 'N/A', 
+                            event_description: item.description || item.title || 'N/A',
+                            start_time: startTimeISO,
+                            end_time: endTimeISO,
+                            duration_minutes: item.durationMinutes || '',
+                            travel_mode: item.mode || '',
+                            travel_distance_km: item.distanceKm || '',
+                            place_id_anonymized: item.placeId ? createAnonymousHash(item.placeId) : ''
+                        };
+                    } catch (itemError) {
+                        logger.error('Error processing itinerary item', {
+                            tripId: anonymizedTrip.tripId,
+                            memberIndex,
+                            itemIndex: index,
+                            error: itemError.message
+                        });
+                        // Return a minimal valid record for this item
+                        return {
+                            trip_id: anonymizedTrip.tripId || '',
+                            household_id_hashed: anonymizedTrip.householdHash || '',
+                            member_id_hashed: member.memberHash || '',
+                            trip_purpose: 'Error',
+                            destination_city: 'Error',
+                            start_date: '',
+                            end_date: '',
+                            data_source: 'Error',
+                            sequence_id: index + 1,
+                            event_type: 'error',
+                            event_description: 'Error processing itinerary item.',
+                            start_time: '',
+                            end_time: '',
+                            duration_minutes: '',
+                            travel_mode: '',
+                            travel_distance_km: '',
+                            place_id_anonymized: ''
+                        };
+                    }
+                });
+            } catch (memberError) {
+                logger.error('Error processing member', {
+                    tripId: anonymizedTrip.tripId,
+                    memberIndex,
+                    error: memberError.message
+                });
+                // Return a minimal valid record for this member
+                return [{
+                    trip_id: anonymizedTrip.tripId || '',
+                    household_id_hashed: anonymizedTrip.householdHash || '',
+                    member_id_hashed: 'error',
+                    trip_purpose: 'Error',
+                    destination_city: 'Error',
+                    start_date: '',
+                    end_date: '',
+                    data_source: 'Error',
+                    sequence_id: 1,
+                    event_type: 'error',
+                    event_description: 'Error processing member data.',
+                    start_time: '',
+                    end_time: '',
+                    duration_minutes: '',
+                    travel_mode: '',
+                    travel_distance_km: '',
+                    place_id_anonymized: ''
+                }];
+            }
+        });
+
+        logger.debug('NATPAC transformation completed', { 
+            tripId: anonymizedTrip.tripId,
+            resultCount: result.length
+        });
+
+        return result;
+    } catch (error) {
+        logger.error('Error transforming to NATPAC schema', { 
+            tripId: anonymizedTrip?.tripId, 
+            error: error.message,
+            stack: error.stack
+        });
+        // Return a minimal valid record to prevent pipeline failure
+        return [{
+            trip_id: anonymizedTrip?.tripId || 'error',
+            household_id_hashed: '',
+            member_id_hashed: 'error',
+            trip_purpose: 'Error',
+            destination_city: 'Error',
+            start_date: '',
+            end_date: '',
+            data_source: 'Error',
+            sequence_id: 1,
+            event_type: 'error',
+            event_description: 'Error processing trip data.',
+            start_time: '',
+            end_time: '',
+            duration_minutes: '',
+            travel_mode: '',
+            travel_distance_km: '',
+            place_id_anonymized: ''
+        }];
+    }
 };
 
 module.exports = { getAnonymizedTripDataStream, transformToNatpacSchema };
