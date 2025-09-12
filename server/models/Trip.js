@@ -70,6 +70,12 @@ const aiSummarySchema = new mongoose.Schema({
 
 
 const itineraryItemSchema = new mongoose.Schema({
+  // FIX: Support both old format (for tracking) and new format (for AI itineraries)
+  day: { type: Number }, // For AI-generated day-by-day itineraries
+  title: { type: String }, // For AI-generated day titles
+  activities: [String], // For AI-generated activities list
+  
+  // Keep existing fields for passive tracking
   sequence: { type: Number, required: true },
   type: { type: String, enum: ['activity', 'travel'], required: true },
   startTime: { type: Date },

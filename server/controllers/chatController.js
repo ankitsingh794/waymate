@@ -347,10 +347,17 @@ async function processTripCreation(creator, collectedData) {
             aiResponse = tripService.generateTemplateItinerary(aggregatedData);
         };
 
+        // FIX: Properly format the itinerary with all required fields
         const formattedItinerary = aiResponse.itinerary.map((item, index) => ({
-            ...item,
-            type: 'activity', // Set the required 'type' field (defaulting to 'activity')
-            sequence: index   // Set the required 'sequence' field
+            day: item.day,
+            title: item.title,
+            activities: item.activities,
+            sequence: index,
+            type: 'activity',
+            // Add time-based fields if the AI provides them
+            startTime: item.startTime ? new Date(item.startTime) : null,
+            endTime: item.endTime ? new Date(item.endTime) : null,
+            description: item.description || `${item.title} - ${item.activities.join(', ')}`,
         }));
 
         session = await mongoose.startSession();

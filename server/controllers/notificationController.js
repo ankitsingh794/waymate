@@ -1,5 +1,6 @@
 const Notification = require('../models/Notification');
 const AppError = require('../utils/AppError');
+const { sendSuccess } = require('../utils/responseHelper'); // 1. Import the helper
 
 /**
  * @desc    Get notifications for the current user with pagination.
@@ -14,26 +15,26 @@ exports.getNotifications = async (req, res, next) => {
         const skip = (page - 1) * limit;
 
         // --- Database Queries ---
-        // 1. Get the paginated notifications for the user, sorted by newest first.
-        const notifications = await Notification.find({ user: req.user.id })
-            .sort({ createdAt: -1 })
-            .skip(skip)
-            .limit(limit);
-            
-        // 2. Get the total count of documents for pagination metadata.
-        const totalCount = await Notification.countDocuments({ user: req.user.id });
+        const [notifications, totalCount] = await Promise.all([
+            Notification.find({ user: req.user.id })
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit),
+            Notification.countDocuments({ user: req.user.id })
+        ]);
 
-        // --- Response ---
-        res.status(200).json({
-            success: true,
+        const responseData = {
             count: notifications.length,
             pagination: {
                 currentPage: page,
                 totalPages: Math.ceil(totalCount / limit),
                 totalCount: totalCount
             },
-            data: notifications,
-        });
+            notifications: notifications, 
+        };
+        
+        return sendSuccess(res, 200, 'Notifications fetched successfully.', responseData);
+
     } catch (error) {
         next(error);
     }

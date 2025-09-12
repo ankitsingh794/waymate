@@ -114,7 +114,12 @@ function buildItineraryPrompt(aggregatedData) {
   return prompts.structuredTravelPlanPrompt(promptDetails);
 }
 
-
+/** Parses the AI response to extract the itinerary and summary.
+ * Falls back to a simple itinerary if parsing fails or structure is invalid.
+ * @param {string} aiContent - The raw text response from the AI model.
+ * @param {object} aggregatedData - The full aggregated data for fallback generation.
+ * @returns {object} The structured itinerary and summary.
+ */
 function parseAiResponse(aiContent, aggregatedData) {
   let jsonString = null;
   let match = aiContent.match(/```json([\s\S]*?)```/);
@@ -142,9 +147,16 @@ function parseAiResponse(aiContent, aggregatedData) {
       logger.warn('AI returned a JSON object with an invalid structure. Using fallback.');
       return generateFallbackItinerary(aggregatedData);
     }
+    
     return {
       itinerary: parsedJson.itinerary,
-      aiSummary: parsedJson.aiSummary
+      aiSummary: parsedJson.aiSummary,
+      formattedText: parsedJson.aiSummary?.overview || `Trip plan for ${aggregatedData.destinationName}`,
+      summary: parsedJson.aiSummary?.overview || `Trip to ${aggregatedData.destinationName}`,
+      tips: parsedJson.aiSummary?.tips || [],
+      mustEats: parsedJson.aiSummary?.mustEats || [],
+      highlights: parsedJson.aiSummary?.highlights || [],
+      packingChecklist: parsedJson.aiSummary?.packingChecklist || []
     };
   } catch (error) {
     logger.error('Failed to parse extracted JSON from AI response. Using fallback.', { error: error.message });
