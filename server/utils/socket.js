@@ -95,8 +95,14 @@ const initSocketIO = (httpServer) => {
     socket.join(socket.user._id.toString());
     
     socket.on('joinSession', (sessionId) => {
-      socket.join(sessionId);
-      logger.debug(`Socket ${socket.id} joined session ${sessionId}`);
+      // FIX: Make sure sessionId is a string
+      const roomId = typeof sessionId === 'string' ? sessionId : sessionId.sessionId;
+      
+      socket.join(roomId);
+      logger.info(`🏠 Socket ${socket.id} (${socket.user.email}) joined session ${roomId}`);
+      
+      // FIX: Send confirmation
+      socket.emit('sessionJoined', { sessionId: roomId, message: 'Successfully joined session' });
     });
     
     socket.on('leaveSession', (sessionId) => {
