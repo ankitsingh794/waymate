@@ -6,7 +6,12 @@ const {
     addExpense,
     getTripExpenses,
     updateExpense,
-    deleteExpense
+    deleteExpense,
+    bulkDeleteExpenses,
+    getExpenseAnalytics,
+    exportExpenses,
+    getBudget,
+    updateBudget
 } = require('../controllers/expenseController');
 const { mongoIdValidation } = require('../utils/validationHelpers');
 
@@ -36,6 +41,19 @@ const updateExpenseValidation = [
     body('participants').optional().isArray({ min: 1 }).withMessage('At least one participant is required.')
 ];
 
+const bulkDeleteValidation = [
+    body('expenseIds').isArray({ min: 1 }).withMessage('At least one expense ID is required.'),
+    body('expenseIds.*').isMongoId().withMessage('Invalid expense ID.')
+];
+
+const budgetValidation = [
+    body('total').optional().isFloat({ gte: 0 }).withMessage('Total budget must be non-negative.'),
+    body('travel').optional().isFloat({ gte: 0 }).withMessage('Travel budget must be non-negative.'),
+    body('accommodation').optional().isFloat({ gte: 0 }).withMessage('Accommodation budget must be non-negative.'),
+    body('activities').optional().isFloat({ gte: 0 }).withMessage('Activities budget must be non-negative.'),
+    body('food').optional().isFloat({ gte: 0 }).withMessage('Food budget must be non-negative.')
+];
+
 
 // --- Routes ---
 
@@ -50,6 +68,36 @@ router.post('/', addExpenseValidation, validate, addExpense);
  * @desc    Get all expenses and the settlement summary for a trip
  */
 router.get('/', getTripExpenses);
+
+/**
+ * @route   GET /api/trips/:tripId/expenses/analytics
+ * @desc    Get expense analytics for a trip
+ */
+router.get('/analytics', getExpenseAnalytics);
+
+/**
+ * @route   GET /api/trips/:tripId/expenses/export
+ * @desc    Export expenses in CSV or JSON format
+ */
+router.get('/export', exportExpenses);
+
+/**
+ * @route   DELETE /api/trips/:tripId/expenses/bulk
+ * @desc    Bulk delete multiple expenses
+ */
+router.delete('/bulk', bulkDeleteValidation, validate, bulkDeleteExpenses);
+
+/**
+ * @route   GET /api/trips/:tripId/budget
+ * @desc    Get budget information for a trip
+ */
+router.get('/budget', getBudget);
+
+/**
+ * @route   PUT /api/trips/:tripId/budget
+ * @desc    Update budget for a trip
+ */
+router.put('/budget', budgetValidation, validate, updateBudget);
 
 /**
  * @route   PATCH /api/trips/:tripId/expenses/:expenseId
