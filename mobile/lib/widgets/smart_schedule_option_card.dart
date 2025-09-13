@@ -43,7 +43,7 @@ class SmartScheduleOptionCard extends StatelessWidget {
         ),
         // --- NEW: The "Recommended" banner widget ---
         if (isRecommended)
-          Positioned(
+          const Positioned(
             top: 10,
             right: -15,
             child: Banner(

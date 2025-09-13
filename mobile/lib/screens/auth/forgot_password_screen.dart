@@ -65,13 +65,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              const Color.fromARGB(255, 87, 184, 203),
-              const Color.fromARGB(255, 14, 59, 76),
+              Color.fromARGB(255, 87, 184, 203),
+              Color.fromARGB(255, 14, 59, 76),
             ],
           ),
         ),

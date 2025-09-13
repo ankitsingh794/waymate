@@ -175,7 +175,7 @@ class _HouseholdManagementScreenState extends State<HouseholdManagementScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             DropdownButtonFormField<String>(
-              value: selectedRole,
+              initialValue: selectedRole,
               decoration: const InputDecoration(labelText: 'Role'),
               items: roles.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
               onChanged: (value) {
@@ -223,7 +223,7 @@ class _HouseholdManagementScreenState extends State<HouseholdManagementScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text('Household Survey'),
         content: DropdownButtonFormField<int>(
-          value: selectedVehicleCount,
+          initialValue: selectedVehicleCount,
           decoration: const InputDecoration(labelText: 'Vehicles Owned'),
           items: [0, 1, 2, 3, 4, 5].map((v) => DropdownMenuItem(value: v, child: Text(v.toString()))).toList(),
           onChanged: (value) {
@@ -366,7 +366,7 @@ class _HouseholdManagementScreenState extends State<HouseholdManagementScreen> {
                   )
                 : null,
           );
-        }).toList(),
+        }),
         const Divider(),
         const SizedBox(height: 32),
         if (isCurrentUserHead)

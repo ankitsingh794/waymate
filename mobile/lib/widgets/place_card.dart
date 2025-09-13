@@ -56,7 +56,7 @@ class PlaceCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
                 child: Row(
                   children: [
-                    Icon(Icons.star, color: Colors.amber, size: 16),
+                    const Icon(Icons.star, color: Colors.amber, size: 16),
                     const SizedBox(width: 4),
                     Text(rating.toString(), style: GoogleFonts.poppins()),
                   ],

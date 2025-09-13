@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:go_router/go_router.dart';
 
@@ -19,28 +20,39 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> _checkAuthStatusAndNavigate() async {
     await Future.delayed(const Duration(seconds: 1));
 
-    final authService = AuthService();
-    final refreshToken = await authService.getRefreshToken();
+    try {
+      final authService = AuthService();
+      final refreshToken = await authService.getRefreshToken();
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    if (refreshToken != null) {
-      final result = await authService.refreshToken();
-      if (result['success']) {
-        _navigateTo('/home');
+      if (refreshToken != null) {
+        // Add timeout to prevent hanging on network issues
+        final result = await authService
+            .refreshToken()
+            .timeout(const Duration(seconds: 8));
+        if (result['success']) {
+          _navigateTo('/home');
+        } else {
+          _navigateTo('/login');
+        }
       } else {
         _navigateTo('/login');
       }
-    } else {
-      _navigateTo('/login');
+    } catch (e) {
+      // If anything fails (including timeout), go to login
+      debugPrint('Splash auth check failed: $e');
+      if (mounted) {
+        _navigateTo('/login');
+      }
     }
   }
 
   void _navigateTo(String routeName) {
-  if (mounted) {
-    context.go(routeName);
+    if (mounted) {
+      context.go(routeName);
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/services/export_service.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:intl/intl.dart';
 
 class EnhancedDataExportScreen extends StatefulWidget {
@@ -30,7 +31,7 @@ class _EnhancedDataExportScreenState extends State<EnhancedDataExportScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this); // Changed to 3 tabs
     _loadExportStats();
   }
 
@@ -74,7 +75,7 @@ class _EnhancedDataExportScreenState extends State<EnhancedDataExportScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Export completed successfully!'),
+            content: const Text('Export completed successfully!'),
             backgroundColor: Colors.green,
             action: SnackBarAction(
               label: 'Refresh Stats',
@@ -84,8 +85,23 @@ class _EnhancedDataExportScreenState extends State<EnhancedDataExportScreen>
         );
       }
     } catch (e) {
+      String errorMessage = 'Export failed: ${e.toString()}';
+
+      // Handle permission-specific errors
+      if (errorMessage.contains('permission')) {
+        if (errorMessage.contains('permanently denied')) {
+          if (mounted) {
+            _showPermissionSettingsDialog();
+          }
+        } else {
+          if (mounted) {
+            _showPermissionDialog();
+          }
+        }
+      }
+
       setState(() {
-        _errorMessage = 'Export failed: ${e.toString()}';
+        _errorMessage = errorMessage;
       });
     } finally {
       if (mounted) {
@@ -94,6 +110,64 @@ class _EnhancedDataExportScreenState extends State<EnhancedDataExportScreen>
           _downloadProgress = 0.0;
         });
       }
+    }
+  }
+
+  void _showPermissionDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Storage Permission Required'),
+        content: const Text(
+          'WayMate needs storage permission to save and share export files. '
+          'Please grant storage permission when prompted.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _retryCurrentExport();
+            },
+            child: const Text('Retry'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPermissionSettingsDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Storage Permission Denied'),
+        content: const Text(
+          'Storage permission has been permanently denied. '
+          'Please enable it in app settings to download exports.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              openAppSettings();
+            },
+            child: const Text('Open Settings'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _retryCurrentExport() {
+    if (_loadingFormat != null) {
+      _handleExport(_loadingFormat!);
     }
   }
 
@@ -120,11 +194,27 @@ class _EnhancedDataExportScreenState extends State<EnhancedDataExportScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('NATPAC Data Export', style: GoogleFonts.poppins()),
+        title: Text('Data Export Center', style: GoogleFonts.poppins()),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color.fromARGB(255, 87, 184, 203),
+                Color.fromARGB(255, 14, 59, 76),
+              ],
+            ),
+          ),
+        ),
         bottom: TabBar(
           controller: _tabController,
+          indicatorColor: Colors.white,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
           tabs: const [
-            Tab(icon: Icon(Icons.download), text: 'Export Data'),
+            Tab(icon: Icon(Icons.download), text: 'Quick Export'),
+            Tab(icon: Icon(Icons.science), text: 'Research Export'),
             Tab(icon: Icon(Icons.analytics), text: 'Statistics'),
           ],
         ),
@@ -132,14 +222,99 @@ class _EnhancedDataExportScreenState extends State<EnhancedDataExportScreen>
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildExportTab(),
-          _buildStatsTab(),
+          _buildQuickExportTab(), // Basic functionality
+          _buildResearchExportTab(), // Enhanced NATPAC functionality
+          _buildStatsTab(), // Statistics
         ],
       ),
     );
   }
 
-  Widget _buildExportTab() {
+  // NEW: Quick Export Tab (Basic functionality from data_export_screen.dart)
+  Widget _buildQuickExportTab() {
+    return ListView(
+      padding: const EdgeInsets.all(16.0),
+      children: [
+        // Quick Export Info Card
+        Card(
+          color: Colors.green[50],
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.flash_on, color: Colors.green[700]),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Quick Export',
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green[800],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Fast and simple data exports for basic analysis. Files are generated instantly and ready to share.',
+                  style: GoogleFonts.poppins(
+                      fontSize: 13, color: Colors.green[700]),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        Text(
+          'Select Export Format',
+          style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 16),
+
+        // Basic Export Options
+        _buildExportOption(
+          title: 'Summary Export (CSV)',
+          subtitle:
+              'High-level summary of all trip data - perfect for quick analysis',
+          format: 'csv',
+          icon: Icons.table_chart_outlined,
+          category: 'basic',
+        ),
+        _buildExportOption(
+          title: 'Standard NATPAC Export (CSV)',
+          subtitle: 'Basic NATPAC-compliant data for transportation research',
+          format: 'natpac-csv',
+          icon: Icons.science_outlined,
+          category: 'basic',
+        ),
+        _buildExportOption(
+          title: 'Complete Data Export (JSON)',
+          subtitle: 'Full trip data in JSON format for custom processing',
+          format: 'json',
+          icon: Icons.code_outlined,
+          category: 'basic',
+        ),
+
+        // Progress and Error Display
+        if (_loadingFormat != null) ...[
+          const SizedBox(height: 16),
+          _buildProgressIndicator(),
+        ],
+
+        if (_errorMessage != null) ...[
+          const SizedBox(height: 16),
+          _buildErrorMessage(),
+        ],
+      ],
+    );
+  }
+
+  // UPDATED: Research Export Tab (Enhanced NATPAC functionality)
+  Widget _buildResearchExportTab() {
     return ListView(
       padding: const EdgeInsets.all(16.0),
       children: [
@@ -153,9 +328,8 @@ class _EnhancedDataExportScreenState extends State<EnhancedDataExportScreen>
 
         const SizedBox(height: 24),
 
-        // Export Options
         Text(
-          'Select Export Format',
+          'Advanced Research Exports',
           style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
@@ -169,6 +343,7 @@ class _EnhancedDataExportScreenState extends State<EnhancedDataExportScreen>
           format: 'comprehensive-csv',
           icon: Icons.science,
           isRecommended: true,
+          category: 'research',
         ),
         _buildExportOption(
           title: 'Trip Chains Analysis',
@@ -176,44 +351,22 @@ class _EnhancedDataExportScreenState extends State<EnhancedDataExportScreen>
               'Daily trip chains and travel patterns for transportation planning',
           format: 'trip-chains-csv',
           icon: Icons.route,
+          category: 'research',
         ),
         _buildExportOption(
           title: 'Mode Share Statistics',
           subtitle: 'Aggregated mode share data and transportation insights',
           format: 'mode-share-csv',
           icon: Icons.pie_chart,
+          category: 'research',
         ),
 
-        const SizedBox(height: 16),
-
-        // Standard Exports
-        _buildSectionHeader('Standard Exports'),
-        _buildExportOption(
-          title: 'Standard NATPAC Export',
-          subtitle: 'Basic trip data in NATPAC research format',
-          format: 'natpac-csv',
-          icon: Icons.table_chart,
-        ),
-        _buildExportOption(
-          title: 'Basic CSV Export',
-          subtitle: 'Simple trip summary data',
-          format: 'csv',
-          icon: Icons.grid_on,
-        ),
-        _buildExportOption(
-          title: 'Complete JSON Export',
-          subtitle: 'Full trip data in JSON format',
-          format: 'json',
-          icon: Icons.code,
-        ),
-
-        // Progress indicator
+        // Progress and Error Display
         if (_loadingFormat != null) ...[
           const SizedBox(height: 16),
           _buildProgressIndicator(),
         ],
 
-        // Error message
         if (_errorMessage != null) ...[
           const SizedBox(height: 16),
           _buildErrorMessage(),
@@ -319,8 +472,8 @@ class _EnhancedDataExportScreenState extends State<EnhancedDataExportScreen>
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
-          border: OutlineInputBorder(),
-          suffixIcon: Icon(Icons.calendar_today),
+          border: const OutlineInputBorder(),
+          suffixIcon: const Icon(Icons.calendar_today),
         ),
         child: Text(
           date != null ? DateFormat('yyyy-MM-dd').format(date) : 'Select date',
@@ -369,6 +522,7 @@ class _EnhancedDataExportScreenState extends State<EnhancedDataExportScreen>
     required String format,
     required IconData icon,
     bool isRecommended = false,
+    String category = 'basic',
   }) {
     final bool isLoading = _loadingFormat == format;
 
@@ -401,6 +555,24 @@ class _EnhancedDataExportScreenState extends State<EnhancedDataExportScreen>
                       ),
                     ),
                   ),
+                if (category == 'research')
+                  Container(
+                    margin: const EdgeInsets.only(left: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.blue,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'RESEARCH',
+                      style: GoogleFonts.poppins(
+                        fontSize: 10,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
               ],
             ),
             subtitle: Text(subtitle, style: GoogleFonts.poppins(fontSize: 13)),
@@ -425,7 +597,7 @@ class _EnhancedDataExportScreenState extends State<EnhancedDataExportScreen>
                     bottomLeft: Radius.circular(8),
                   ),
                 ),
-                child: Icon(Icons.star, size: 16, color: Colors.white),
+                child: const Icon(Icons.star, size: 16, color: Colors.white),
               ),
             ),
         ],
@@ -471,6 +643,11 @@ class _EnhancedDataExportScreenState extends State<EnhancedDataExportScreen>
                 style: GoogleFonts.poppins(color: Colors.red[700]),
               ),
             ),
+            if (_errorMessage!.contains('permission'))
+              TextButton(
+                onPressed: _retryCurrentExport,
+                child: Text('Retry', style: GoogleFonts.poppins()),
+              ),
           ],
         ),
       ),

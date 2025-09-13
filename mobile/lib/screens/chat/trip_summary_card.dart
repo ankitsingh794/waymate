@@ -94,7 +94,7 @@ class TripSummaryCard extends StatelessWidget {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Icon(Icons.star, color: Colors.amber, size: 16),
+                        const Icon(Icons.star, color: Colors.amber, size: 16),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(

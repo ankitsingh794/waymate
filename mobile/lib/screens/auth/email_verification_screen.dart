@@ -103,13 +103,13 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              const Color.fromARGB(255, 87, 184, 203),
-              const Color.fromARGB(255, 14, 59, 76),
+              Color.fromARGB(255, 87, 184, 203),
+              Color.fromARGB(255, 14, 59, 76),
             ],
           ),
         ),
@@ -145,7 +145,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                   // Show retry button only if verification failed
                   ElevatedButton(
                     onPressed: _handleVerification,
-                    child: Text('Retry Verification'),
+                    child: const Text('Retry Verification'),
                   )
                 else if (widget.token == null)
                   // Show resend button only if in "check email" mode
@@ -199,7 +199,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
           width: 200, height: 200);
     }
     // FIX: Add default state for "check email" mode
-    return Icon(
+    return const Icon(
       Icons.email_outlined,
       size: 120,
       color: Colors.white,

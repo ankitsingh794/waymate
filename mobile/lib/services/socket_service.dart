@@ -94,15 +94,17 @@ class SocketService {
     _socket!.onConnectError((data) {
       debugPrint('❌ Socket connection error: $data');
       _connectionController.add(false); // FIX: Add this
-      if (!_connectionCompleter!.isCompleted)
+      if (!_connectionCompleter!.isCompleted) {
         _connectionCompleter!.completeError('Connection Error: $data');
+      }
     });
 
     _socket!.onError((data) {
       debugPrint('❌ Socket error: $data');
       _connectionController.add(false); // FIX: Add this
-      if (!_connectionCompleter!.isCompleted)
+      if (!_connectionCompleter!.isCompleted) {
         _connectionCompleter!.completeError('Socket Error: $data');
+      }
     });
 
     _socket!.onDisconnect((_) {
@@ -203,6 +205,16 @@ class SocketService {
           "✅ Successfully sent 'leaveSession' event for room: $sessionId");
     } else {
       debugPrint("❌ Could not leave session room: Socket is not connected.");
+    }
+  }
+
+  /// Generic emit method for sending data to server
+  void emit(String event, dynamic data) {
+    if (_socket?.connected ?? false) {
+      _socket?.emit(event, data);
+      debugPrint("✅ Successfully sent '$event' event with data: $data");
+    } else {
+      debugPrint("❌ Could not send '$event' event: Socket is not connected.");
     }
   }
 

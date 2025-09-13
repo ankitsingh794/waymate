@@ -1,28 +1,92 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.waymate">
 
+    <!-- INTERNET & NETWORK PERMISSIONS -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+
+    <!-- LOCATION PERMISSIONS (Critical for passive tracking) -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    
+    <!-- STORAGE PERMISSIONS (For data export - all Android versions) -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" 
+                     android:maxSdkVersion="28" />
+    
+    <!-- Android 11+ (API 30+) Storage -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+    
+    <!-- Android 13+ (API 33+) Granular Media Permissions -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    
+    <!-- SENSOR PERMISSIONS (For transport mode detection) -->
+    <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS"/>
+    <uses-permission android:name="android.permission.BODY_SENSORS" />
+    
+    <!-- BLUETOOTH PERMISSIONS (For companion detection) -->
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <!-- Android 12+ Bluetooth permissions -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" 
+                     android:usesPermissionFlags="neverForLocation" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    
+    <!-- FOREGROUND SERVICE PERMISSIONS (For passive tracking) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    
+    <!-- SYSTEM PERMISSIONS -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    
+    <!-- NOTIFICATION PERMISSIONS -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    
+    <!-- MEDIA & RECORDING PERMISSIONS -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- PHONE STATE (For trip interruption detection) -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     
-    <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS"/>
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <!-- CALENDAR (For trip planning integration) -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <uses-permission android:name="android.permission.WRITE_CALENDAR" />
+
+    <!-- FEATURES DECLARATIONS -->
+    <uses-feature 
+        android:name="android.hardware.location.gps" 
+        android:required="false" />
+    <uses-feature 
+        android:name="android.hardware.bluetooth_le" 
+        android:required="false" />
+    <uses-feature 
+        android:name="android.hardware.sensor.accelerometer" 
+        android:required="false" />
+    <uses-feature 
+        android:name="android.hardware.sensor.gyroscope" 
+        android:required="false" />
 
     <application
         android:label="WayMate"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:usesCleartextTraffic="true">
+        android:usesCleartextTraffic="true"
+        android:requestLegacyExternalStorage="true"
+        android:preserveLegacyExternalStorage="true">
+        
+        <!-- Main Activity -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -30,7 +94,8 @@
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
-            android:windowSoftInputMode="adjustResize">
+            android:windowSoftInputMode="adjustResize"
+            android:screenOrientation="portrait">
             
             <meta-data
               android:name="io.flutter.embedding.android.NormalTheme"
@@ -42,7 +107,7 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
 
-            <!-- HTTPS Deep Links (your existing one - fixed) -->
+            <!-- HTTPS Deep Links -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -51,7 +116,7 @@
                       android:host="waymate.vercel.app" />
             </intent-filter>
 
-            <!-- ADD THIS: Custom URL Scheme for Mobile Deep Links -->
+            <!-- Custom URL Scheme for Mobile Deep Links -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -61,21 +126,104 @@
 
         </activity>
 
+        <!-- PASSIVE TRACKING SERVICE -->
         <service
             android:name="com.ryanheise.audioservice.AudioService"
-            android:foregroundServiceType="location|dataSync"
-            android:exported="false">
+            android:foregroundServiceType="location|dataSync|connectedDevice"
+            android:exported="false"
+            android:enabled="true">
         </service>
+        
+        <!-- LOCATION TRACKING SERVICE -->
+        <service
+            android:name=".LocationTrackingService"
+            android:foregroundServiceType="location"
+            android:exported="false"
+            android:enabled="true">
+        </service>
+        
+        <!-- BACKGROUND NOTIFICATION SERVICE -->
+        <service
+            android:name=".BackgroundNotificationService"
+            android:foregroundServiceType="dataSync"
+            android:exported="false"
+            android:enabled="true">
+        </service>
+        
+        <!-- FILE PROVIDER (For secure file sharing) -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+        
+        <!-- BROADCAST RECEIVERS -->
+        <receiver 
+            android:name=".BootReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.PACKAGE_REPLACED" />
+                <data android:scheme="package" />
+            </intent-filter>
+        </receiver>
+        
+        <!-- WORK MANAGER (For background data sync) -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup" />
+        </provider>
         
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+            
+        <!-- DISABLE BACKUP (For privacy) -->
+        <meta-data
+            android:name="android.backup.disable_backup"
+            android:value="true" />
     </application>
     
+    <!-- QUERIES (For opening external apps) -->
     <queries>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="mailto"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.SENDTO"/>
+            <data android:scheme="mailto"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="tel"/>
+        </intent>
+        <!-- Maps apps -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="geo"/>
+        </intent>
+        <!-- File managers -->
+        <intent>
+            <action android:name="android.intent.action.GET_CONTENT"/>
         </intent>
     </queries>
 </manifest>

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/screens/auth/register_screen.dart';
-import 'package:mobile/screens/core/main_scaffold.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/screens/auth/forgot_password_screen.dart';
+import 'package:go_router/go_router.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -38,11 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = false);
 
     if (result['success']) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const MainScaffold()),
-        (route) => false,
-      );
+      context.go('/'); // Navigate to the home screen
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(result['message'] ?? 'Login failed')),
@@ -63,13 +59,13 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              const Color.fromARGB(255, 87, 184, 203),
-              const Color.fromARGB(255, 14, 59, 76),
+              Color.fromARGB(255, 87, 184, 203),
+              Color.fromARGB(255, 14, 59, 76),
             ],
           ),
         ),
@@ -80,11 +76,16 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 60),
-                Text('Welcome Back!', style: GoogleFonts.poppins(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+                Text('Welcome Back!',
+                    style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
-                Text('Sign in to continue', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 18)),
+                Text('Sign in to continue',
+                    style: GoogleFonts.poppins(
+                        color: Colors.white70, fontSize: 18)),
                 const SizedBox(height: 48),
-
                 TextField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
@@ -94,11 +95,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     labelStyle: const TextStyle(color: Colors.white70),
                     filled: true,
                     fillColor: Colors.white.withOpacity(0.1),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none),
                   ),
                 ),
                 const SizedBox(height: 20),
-
                 TextField(
                   controller: _passwordController,
                   obscureText: true,
@@ -108,25 +110,26 @@ class _LoginScreenState extends State<LoginScreen> {
                     labelStyle: const TextStyle(color: Colors.white70),
                     filled: true,
                     fillColor: Colors.white.withOpacity(0.1),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none),
                   ),
                 ),
-
-
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
+                        MaterialPageRoute(
+                            builder: (context) => const ForgotPasswordScreen()),
                       );
                     },
-                    child: Text('Forgot Password?', style: GoogleFonts.poppins(color: Colors.white70)),
+                    child: Text('Forgot Password?',
+                        style: GoogleFonts.poppins(color: Colors.white70)),
                   ),
                 ),
                 const SizedBox(height: 20),
-
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -135,22 +138,35 @@ class _LoginScreenState extends State<LoginScreen> {
                       backgroundColor: Colors.white,
                       foregroundColor: const Color(0xFF16213E),
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30)),
                     ),
                     child: _isLoading
-                        ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 3, color: Color(0xFF16213E)))
-                        : Text('Login', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
+                        ? const SizedBox(
+                            height: 24,
+                            width: 24,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 3, color: Color(0xFF16213E)))
+                        : Text('Login',
+                            style: GoogleFonts.poppins(
+                                fontSize: 18, fontWeight: FontWeight.bold)),
                   ),
                 ),
                 const SizedBox(height: 40),
-
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text("Don't have an account? ", style: GoogleFonts.poppins(color: Colors.white70)),
+                    Text("Don't have an account? ",
+                        style: GoogleFonts.poppins(color: Colors.white70)),
                     GestureDetector(
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterScreen())),
-                      child: Text('Sign Up', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold)),
+                      onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const RegisterScreen())),
+                      child: Text('Sign Up',
+                          style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),

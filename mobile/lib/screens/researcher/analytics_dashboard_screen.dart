@@ -143,8 +143,9 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
 
           final data = snapshot.data!;
           final stats = data['stats'] as Map<String, dynamic>;
-          final modeDistribution = data['modeDistribution'] as List;
-          final purposeDistribution = data['purposeDistribution'] as List;
+          final modeDistribution = (data['modeDistribution'] as List?) ?? [];
+          final purposeDistribution =
+              (data['purposeDistribution'] as List?) ?? [];
 
           return RefreshIndicator(
             onRefresh: () {
@@ -424,7 +425,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                 return Column(
                   children: [
                     DropdownButtonFormField<String>(
-                      value: _selectedMemberAHash,
+                      initialValue: _selectedMemberAHash,
                       hint: const Text('Select Member A'),
                       decoration: const InputDecoration(
                         border: OutlineInputBorder(),
@@ -442,7 +443,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      value: _selectedMemberBHash,
+                      initialValue: _selectedMemberBHash,
                       hint: const Text('Select Member B'),
                       decoration: const InputDecoration(
                         border: OutlineInputBorder(),
@@ -528,14 +529,17 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                         true)
                       _buildResultRow(
                           'Common Purposes',
-                          (_coTravelerResult!['commonPurposes'] as List)
+                          ((_coTravelerResult!['commonPurposes'] as List?) ??
+                                  [])
                               .join(', ')),
                     if (_coTravelerResult!['commonTransportModes']
                             ?.isNotEmpty ==
                         true)
                       _buildResultRow(
                           'Transport Modes',
-                          (_coTravelerResult!['commonTransportModes'] as List)
+                          ((_coTravelerResult!['commonTransportModes']
+                                      as List?) ??
+                                  [])
                               .join(', ')),
                   ],
                 ),

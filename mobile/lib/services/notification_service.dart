@@ -9,9 +9,16 @@ import 'package:mobile/models/notification_models.dart' as app_notification;
 import 'package:mobile/services/api_client.dart';
 import 'package:mobile/services/socket_service.dart';
 
+// ✅ ADDED: The missing provider that creates and provides the NotificationService.
+// Your main.dart file needs this to be able to read the service.
+final notificationServiceProvider = Provider<NotificationService>((ref) {
+  return NotificationService(ref);
+});
+
 class NotificationService {
-  final ProviderRef ref;
-  NotificationService(this.ref);
+  // ✅ CHANGED: It's good practice to make the 'ref' private.
+  final ProviderRef _ref; // For future Riverpod integrations
+  NotificationService(this._ref);
 
   final ApiClient _apiClient = ApiClient();
   final SocketService _socketService = SocketService();
@@ -33,6 +40,8 @@ class NotificationService {
 
     try {
       // FIX: Ensure socket connection is established before listening
+      // You can use your private _ref here to read other services if needed
+      // For example: final socketService = _ref.read(socketServiceProvider);
       await _socketService.connect();
 
       // Fetch initial notifications
@@ -299,7 +308,16 @@ class NotificationService {
       }
 
       final responseData = response['data'];
-      final notificationsJson = responseData['notifications'] as List;
+      final notificationsData = responseData['notifications'];
+
+      if (notificationsData == null) {
+        notifications.value = [];
+        unreadCount.value = 0;
+        debugPrint("Notifications data is null, setting empty list");
+        return;
+      }
+
+      final notificationsJson = notificationsData as List;
 
       final fetchedNotifications = notificationsJson
           .map((json) => app_notification.Notification.fromJson(json))

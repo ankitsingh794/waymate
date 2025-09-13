@@ -117,7 +117,7 @@ class _SurveyScreenState extends State<SurveyScreen> {
                 // --- Question 1 ---
                 Text('What is your approximate annual household income?', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
                 DropdownButtonFormField<String>(
-                  value: _householdIncome,
+                  initialValue: _householdIncome,
                   validator: (value) => value == null ? 'This field is required' : null,
                   hint: const Text('Select a range'),
                   items: ['<25k', '25k-50k', '50k-100k', '100k-200k', '>200k', 'prefer_not_to_say']
@@ -130,7 +130,7 @@ class _SurveyScreenState extends State<SurveyScreen> {
                 // --- Question 2 ---
                 Text('How many vehicles does your household own?', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
                 DropdownButtonFormField<int>(
-                  value: _vehicleCount,
+                  initialValue: _vehicleCount,
                   validator: (value) => value == null ? 'This field is required' : null,
                   hint: const Text('Select a count'),
                   items: [0, 1, 2, 3, 4, 5]
@@ -143,7 +143,7 @@ class _SurveyScreenState extends State<SurveyScreen> {
                 // --- Question 3 ---
                 Text('What is your primary mode of transport to work/college?', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
                 DropdownButtonFormField<String>(
-                  value: _primaryTransportMode,
+                  initialValue: _primaryTransportMode,
                   validator: (value) => value == null ? 'This field is required' : null,
                   hint: const Text('Select a mode'),
                   items: const [

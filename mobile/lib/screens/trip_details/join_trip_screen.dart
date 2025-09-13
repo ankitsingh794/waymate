@@ -159,7 +159,7 @@ class _JoinTripScreenState extends State<JoinTripScreen> {
 
                     // FIX: Updated age group dropdown with correct enum values
                     DropdownButtonFormField<String>(
-                      value: _selectedAgeGroup,
+                      initialValue: _selectedAgeGroup,
                       decoration: const InputDecoration(
                         labelText: 'Age Group',
                         border: OutlineInputBorder(),
@@ -177,7 +177,7 @@ class _JoinTripScreenState extends State<JoinTripScreen> {
 
                     // FIX: Updated gender dropdown with correct enum values
                     DropdownButtonFormField<String>(
-                      value: _selectedGender,
+                      initialValue: _selectedGender,
                       decoration: const InputDecoration(
                         labelText: 'Gender',
                         border: OutlineInputBorder(),
@@ -195,7 +195,7 @@ class _JoinTripScreenState extends State<JoinTripScreen> {
 
                     // FIX: Relation is free text in backend, so keeping dropdown for UX
                     DropdownButtonFormField<String>(
-                      value: _selectedRelation,
+                      initialValue: _selectedRelation,
                       decoration: const InputDecoration(
                         labelText: 'Relationship to Organizer',
                         border: OutlineInputBorder(),

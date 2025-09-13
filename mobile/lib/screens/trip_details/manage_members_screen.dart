@@ -251,7 +251,7 @@ class _ManageMembersScreenState extends State<ManageMembersScreen> {
         return AlertDialog(
           title: const Text('Set Your Relationship'),
           content: DropdownButtonFormField<String>(
-            value: selectedRelationship,
+            initialValue: selectedRelationship,
             hint: const Text('Select a relationship'),
             items: relationships.map((String value) {
               return DropdownMenuItem<String>(value: value, child: Text(value));

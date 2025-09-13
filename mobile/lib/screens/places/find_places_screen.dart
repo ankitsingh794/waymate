@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/models/place_models.dart';
 import 'package:mobile/services/places_service.dart';
+import 'package:mobile/services/permission_service.dart';
 import 'package:mobile/widgets/place_result_card.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -38,24 +39,15 @@ class _FindPlacesScreenState extends State<FindPlacesScreen> {
   // --- NEW: Method to get current location and trigger a search ---
   Future<void> _searchNearMe() async {
     try {
-      bool serviceEnabled;
-      LocationPermission permission;
-
-      serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         throw Exception('Location services are disabled.');
       }
 
-      permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          throw Exception('Location permissions are denied.');
-        }
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        throw Exception('Location permissions are permanently denied.');
+      bool hasLocation = await PermissionService.hasLocationPermission();
+      if (!hasLocation) {
+        throw Exception(
+            'Location permissions are denied. Please grant location permission in app settings.');
       }
 
       final position = await Geolocator.getCurrentPosition();
@@ -84,7 +76,8 @@ class _FindPlacesScreenState extends State<FindPlacesScreen> {
               builder: (context, snapshot) {
                 // Initial state before any search
                 if (_searchFuture == null) {
-                  return const Center(child: Text('Search for places to begin.'));
+                  return const Center(
+                      child: Text('Search for places to begin.'));
                 }
                 // Loading state
                 if (snapshot.connectionState == ConnectionState.waiting) {

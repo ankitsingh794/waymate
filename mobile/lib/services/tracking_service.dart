@@ -1,7 +1,15 @@
 import 'package:mobile/services/api_client.dart';
 
 // --- ENUMS & Data Models ---
-enum TransportationMode { still, walking, running, cycling, driving, public_transport, unknown }
+enum TransportationMode {
+  still,
+  walking,
+  running,
+  cycling,
+  driving,
+  public_transport,
+  unknown
+}
 
 class TrackingPoint {
   final double latitude;
@@ -58,28 +66,31 @@ class TrackingService {
   Future<Map<String, dynamic>> startTrip(TrackingPoint startPoint) async {
     final response = await _apiClient.post(
       'tracking/start',
-      body: { 'startPoint': startPoint.toJson() },
+      body: {'startPoint': startPoint.toJson()},
     );
     return response as Map<String, dynamic>;
   }
 
   Future<String> confirmTripStart(String temporaryTripId) async {
-    final response = await _apiClient.post('tracking/confirm-start', body: {'tripId': temporaryTripId});
+    final response = await _apiClient
+        .post('tracking/confirm-start', body: {'tripId': temporaryTripId});
     return response['tripId'];
   }
 
   Future<void> cancelTrip(String temporaryTripId) async {
-    await _apiClient.post('tracking/cancel-start', body: {'tripId': temporaryTripId});
+    await _apiClient
+        .post('tracking/cancel-start', body: {'tripId': temporaryTripId});
   }
 
   Future<void> changeTripMode(String tripId, TransportationMode newMode) async {
     await _apiClient.post('tracking/change-mode', body: {
-        'tripId': tripId,
-        'newMode': newMode.name, 
+      'tripId': tripId,
+      'newMode': newMode.name,
     });
   }
 
-  Future<void> appendTripData(String tripId, List<TrackingPoint> dataBatch) async {
+  Future<void> appendTripData(
+      String tripId, List<TrackingPoint> dataBatch) async {
     try {
       final List<Map<String, dynamic>> batchAsJson =
           dataBatch.map((point) => point.toJson()).toList();
@@ -95,19 +106,20 @@ class TrackingService {
   }
 
   Future<void> endTrip(String tripId, [TrackingPoint? endPoint]) async {
-      try {
-          await _apiClient.post(
-              'tracking/end',
-              body: {'tripId': tripId, 'endPoint': endPoint?.toJson()},
-          );
-      } on ApiException {
-          rethrow;
-      } catch (e) {
-          throw ApiException('Failed to end trip on the server.');
-      }
+    try {
+      await _apiClient.post(
+        'tracking/end',
+        body: {'tripId': tripId, 'endPoint': endPoint?.toJson()},
+      );
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Failed to end trip on the server.');
+    }
   }
 
-  Future<Map<String, dynamic>> submitTripCorrection(String tripId, TransportationMode correctedMode) async {
+  Future<Map<String, dynamic>> submitTripCorrection(
+      String tripId, TransportationMode correctedMode) async {
     try {
       final response = await _apiClient.post(
         'tracking/trips/$tripId/confirm',
@@ -118,6 +130,22 @@ class TrackingService {
       rethrow;
     } catch (e) {
       throw ApiException('Failed to submit trip correction.');
+    }
+  }
+
+  // New method for confirming trip mode with string input
+  Future<Map<String, dynamic>> confirmTripMode(
+      String tripId, String mode) async {
+    try {
+      final response = await _apiClient.post(
+        'tracking/trips/$tripId/confirm',
+        body: {'correctedMode': mode},
+      );
+      return response;
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Failed to confirm trip mode.');
     }
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'tracking_service.dart';
+import 'permission_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:geolocator/geolocator.dart';
@@ -28,28 +29,22 @@ class SensorService {
   Future<void> startTracking() async {
     try {
       // --- Permission Handling ---
-      // 1. Location Permissions (existing logic)
+      // 1. Location Services Check
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         throw 'Location services are disabled.';
       }
 
-      LocationPermission locationPermission = await Geolocator.checkPermission();
-      if (locationPermission == LocationPermission.denied) {
-        locationPermission = await Geolocator.requestPermission();
-        if (locationPermission == LocationPermission.denied) {
-          throw 'Location permissions are denied.';
-        }
+      // 2. Use PermissionService for consistent permission handling
+      bool hasLocation = await PermissionService.hasLocationPermission();
+      if (!hasLocation) {
+        throw 'Location permissions are denied. Please grant location permission in app settings.';
       }
 
-      if (locationPermission == LocationPermission.deniedForever) {
-        throw 'Location permissions are permanently denied.';
-      }
-
-      // 2. Microphone Permission (NEW)
-      PermissionStatus micPermission = await Permission.microphone.request();
-      if (micPermission != PermissionStatus.granted) {
-        throw 'Microphone permission is required for sound level tracking.';
+      // 3. Check microphone permission (don't request here to avoid redundant prompts)
+      bool hasMic = await Permission.microphone.isGranted;
+      if (!hasMic) {
+        throw 'Microphone permission is required for sound level tracking. Please grant permission in app settings.';
       }
 
       // --- Sensor Initialization ---

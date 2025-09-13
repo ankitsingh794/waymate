@@ -144,7 +144,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
           const SizedBox(height: 20),
           DropdownButtonFormField<String>(
-            value: _selectedCurrency,
+            initialValue: _selectedCurrency,
             decoration: const InputDecoration(labelText: 'Preferred Currency', border: OutlineInputBorder()),
             items: ['INR', 'USD', 'EUR']
                 .map((label) => DropdownMenuItem(value: label, child: Text(label)))
@@ -153,7 +153,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
           const SizedBox(height: 20),
           DropdownButtonFormField<String>(
-            value: _selectedLanguage,
+            initialValue: _selectedLanguage,
             decoration: const InputDecoration(labelText: 'Language', border: OutlineInputBorder()),
             items: ['en', 'hi', 'es']
                 .map((langCode) => DropdownMenuItem(value: langCode, child: Text({'en': 'English', 'hi': 'Hindi', 'es': 'Spanish'}[langCode]!)))

@@ -8,10 +8,12 @@ plugins {
 
 android {
     namespace = "com.example.waymate"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36  // Use the latest stable compileSdk
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        // CORRECTED: In Kotlin DSL, the property is "isCoreLibraryDesugaringEnabled".
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
@@ -24,11 +26,12 @@ android {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.waymate"
         // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        // For more information, see: https://flutter.
+        minSdk = flutter.minSdkVersion   // Set to at least 21 for modern features
+        targetSdk = 34
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        multiDexEnabled = true
     }
 
     buildTypes {
@@ -45,15 +48,20 @@ flutter {
 }
 
 dependencies {
-  // Import the Firebase BoM
-  implementation(platform("com.google.firebase:firebase-bom:34.2.0"))
+    // Import the Firebase BoM
+    implementation(platform("com.google.firebase:firebase-bom:34.2.0"))
+
+    // TODO: Add the dependencies for Firebase products you want to use
+    // When using the BoM, don't specify versions in Firebase dependencies
+    implementation("com.google.firebase:firebase-analytics")
 
 
-  // TODO: Add the dependencies for Firebase products you want to use
-  // When using the BoM, don't specify versions in Firebase dependencies
-  implementation("com.google.firebase:firebase-analytics")
+    // Add the dependencies for any other desired Firebase products
+    // https://firebase.google.com/docs/android/setup#available-libraries
+    
+    // CORRECTED: In Kotlin DSL, dependencies are declared like function calls with parentheses.
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 
-
-  // Add the dependencies for any other desired Firebase products
-  // https://firebase.google.com/docs/android/setup#available-libraries
+    // Add multidex support explicitly
+    implementation("androidx.multidex:multidex:2.0.1")
 }

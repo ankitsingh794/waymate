@@ -29,7 +29,7 @@ class ConfirmationDialog extends StatelessWidget {
             onConfirm(option);
             Navigator.of(context).pop();
           },
-        )).toList(),
+        )),
         TextButton(
           child: const Text('Dismiss', style: TextStyle(color: Colors.grey)),
           onPressed: () {

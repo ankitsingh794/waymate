@@ -58,9 +58,10 @@ class _ItineraryTabState extends State<ItineraryTab> {
       setState(() => _isEditing = false);
       widget.onItineraryUpdated();
     } on ApiException catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(e.message)));
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -72,9 +73,10 @@ class _ItineraryTabState extends State<ItineraryTab> {
       await _tripService.upgradeToSmartSchedule(widget.trip.id);
       widget.onItineraryUpdated();
     } on ApiException catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(e.message)));
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -141,7 +143,7 @@ class _ItineraryTabState extends State<ItineraryTab> {
                   return _isEditing
                       ? _buildEditableDayCard(day)
                       : _buildEnhancedReadOnlyDayCard(day);
-                }).toList(),
+                }),
 
                 // FIX: Show empty state if no itinerary
                 if (widget.trip.itinerary.isEmpty) _buildEmptyItineraryCard(),
@@ -354,7 +356,7 @@ class _ItineraryTabState extends State<ItineraryTab> {
                   ],
                 ),
               );
-            }).toList(),
+            }),
           ],
         ),
       ),

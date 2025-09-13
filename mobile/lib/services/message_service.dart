@@ -6,12 +6,20 @@ class MessageService {
   final ApiClient _apiClient = ApiClient();
 
   Future<List<Message>> getMessages(String sessionId, {int page = 1}) async {
-    final response = await _apiClient.get('messages/session/$sessionId?page=$page&limit=50');
-    final messagesJson = response['data']['messages'] as List;
+    final response =
+        await _apiClient.get('messages/session/$sessionId?page=$page&limit=50');
+    final messagesData = response['data']['messages'];
+
+    if (messagesData == null) {
+      return [];
+    }
+
+    final messagesJson = messagesData as List;
     return messagesJson.map((json) => Message.fromJson(json)).toList();
   }
 
-  Future<Message> sendTextMessage({required String sessionId, required String text}) async {
+  Future<Message> sendTextMessage(
+      {required String sessionId, required String text}) async {
     final response = await _apiClient.post(
       'messages/session/$sessionId/text',
       body: {'message': text},
@@ -19,8 +27,10 @@ class MessageService {
     return Message.fromJson(response['data']['message']);
   }
 
-  Future<void> sendAiMessage({required String sessionId, required String text, Map<String, double>? origin}) async {
-
+  Future<void> sendAiMessage(
+      {required String sessionId,
+      required String text,
+      Map<String, double>? origin}) async {
     final Map<String, dynamic> body = {'message': text};
     if (origin != null) {
       body['origin'] = origin; // <-- ADD the origin to the body if it exists

@@ -20,7 +20,7 @@ class TripRepository {
   /// Gets trips, prioritizing fresh data from API but falling back to local DB.
   Future<List<Trip>> getTrips({String? status}) async {
     final connectivityResult = await connectivity.checkConnectivity();
-    final isOnline = connectivityResult.first != ConnectivityResult.none;
+    final isOnline = connectivityResult != ConnectivityResult.none;
 
     if (isOnline) {
       try {
@@ -43,7 +43,7 @@ class TripRepository {
   /// Updates a trip, saving locally if the user is offline.
   Future<Trip> updateTripDetails(Trip tripToUpdate, Map<String, dynamic> details) async {
     final connectivityResult = await connectivity.checkConnectivity();
-    final isOnline = connectivityResult.first != ConnectivityResult.none;
+    final isOnline = connectivityResult != ConnectivityResult.none;
 
     if (isOnline) {
       final updatedTrip = await tripService.updateTripDetails(tripToUpdate.id, details);

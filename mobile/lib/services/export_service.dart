@@ -4,7 +4,7 @@ import 'package:mobile/services/api_client.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:open_file/open_file.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:mobile/services/permission_service.dart';
 import 'package:http/http.dart' as http;
 
 class ExportService {
@@ -200,26 +200,53 @@ class ExportService {
   }
 
   Future<void> _requestStoragePermission() async {
-    if (Platform.isAndroid) {
-      final status = await Permission.storage.request();
-      if (status != PermissionStatus.granted) {
+    if (!Platform.isAndroid) {
+      debugPrint('✅ iOS - No storage permission needed');
+      return;
+    }
+
+    bool hasPermission = await PermissionService.requestStoragePermission();
+
+    if (!hasPermission) {
+      bool isPermanentlyDenied =
+          await PermissionService.isStoragePermissionPermanentlyDenied();
+
+      if (isPermanentlyDenied) {
+        throw Exception(
+            'Storage permission is permanently denied. Please enable it in app settings to download exports.');
+      } else {
         throw Exception('Storage permission denied');
       }
     }
+
+    debugPrint('✅ Storage permission granted successfully');
   }
 
   Future<File> _saveFile(List<int> bytes, String fileName) async {
-    final directory = Platform.isAndroid
-        ? await getExternalStorageDirectory()
-        : await getApplicationDocumentsDirectory();
+    try {
+      // First try app-specific external storage (no permission needed)
+      Directory? directory = await getExternalStorageDirectory();
 
-    if (directory == null) {
-      throw Exception('Could not access storage directory');
+      if (directory == null) {
+        // Fall back to app documents directory
+        directory = await getApplicationDocumentsDirectory();
+      }
+
+      debugPrint('💾 Saving to app directory: ${directory.path}');
+
+      // Create a subfolder for exports
+      final exportDir = Directory('${directory.path}/waymate_exports');
+      if (!await exportDir.exists()) {
+        await exportDir.create(recursive: true);
+      }
+
+      final file = File('${exportDir.path}/$fileName');
+      await file.writeAsBytes(bytes);
+      return file;
+    } catch (e) {
+      debugPrint('❌ Error saving file: $e');
+      throw Exception('Failed to save export file: ${e.toString()}');
     }
-
-    final file = File('${directory.path}/$fileName');
-    await file.writeAsBytes(bytes);
-    return file;
   }
 
   Future<void> _handleFileAfterDownload(File file, String fileName) async {

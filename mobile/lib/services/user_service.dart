@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:mobile/services/api_client.dart';
 import 'package:mobile/models/user_model.dart';
 
@@ -10,13 +11,24 @@ class UserService {
   /// Fetches the complete profile for the currently authenticated user.
   Future<User> getUserProfile() async {
     try {
-      final responseData = await _apiClient.get('/users/profile');
-      return User.fromJson(responseData['data']['user']);
+      debugPrint('🔄 UserService: Getting user profile...');
+
+      final response = await _apiClient.get('users/profile');
+
+      if (response != null && response['success'] == true) {
+        debugPrint('✅ UserService: Profile loaded successfully');
+        return User.fromJson(response['data']);
+      } else {
+        debugPrint('❌ UserService: Invalid response format');
+        debugPrint('Response: $response');
+        throw ApiException('Invalid response from server');
+      }
     } on ApiException {
+      debugPrint('❌ UserService: API Exception caught, rethrowing');
       rethrow;
     } catch (e) {
-      throw ApiException(
-          'An unexpected error occurred while fetching your profile.');
+      debugPrint('❌ UserService: Unexpected error: $e');
+      throw ApiException('Failed to load profile: ${e.toString()}');
     }
   }
 
@@ -131,7 +143,13 @@ class UserService {
   Future<List<User>> getAllUsers() async {
     try {
       final responseData = await _apiClient.get('users');
-      final usersJson = responseData['data']['users'] as List;
+      final usersData = responseData['data']['users'];
+
+      if (usersData == null) {
+        return [];
+      }
+
+      final usersJson = usersData as List;
       return usersJson.map((json) => User.fromJson(json)).toList();
     } on ApiException {
       rethrow;

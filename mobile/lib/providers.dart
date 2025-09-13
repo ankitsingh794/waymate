@@ -2,12 +2,17 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/services/notification_service.dart';
+import 'package:mobile/services/enhanced_notification_service.dart';
 import 'package:mobile/services/passive_tracking_manager.dart';
 import 'package:mobile/services/sensor_service.dart';
 import 'package:mobile/services/ml_service.dart';
 
 // --- NOTIFICATION ---
 final notificationServiceProvider = Provider((ref) => NotificationService(ref));
+
+// --- ENHANCED NOTIFICATION ---
+final enhancedNotificationServiceProvider =
+    Provider((ref) => EnhancedNotificationService(ref));
 
 // --- PASSIVE TRACKING ---
 final sensorServiceProvider = Provider((ref) => SensorService());

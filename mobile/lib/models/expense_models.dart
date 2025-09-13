@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:mobile/models/user_model.dart';
 
 /// Enum for expense categories, providing type safety and preventing typos.
 /// This directly maps to the `enum` in your Mongoose schema.
@@ -25,8 +26,13 @@ extension ExpenseCategoryExtension on ExpenseCategory {
     // Capitalize the first letter for display purposes
     return name[0].toUpperCase() + name.substring(1);
   }
-}
 
+  /// Returns the server-compatible category string
+  String get serverValue {
+    // Convert enum to server-expected format (title case)
+    return name[0].toUpperCase() + name.substring(1);
+  }
+}
 
 // Represents the user who paid for an expense. (No changes needed)
 class Payer {
@@ -40,6 +46,19 @@ class Payer {
       id: json['_id'],
       name: json['name'] ?? 'Unknown User',
     );
+  }
+
+  /// Creates a Payer from either a populated user object or just an ID string
+  factory Payer.fromJsonOrString(dynamic data) {
+    if (data is String) {
+      // If paidBy is just an ID string (not populated)
+      return Payer(id: data, name: 'Unknown User');
+    } else if (data is Map<String, dynamic>) {
+      // If paidBy is a populated user object
+      return Payer.fromJson(data);
+    } else {
+      throw Exception('Invalid paidBy data format: ${data.runtimeType}');
+    }
   }
 }
 
@@ -68,7 +87,7 @@ class Expense {
   final Payer paidBy;
   final List<ExpenseParticipant> participants;
   final DateTime createdAt;
-  final DateTime updatedAt;     // **ADDED**: Aligns with Mongoose timestamps
+  final DateTime updatedAt; // **ADDED**: Aligns with Mongoose timestamps
 
   Expense({
     required this.id,
@@ -90,8 +109,9 @@ class Expense {
         description: json['description'],
         amount: (json['amount'] as num).toDouble(),
         // **CHANGED**: Parses the string into an ExpenseCategory enum
-        category: ExpenseCategoryExtension.fromString(json['category'] ?? 'Other'),
-        paidBy: Payer.fromJson(json['paidBy']),
+        category:
+            ExpenseCategoryExtension.fromString(json['category'] ?? 'Other'),
+        paidBy: Payer.fromJsonOrString(json['paidBy']),
         participants: (json['participants'] as List)
             .map((p) => ExpenseParticipant.fromJson(p))
             .toList(),
@@ -101,23 +121,24 @@ class Expense {
       );
     } catch (e) {
       debugPrint('Error parsing Expense from JSON: $e');
+      debugPrint('JSON data: $json');
       rethrow;
     }
   }
 }
 
-// Represents a single settlement action. (No changes needed)
+// Fix Settlement class to match backend response
 class Settlement {
-  final String from;
-  final String to;
+  final User from; // Changed from String to User
+  final User to; // Changed from String to User
   final double amount;
 
   Settlement({required this.from, required this.to, required this.amount});
 
   factory Settlement.fromJson(Map<String, dynamic> json) {
     return Settlement(
-      from: json['from'],
-      to: json['to'],
+      from: User.fromJson(json['from']), // Parse as User object
+      to: User.fromJson(json['to']), // Parse as User object
       amount: (json['amount'] as num).toDouble(),
     );
   }
@@ -155,9 +176,8 @@ class TripExpenseBundle {
 
   factory TripExpenseBundle.fromJson(Map<String, dynamic> json) {
     return TripExpenseBundle(
-      expenses: (json['expenses'] as List)
-          .map((e) => Expense.fromJson(e))
-          .toList(),
+      expenses:
+          (json['expenses'] as List).map((e) => Expense.fromJson(e)).toList(),
       summary: ExpenseSummary.fromJson(json['summary']),
     );
   }

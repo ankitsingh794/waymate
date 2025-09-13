@@ -55,11 +55,11 @@ class _ConfirmTripScreenState extends State<ConfirmTripScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            Text('We detected a trip you recently took. Please confirm the mode of transport to improve our accuracy.', textAlign: TextAlign.center),
+            const Text('We detected a trip you recently took. Please confirm the mode of transport to improve our accuracy.', textAlign: TextAlign.center),
             const SizedBox(height: 24),
             // In a real app, you would show a map of the trip path here.
             DropdownButtonFormField<TransportationMode>(
-              value: _selectedMode,
+              initialValue: _selectedMode,
               items: TransportationMode.values.map((mode) => DropdownMenuItem(
                 value: mode,
                 child: Text(mode.name.replaceAll('_', ' ').toUpperCase()),

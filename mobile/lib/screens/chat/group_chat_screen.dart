@@ -41,7 +41,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     super.initState();
 
     // FIX: Periodically check connection status
-    _connectionStatusTimer = Timer.periodic(Duration(seconds: 2), (timer) {
+    _connectionStatusTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
       if (mounted) {
         setState(() {
           // This will rebuild the AppBar with current connection status
@@ -186,9 +186,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       try {
         await _chatService.sendMediaMessage(widget.session.id, imageFile);
       } catch (e) {
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('Failed to send image: $e')));
+        }
       }
     }
   }
@@ -209,7 +210,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           ),
           // FIX: Add test button for debugging
           IconButton(
-            icon: Icon(Icons.bug_report),
+            icon: const Icon(Icons.bug_report),
             onPressed: () {
               debugPrint('🔍 SOCKET DEBUG INFO:');
               debugPrint('  - Connected: ${_socketService.isConnected}');
@@ -218,7 +219,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
               // Test rejoining the session
               _socketService.leaveChatSession(widget.session.id);
-              Future.delayed(Duration(seconds: 1), () {
+              Future.delayed(const Duration(seconds: 1), () {
                 _socketService.joinChatSession(widget.session.id);
               });
             },

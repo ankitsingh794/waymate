@@ -2,9 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:mobile/models/expense_models.dart';
+import 'package:mobile/models/expense_models.dart'
+    as expense_models; // Add prefix
 import 'package:mobile/models/trip_models.dart';
-import 'package:mobile/models/user_model.dart';
+import 'package:mobile/models/user_model.dart'; // Keep this without prefix
 import 'package:mobile/screens/chat/group_chat_screen.dart';
 import 'package:mobile/screens/trip_details/itinerary_tab.dart';
 import 'package:mobile/screens/trip_details/manage_members_screen.dart';
@@ -14,8 +15,8 @@ import 'package:mobile/services/expense_service.dart';
 import 'package:mobile/services/trip_service.dart';
 import 'package:mobile/services/user_service.dart';
 import 'package:mobile/services/socket_service.dart';
-import 'package:mobile/widgets/expense_list_item.dart';
 import 'package:mobile/widgets/expense_summary_card.dart';
+import 'package:mobile/screens/expenses/expense_management_screen.dart';
 import 'package:mobile/widgets/place_card.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -39,7 +40,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen>
   bool _isNavigatingToChat = false;
 
   late Future<Trip> _tripDetailsFuture;
-  late Future<TripExpenseBundle> _expenseFuture;
+  late Future<expense_models.TripExpenseBundle> _expenseFuture; // Use prefix
   late Future<User> _userFuture; // --- NEW: Future to get the current user ---
 
   final Map<String, IconData> _weatherIcons = {
@@ -135,7 +136,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen>
         _tripDetailsFuture = Future.value(updatedTrip);
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Trip has been ${status}.')),
+        SnackBar(content: Text('Trip has been $status.')),
       );
     } catch (e) {
       ScaffoldMessenger.of(context)
@@ -178,9 +179,10 @@ class _TripDetailsScreenState extends State<TripDetailsScreen>
         Navigator.of(context).pop();
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Failed to delete trip: $e')));
+      }
     }
   }
 
@@ -243,12 +245,6 @@ class _TripDetailsScreenState extends State<TripDetailsScreen>
     final bool isOwner = member.role == 'owner';
 
     return Scaffold(
-      floatingActionButton: _tabController.index == 3
-          ? FloatingActionButton(
-              onPressed: () => _showAddExpenseSheet(trip),
-              child: const Icon(Icons.add),
-            )
-          : null,
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
           SliverAppBar(
@@ -357,6 +353,8 @@ class _TripDetailsScreenState extends State<TripDetailsScreen>
                             builder: (context) =>
                                 ManageMembersScreen(trip: trip)));
                     if (result == true) _reloadData();
+                  } else if (value == 'Expense Management') {
+                    _navigateToExpenseManagement(trip);
                   } else if (value == 'Download PDF') {
                     _downloadPdf(trip);
                   } else if (value == 'Cancel Trip') {
@@ -372,6 +370,9 @@ class _TripDetailsScreenState extends State<TripDetailsScreen>
                         value: 'Edit Trip', child: Text('Edit Trip Details')),
                   const PopupMenuItem<String>(
                       value: 'Manage Members', child: Text('Manage Members')),
+                  const PopupMenuItem<String>(
+                      value: 'Expense Management',
+                      child: Text('Expense Management')),
                   const PopupMenuItem<String>(
                       value: 'Download PDF',
                       child: Text('Download Itinerary (PDF)')),
@@ -411,6 +412,8 @@ class _TripDetailsScreenState extends State<TripDetailsScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildAlerts(trip),
+          _buildQuickActionsCard(trip),
+          const SizedBox(height: 16),
           _buildWeatherForecast(trip),
           const SizedBox(height: 16),
           if (trip.aiSummary != null) _buildAiSummaryCard(trip.aiSummary!),
@@ -494,35 +497,183 @@ class _TripDetailsScreenState extends State<TripDetailsScreen>
   }
 
   Widget _buildExpensesTab(Trip trip) {
-    return FutureBuilder<TripExpenseBundle>(
+    return FutureBuilder<expense_models.TripExpenseBundle>(
       future: _expenseFuture,
       builder: (context, snapshot) {
+        debugPrint('🔍 Expense Future State: ${snapshot.connectionState}');
+
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
+
         if (snapshot.hasError) {
+          debugPrint('❌ Expense Error: ${snapshot.error}');
           return Center(
-              child: Text('Failed to load expenses: ${snapshot.error}'));
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                const SizedBox(height: 16),
+                Text(
+                  'Unable to load expense data',
+                  style: GoogleFonts.poppins(fontSize: 18, color: Colors.grey),
+                ),
+                const SizedBox(height: 8),
+                ElevatedButton.icon(
+                  onPressed: () => _navigateToExpenseManagement(trip),
+                  icon: const Icon(Icons.manage_accounts),
+                  label: const Text('Open Expense Management'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0E3B4C),
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          );
         }
-        if (!snapshot.hasData || snapshot.data!.expenses.isEmpty) {
-          return const Center(child: Text('No expenses recorded yet.'));
-        }
-        final expenseBundle = snapshot.data!;
-        return Column(
-          children: [
-            ExpenseSummaryCard(summary: expenseBundle.summary),
-            Expanded(
-              child: ListView.builder(
-                itemCount: expenseBundle.expenses.length,
-                itemBuilder: (context, index) => ExpenseListItem(
-                  expenseData: expenseBundle.expenses[index],
-                  tripId: trip.id,
-                  // --- FIXED: Use the correct parameter name 'onActionCompleted' ---
-                  onActionCompleted: _reloadData,
+
+        final expenseBundle = snapshot.data;
+        final hasExpenses =
+            expenseBundle != null && expenseBundle.expenses.isNotEmpty;
+
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Expense Summary Card (if data available)
+              if (expenseBundle != null)
+                ExpenseSummaryCard(summary: expenseBundle.summary),
+
+              const SizedBox(height: 20),
+
+              // Main Action Card
+              Card(
+                elevation: 4,
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      Icon(
+                        hasExpenses
+                            ? Icons.account_balance_wallet
+                            : Icons.receipt_long_outlined,
+                        size: 64,
+                        color: const Color(0xFF0E3B4C),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        hasExpenses
+                            ? 'Manage Your Expenses'
+                            : 'Start Tracking Expenses',
+                        style: GoogleFonts.poppins(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        hasExpenses
+                            ? 'View analytics, manage budgets, and organize your trip expenses'
+                            : 'Add and track expenses, set budgets, and manage trip finances',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () => _navigateToExpenseManagement(trip),
+                          icon: const Icon(Icons.launch),
+                          label: const Text('Open Expense Management'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0E3B4C),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            textStyle: GoogleFonts.poppins(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+
+              const SizedBox(height: 20),
+
+              // Quick Actions
+              if (hasExpenses) ...[
+                Text(
+                  'Quick Actions',
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _openExpenseManagement(trip),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add Expense'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ExpenseManagementScreen(
+                              tripId: trip.id,
+                              trip: trip,
+                            ),
+                          ),
+                        ).then((_) => _reloadData()),
+                        icon: const Icon(Icons.analytics),
+                        label: const Text('Analytics'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ] else ...[
+                // For empty state, show quick add button
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _openExpenseManagement(trip),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add Your First Expense'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      side: const BorderSide(color: Color(0xFF0E3B4C)),
+                      foregroundColor: const Color(0xFF0E3B4C),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
         );
       },
     );
@@ -649,83 +800,16 @@ class _TripDetailsScreenState extends State<TripDetailsScreen>
     );
   }
 
-  void _showAddExpenseSheet(Trip trip) {
-    final descriptionController = TextEditingController();
-    final amountController = TextEditingController();
-    ExpenseCategory selectedCategory = ExpenseCategory.other;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom,
-            top: 20,
-            left: 20,
-            right: 20),
-        child: StatefulBuilder(
-          builder: (BuildContext context, StateSetter setModalState) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Add New Expense',
-                    style: GoogleFonts.poppins(
-                        fontSize: 20, fontWeight: FontWeight.bold)),
-                TextField(
-                    controller: descriptionController,
-                    decoration:
-                        const InputDecoration(labelText: 'Description')),
-                TextField(
-                    controller: amountController,
-                    decoration: const InputDecoration(labelText: 'Amount'),
-                    keyboardType: TextInputType.number),
-                DropdownButton<ExpenseCategory>(
-                  value: selectedCategory,
-                  isExpanded: true,
-                  onChanged: (ExpenseCategory? newValue) {
-                    if (newValue != null) {
-                      setModalState(() => selectedCategory = newValue);
-                    }
-                  },
-                  items: ExpenseCategory.values
-                      .map((cat) => DropdownMenuItem(
-                          value: cat, child: Text(cat.displayName)))
-                      .toList(),
-                ),
-                ElevatedButton(
-                  child: const Text('Add Expense'),
-                  onPressed: () async {
-                    final desc = descriptionController.text;
-                    final amount = double.tryParse(amountController.text);
-                    if (desc.isNotEmpty && amount != null) {
-                      try {
-                        await _expenseService.addExpense(
-                          tripId: trip.id,
-                          description: desc,
-                          amount: amount,
-                          category: selectedCategory.name,
-                          participantIds: trip.group?.members
-                                  .map((m) => m.user.id)
-                                  .toList() ??
-                              [],
-                        );
-                        if (!ctx.mounted) return;
-                        Navigator.of(ctx).pop();
-                        _reloadData();
-                      } catch (e) {
-                        if (!ctx.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                            content: Text('Failed to add expense: $e')));
-                      }
-                    }
-                  },
-                ),
-              ],
-            );
-          },
+  void _openExpenseManagement(Trip trip) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ExpenseManagementScreen(
+          tripId: trip.id,
+          trip: trip,
         ),
       ),
-    );
+    ).then((_) => _reloadData());
   }
 
   Widget _buildSectionHeader(String title) {
@@ -758,8 +842,6 @@ class _TripDetailsScreenState extends State<TripDetailsScreen>
           ),
         );
       } else {
-        ;
-
         showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
@@ -791,5 +873,67 @@ class _TripDetailsScreenState extends State<TripDetailsScreen>
         );
       }
     }
+  }
+
+  Widget _buildQuickActionsCard(Trip trip) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Quick Actions',
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _navigateToExpenseManagement(trip),
+                    icon: const Icon(Icons.account_balance_wallet),
+                    label: const Text('Manage Expenses'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0E3B4C),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _openExpenseManagement(trip),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add Expense'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _navigateToExpenseManagement(Trip trip) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ExpenseManagementScreen(
+          tripId: trip.id,
+          trip: trip,
+        ),
+      ),
+    ).then((_) => _reloadData()); 
   }
 }

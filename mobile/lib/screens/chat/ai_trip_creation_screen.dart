@@ -8,6 +8,7 @@ import 'package:mobile/models/message_model.dart';
 import 'package:mobile/models/user_model.dart';
 import 'package:mobile/services/chat_service.dart';
 import 'package:mobile/services/message_service.dart';
+import 'package:mobile/services/permission_service.dart';
 import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/services/user_service.dart';
 import 'message_bubble.dart';
@@ -100,28 +101,18 @@ class _AiTripCreationScreenState extends State<AiTripCreationScreen> {
         return;
       }
 
-      // Check location permissions
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          debugPrint("Location permissions are denied");
-          return;
-        }
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        debugPrint("Location permissions are permanently denied");
+      // Check location permissions using PermissionService
+      bool hasLocation = await PermissionService.hasLocationPermission();
+      if (!hasLocation) {
+        debugPrint("Location permissions are denied");
         return;
       }
 
       // Get current position
       final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit:
-              Duration(seconds: 15), // Increased timeout for first message
-        ),
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit:
+            const Duration(seconds: 15), // Increased timeout for first message
       );
 
       _cachedUserLocation = {
@@ -175,11 +166,11 @@ class _AiTripCreationScreenState extends State<AiTripCreationScreen> {
         context: context,
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
-          title: Row(
+          title: const Row(
             children: [
               Icon(Icons.check_circle, color: Colors.green, size: 28),
-              const SizedBox(width: 8),
-              const Text("Trip Created!")
+              SizedBox(width: 8),
+              Text("Trip Created!")
             ],
           ),
           content: Column(
@@ -230,8 +221,9 @@ class _AiTripCreationScreenState extends State<AiTripCreationScreen> {
   }
 
   Future<void> _handleSubmitted(String text) async {
-    if (text.trim().isEmpty || _sessionId == null || _currentUser == null)
+    if (text.trim().isEmpty || _sessionId == null || _currentUser == null) {
       return;
+    }
     final messageText = text.trim();
     _textController.clear();
 
@@ -264,14 +256,12 @@ class _AiTripCreationScreenState extends State<AiTripCreationScreen> {
           // Try to get location one more time for first message
           try {
             final position = await Geolocator.getCurrentPosition(
-              locationSettings: const LocationSettings(
-                accuracy: LocationAccuracy.medium,
-                timeLimit: Duration(seconds: 20),
-              ),
+              desiredAccuracy: LocationAccuracy.medium,
+              timeLimit: const Duration(seconds: 20),
             );
             locationToSend = {
               'lat': position.latitude,
-              'lon': position.longitude
+              'lon': position.longitude,
             };
             debugPrint("Got fresh location for first message: $locationToSend");
           } catch (e) {
@@ -320,9 +310,9 @@ class _AiTripCreationScreenState extends State<AiTripCreationScreen> {
         actions: [
           // NEW: Show location status in app bar
           if (_cachedUserLocation != null)
-            Icon(Icons.location_on, color: Colors.green, size: 20)
+            const Icon(Icons.location_on, color: Colors.green, size: 20)
           else
-            Icon(Icons.location_off, color: Colors.grey, size: 20),
+            const Icon(Icons.location_off, color: Colors.grey, size: 20),
           IconButton(
             icon: const Icon(Icons.delete_sweep_outlined),
             onPressed: () async {
@@ -347,7 +337,7 @@ class _AiTripCreationScreenState extends State<AiTripCreationScreen> {
               color: Colors.blue.withOpacity(0.1),
               child: Row(
                 children: [
-                  SizedBox(
+                  const SizedBox(
                     width: 16,
                     height: 16,
                     child: CircularProgressIndicator(
@@ -417,7 +407,7 @@ class _AiTripCreationScreenState extends State<AiTripCreationScreen> {
               padding: const EdgeInsets.all(16.0),
               child: Row(
                 children: [
-                  SizedBox(
+                  const SizedBox(
                     width: 24,
                     height: 24,
                     child: CircularProgressIndicator(strokeWidth: 2),
@@ -431,7 +421,7 @@ class _AiTripCreationScreenState extends State<AiTripCreationScreen> {
                         _isWaitingForResponse = false;
                       });
                     },
-                    child: Text('Cancel'),
+                    child: const Text('Cancel'),
                   ),
                 ],
               ),

@@ -30,7 +30,27 @@ const createEmailLayout = (title, content) => `
         .content { padding: 25px 0; line-height: 1.7; color: #495057; }
         .content p { margin: 0 0 18px; }
         .button-container { text-align: center; padding: 20px 0; }
-        .button { background-color: #0d6efd; color: #ffffff !important; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block; }
+        .button { 
+            background-color: #0d6efd; 
+            color: #ffffff !important; 
+            padding: 14px 28px; 
+            text-decoration: none !important; 
+            border-radius: 8px; 
+            font-weight: 600; 
+            display: inline-block; 
+            margin: 8px 10px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1.2;
+            text-align: center;
+            box-shadow: 0 2px 6px rgba(13, 110, 253, 0.3);
+        }
+        .button:hover { background-color: #0a58ca !important; }
+        .mobile-button { background-color: #198754 !important; }
+        .mobile-button:hover { background-color: #146c43 !important; }
+        .web-button { background-color: #0d6efd !important; }
+        .web-button:hover { background-color: #0a58ca !important; }
         .footer { text-align: center; font-size: 13px; color: #6c757d; padding-top: 20px; border-top: 1px solid #e9ecef; }
     </style>
 </head>
@@ -48,12 +68,20 @@ exports.generateVerificationEmailHTML = (name, mobileVerifyURL, webVerifyURL) =>
     const safeName = escapeHTML(name);
     const content = `
         <p>Hi ${safeName},</p>
-        <p>Thanks for signing up! Please verify your email address by clicking the button below. This link is valid for 10 minutes.</p>
+        <p>Thanks for signing up! Please verify your email address by clicking one of the buttons below. This link is valid for 10 minutes.</p>
+        
         <div class="button-container">
-            <a href="${mobileVerifyURL}" class="button">📱 Open in WayMate App</a>
-            <a href="${webVerifyURL}" class="button" style="background-color: #4CAF50;">🌐 Verify in Browser</a>
+            <a href="${mobileVerifyURL}" class="button mobile-button" style="background-color: #198754 !important; color: #ffffff !important; text-decoration: none !important;">📱 Open in WayMate App</a>
         </div>
-        <p>If the buttons don't work, copy and paste this link into your browser:<br/><a href="${webVerifyURL}">${webVerifyURL}</a></p>
+        
+        <div class="button-container">
+            <a href="${webVerifyURL}" class="button web-button" style="background-color: #0d6efd !important; color: #ffffff !important; text-decoration: none !important;">🌐 Verify in Browser</a>
+        </div>
+        
+        <p><strong>Prefer to copy/paste?</strong><br/>
+        Mobile link: <a href="${mobileVerifyURL}" style="color: #0d6efd; word-break: break-all;">${mobileVerifyURL}</a><br/>
+        Web link: <a href="${webVerifyURL}" style="color: #0d6efd; word-break: break-all;">${webVerifyURL}</a></p>
+        
         <p>Thanks,<br/>The ${escapeHTML(APP_NAME)} Team</p>
     `;
     return createEmailLayout('Verify Your Email', content);
@@ -64,10 +92,16 @@ exports.generatePasswordResetEmailHTML = (name, resetUrl) => {
     const content = `
         <p>Hi ${safeName},</p>
         <p>We received a request to reset your password. Click the button below to choose a new one. This link is valid for 10 minutes.</p>
+        
         <div class="button-container">
-            <a href="${resetUrl}" class="button" style="background-color: #dc3545;">Reset Password</a>
+            <a href="${resetUrl}" class="button" style="background-color: #dc3545 !important; color: #ffffff !important; text-decoration: none !important;">🔐 Reset Password</a>
         </div>
-        <p>If the button doesn't work, copy and paste this link into your browser:<br/><a href="${resetUrl}">${resetUrl}</a></p>
+        
+        <p><strong>Prefer to copy/paste?</strong><br/>
+        <a href="${resetUrl}" style="color: #dc3545; word-break: break-all;">${resetUrl}</a></p>
+        
+        <p>If you didn't request this password reset, you can safely ignore this email. Your password will remain unchanged.</p>
+        
         <p>Thanks,<br/>The ${escapeHTML(APP_NAME)} Team</p>
     `;
     return createEmailLayout('Reset Your Password', content);

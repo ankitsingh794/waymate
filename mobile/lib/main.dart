@@ -1,6 +1,7 @@
 // lib/main.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:go_router/go_router.dart';
@@ -15,13 +16,17 @@ import 'package:mobile/screens/auth/reset_password_screen.dart';
 import 'package:mobile/screens/core/main_scaffold.dart';
 import 'package:mobile/screens/splash/splash_screen.dart';
 import 'package:mobile/screens/tracking/confirm_trip_screen.dart';
-import 'package:mobile/services/notification_service.dart';
+import 'package:mobile/services/enhanced_notification_service.dart';
+import 'package:mobile/services/background_service_manager.dart';
+import 'package:mobile/services/notification_integration_service.dart';
 import 'package:mobile/screens/researcher/enhanced_data_export_screen.dart';
+import 'package:mobile/services/permission_service.dart';
+import 'package:mobile/services/deep_link_service.dart';
 
 // --- ROUTING CONFIGURATION ---
 // Using go_router to handle all navigation, including deep links.
 final GoRouter _router = GoRouter(
-  navigatorKey: NotificationService.navigatorKey,
+  navigatorKey: EnhancedNotificationService.navigatorKey,
   initialLocation: '/',
   routes: <RouteBase>[
     GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
@@ -88,21 +93,78 @@ final GoRouter _router = GoRouter(
 // --- APP INITIALIZATION ---
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    debugPrint('Firebase initialization failed: $e');
+  }
+
+  // Request all permissions on app start (non-blocking)
+  PermissionService.requestAllPermissions().catchError((e) {
+    debugPrint('Permission request failed: $e');
+    return false; // Return false to indicate failure
+  });
+
+  // ✅ ADDED: Create the provider container before the app starts.
+  final container = ProviderContainer();
+
+  // Initialize services with timeout and error handling
+  _initializeServicesWithTimeout(container);
+
+  // Initialize deep link service
+  DeepLinkService().initialize(_router);
 
   runApp(
-    const ProviderScope(
-      child: MyApp(),
+    // ✅ ADDED: Use UncontrolledProviderScope to pass the existing container
+    // to the widget tree.
+    UncontrolledProviderScope(
+      container: container,
+      child: const MyApp(),
     ),
   );
 }
 
+/// Initialize services with timeout to prevent app hanging
+Future<void> _initializeServicesWithTimeout(ProviderContainer container) async {
+  // Initialize services in background without blocking app startup
+  Future.microtask(() async {
+    try {
+      // Initialize enhanced notification service with timeout
+      await container
+          .read(enhancedNotificationServiceProvider)
+          .initialize()
+          .timeout(const Duration(seconds: 10));
+
+      // Initialize background service manager with timeout
+      await BackgroundServiceManager.instance
+          .initialize()
+          .timeout(const Duration(seconds: 5));
+
+      await BackgroundServiceManager.instance
+          .startNotificationChecking()
+          .timeout(const Duration(seconds: 5));
+
+      // Initialize notification integration service with timeout
+      await NotificationIntegrationService.instance
+          .initialize()
+          .timeout(const Duration(seconds: 10));
+
+      debugPrint('✅ All services initialized successfully');
+    } catch (e) {
+      debugPrint('⚠️ Service initialization failed (app will continue): $e');
+    }
+  });
+}
+
 // --- ROOT WIDGET ---
-class MyApp extends StatelessWidget {
+// ✅ CHANGED: MyApp is now a ConsumerWidget to follow Riverpod best practices.
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  // ✅ CHANGED: The build method now includes 'WidgetRef ref'.
+  Widget build(BuildContext context, WidgetRef ref) {
     return StyledToast(
       locale: const Locale('en', 'US'),
       child: MaterialApp.router(
@@ -124,27 +186,8 @@ class MyApp extends StatelessWidget {
           ),
         ),
         debugShowCheckedModeBanner: false,
-        // FIX: Initialize notifications after app is built
-        builder: (context, child) {
-          // Initialize notifications service after first frame
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _initializeNotifications(context);
-          });
-
-          return child ?? Container();
-        },
+        // ❌ REMOVED: The incorrect builder and initialization logic has been removed.
       ),
     );
-  }
-
-  // FIX: Initialize notifications with proper error handling
-  void _initializeNotifications(BuildContext context) {
-    try {
-      final container = ProviderScope.containerOf(context);
-      final notificationService = NotificationService(container as ProviderRef);
-      notificationService.initialize();
-    } catch (e) {
-      debugPrint('Failed to initialize notifications: $e');
-    }
   }
 }

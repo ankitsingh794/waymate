@@ -19,7 +19,18 @@ class PaginatedTrips {
   });
 
   factory PaginatedTrips.fromJson(Map<String, dynamic> json) {
-    var tripList = json['data']['data'] as List;
+    final tripData = json['data']['data'];
+
+    if (tripData == null) {
+      return PaginatedTrips(
+        trips: [],
+        page: json['data']['page'] ?? 1,
+        totalPages: json['data']['totalPages'] ?? 1,
+        total: json['data']['total'] ?? 0,
+      );
+    }
+
+    var tripList = tripData as List;
     List<Trip> trips = tripList.map((i) => Trip.fromJson(i)).toList();
     return PaginatedTrips(
       trips: trips,

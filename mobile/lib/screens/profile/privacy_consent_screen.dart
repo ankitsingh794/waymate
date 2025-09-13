@@ -16,7 +16,7 @@ class _PrivacyConsentScreenState extends State<PrivacyConsentScreen> {
   final UserService _userService = UserService();
   User? _user;
   bool _isLoading = true;
-  Map<String, bool> _pendingUpdates = {};
+  final Map<String, bool> _pendingUpdates = {};
 
   @override
   void initState() {

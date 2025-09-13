@@ -1,5 +1,6 @@
 // lib/screens/core/main_scaffold.dart
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile/providers.dart';
@@ -23,7 +24,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
   @override
   void initState() {
     super.initState();
-    
+
     // --- NEW: Initialize global services when the user is logged in ---
     // This is the perfect place to start services that should only run
     // when a user is authenticated.
@@ -32,8 +33,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
 
     // In a real app, you would check a persisted user setting for this consent.
     // For now, we assume consent is given and start the tracking manager.
-    final passiveTrackingManager = ref.read(passiveTrackingManagerProvider);
-    passiveTrackingManager.start();
+    _initializePassiveTracking();
 
     // Initialize pages
     _pages = <Widget>[
@@ -41,6 +41,14 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
       const NotificationsScreen(),
       const ProfileScreen(),
     ];
+  }
+
+  Future<void> _initializePassiveTracking() async {
+    final passiveTrackingManager = ref.read(passiveTrackingManagerProvider);
+    bool started = await passiveTrackingManager.start();
+    if (!started) {
+      debugPrint("⚠️ Failed to start passive tracking - check permissions");
+    }
   }
 
   void _onItemTapped(int index) {

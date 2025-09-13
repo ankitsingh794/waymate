@@ -29,7 +29,7 @@ class ExpenseSummaryCard extends StatelessWidget {
               Text('Settlement Plan', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               // Mapping over the typed List<Settlement>
-              ...summary.settlements.map((s) => _buildSettlementRow(s, summary.currency)).toList(),
+              ...summary.settlements.map((s) => _buildSettlementRow(s, summary.currency)),
             ]
           ],
         ),
@@ -47,18 +47,33 @@ class ExpenseSummaryCard extends StatelessWidget {
           Expanded(
             child: Row(
               children: [
-                Flexible(child: Text(settlement.from, style: GoogleFonts.poppins(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis)),
+                Flexible(
+                  child: Text(
+                    settlement.from.name, // FIX: Access name property
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 8.0),
                   child: Icon(Icons.arrow_forward, size: 16),
                 ),
-                Flexible(child: Text(settlement.to, style: GoogleFonts.poppins(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis)),
+                Flexible(
+                  child: Text(
+                    settlement.to.name, // FIX: Access name property
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ],
             ),
           ),
           Text(
             '$currency ${settlement.amount.toStringAsFixed(2)}',
-            style: GoogleFonts.poppins(color: Colors.green.shade800, fontWeight: FontWeight.bold),
+            style: GoogleFonts.poppins(
+              color: Colors.green.shade800,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),

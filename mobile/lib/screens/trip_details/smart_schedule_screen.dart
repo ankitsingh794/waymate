@@ -37,7 +37,7 @@ class SmartScheduleScreen extends StatelessWidget {
           ...schedule.options.map((option) {
             final bool isRecommended = option == schedule.options.first;
             return SmartScheduleOptionCard(optionData: option, isRecommended: isRecommended);
-          }).toList(),
+          }),
         ],
       ),
     );

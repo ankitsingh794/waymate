@@ -14,7 +14,7 @@ class CompanionDetectionService {
   final _companionController = StreamController<CompanionEstimate>.broadcast();
   Timer? _scanTimer;
   Set<String> _nearbyDevices = {};
-  Set<String> _nearbyNetworks = {};
+  final Set<String> _nearbyNetworks = {};
 
   Stream<CompanionEstimate> get companionStream => _companionController.stream;
 
@@ -25,7 +25,7 @@ class CompanionDetectionService {
 
       // Start periodic scanning
       _scanTimer =
-          Timer.periodic(Duration(seconds: 30), (_) => _scanForCompanions());
+          Timer.periodic(const Duration(seconds: 30), (_) => _scanForCompanions());
 
       debugPrint('CompanionDetectionService started');
     } catch (e) {
