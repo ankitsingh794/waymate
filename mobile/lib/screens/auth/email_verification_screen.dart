@@ -2,9 +2,9 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
-import 'package:mobile/screens/core/main_scaffold.dart';
 import 'package:mobile/services/auth_service.dart';
 
 class EmailVerificationScreen extends StatefulWidget {
@@ -70,11 +70,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
 
       Timer(const Duration(seconds: 4), () {
         if (mounted) {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const MainScaffold()),
-            (route) => false,
-          );
+          context.go('/home');
         }
       });
     } else {

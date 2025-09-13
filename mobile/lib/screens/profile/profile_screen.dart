@@ -2,9 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mobile/models/socio_economic_survey_models.dart';
 import 'package:mobile/models/user_model.dart';
-import 'package:mobile/screens/auth/login_screen.dart';
 import 'package:mobile/screens/profile/change_password_screen.dart';
 import 'package:mobile/screens/profile/edit_profile_screen.dart';
 import 'package:mobile/screens/profile/household_management_screen.dart';
@@ -67,10 +67,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await _authService.logout();
 
     if (mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-        (Route<dynamic> route) => false,
-      );
+      // Use go_router navigation instead of imperative Navigator
+      context.go('/login');
     }
   }
 

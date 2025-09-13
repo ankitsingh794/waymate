@@ -3,14 +3,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
 import 'package:mobile/config/app_config.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/services/navigator_service.dart';
-import 'package:mobile/screens/auth/login_screen.dart';
 
 // A custom exception class for handling API errors gracefully.
 class ApiException implements Exception {
@@ -304,10 +303,7 @@ class ApiClient {
     _authService.logout();
     final context = GlobalNavigator.key.currentContext;
     if (context != null && context.mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-        (route) => false,
-      );
+      context.go('/login');
     }
   }
 }

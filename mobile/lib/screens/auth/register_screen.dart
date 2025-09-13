@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mobile/screens/auth/email_verification_screen.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mobile/services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -47,18 +47,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             content: Text(
-                result['message'] ?? 'Success! Please verify your email.')),
+                'Registration successful! Please check your email to verify your account, then login.')),
       );
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => EmailVerificationScreen(
-            email: _emailController.text.trim(),
-            token:
-                null, 
-          ),
-        ),
-      );
+      // Navigate to login screen instead of email verification
+      context.go('/login');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(result['message'] ?? 'Registration failed')),

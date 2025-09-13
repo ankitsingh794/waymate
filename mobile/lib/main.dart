@@ -8,7 +8,6 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_styled_toast/flutter_styled_toast.dart';
 
-import 'package:mobile/screens/auth/email_verification_screen.dart';
 import 'package:mobile/screens/auth/forgot_password_screen.dart';
 import 'package:mobile/screens/auth/login_screen.dart';
 import 'package:mobile/screens/auth/register_screen.dart';
@@ -21,7 +20,6 @@ import 'package:mobile/services/background_service_manager.dart';
 import 'package:mobile/services/notification_integration_service.dart';
 import 'package:mobile/screens/researcher/enhanced_data_export_screen.dart';
 import 'package:mobile/services/permission_service.dart';
-import 'package:mobile/services/deep_link_service.dart';
 import 'package:mobile/screens/debug/deep_link_test_screen.dart';
 
 // --- ROUTING CONFIGURATION ---
@@ -34,31 +32,6 @@ final GoRouter _router = GoRouter(
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
     GoRoute(
         path: '/register', builder: (context, state) => const RegisterScreen()),
-    GoRoute(
-      path: '/verify-email',
-      builder: (context, state) {
-        final token = state.uri.queryParameters['token'];
-        final email = state.uri.queryParameters['email'] ?? '';
-
-        // FIX: Add debug logging
-        debugPrint('🔗 DEEP LINK RECEIVED:');
-        debugPrint('  - Full URI: ${state.uri}');
-        debugPrint('  - Token: $token');
-        debugPrint('  - Email: $email');
-        debugPrint('  - All params: ${state.uri.queryParameters}');
-
-        if (token == null || token.isEmpty) {
-          debugPrint('❌ Invalid deep link - no token');
-          return const Scaffold(
-              body: Center(
-                  child: Text(
-                      "Invalid verification link. Please check your email and try again.")));
-        }
-
-        debugPrint('✅ Valid deep link - navigating to EmailVerificationScreen');
-        return EmailVerificationScreen(email: email, token: token);
-      },
-    ),
     GoRoute(
         path: '/forgot-password',
         builder: (context, state) => const ForgotPasswordScreen()),
@@ -118,14 +91,8 @@ void main() async {
   // Initialize services with timeout and error handling
   _initializeServicesWithTimeout(container);
 
-  // Initialize deep link service
-  try {
-    debugPrint('🔗 Starting deep link service initialization...');
-    await DeepLinkService().initialize(_router);
-    debugPrint('✅ Deep link service initialized successfully');
-  } catch (e) {
-    debugPrint('❌ Failed to initialize deep link service: $e');
-  }
+  // Deep link service removed - email verification now handled on web only
+  debugPrint('📧 Email verification will be handled on web platform');
 
   runApp(
     // ✅ ADDED: Use UncontrolledProviderScope to pass the existing container
@@ -139,7 +106,6 @@ void main() async {
 
 /// Initialize services with timeout to prevent app hanging
 Future<void> _initializeServicesWithTimeout(ProviderContainer container) async {
-  // Initialize services in background without blocking app startup
   Future.microtask(() async {
     try {
       // Initialize enhanced notification service with timeout

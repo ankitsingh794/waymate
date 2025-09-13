@@ -67,37 +67,21 @@ const createEmailLayout = (title, content) => `
 exports.generateVerificationEmailHTML = (name, mobileVerifyURL, webVerifyURL) => {
     const safeName = escapeHTML(name);
     
-    // Extract token and email from URLs for the redirect
-    const mobileUrlObj = new URL(mobileVerifyURL.replace('waymate://', 'https://'));
-    const token = mobileUrlObj.searchParams.get('token');
-    const email = mobileUrlObj.searchParams.get('email') || '';
-    
-    // Create universal redirect URL that works in all email clients
-    const universalMobileUrl = `${process.env.CLIENT_URL}/app-redirect?action=verify-email&token=${token}&email=${encodeURIComponent(email)}`;
-    
     const content = `
         <p>Hi ${safeName},</p>
         <p>Thanks for signing up! Please verify your email address by clicking the verification button below. This link is valid for 10 minutes.</p>
         
-        <!-- Primary Web Verification Button -->
         <div class="button-container">
             <a href="${webVerifyURL}" class="button web-button" style="background-color: #0d6efd !important; color: #ffffff !important; text-decoration: none !important;">✅ Verify Your Email</a>
         </div>
         
-        <!-- Mobile App Button with Universal Link -->
-        <div class="button-container">
-            <a href="${universalMobileUrl}" class="button mobile-button" style="background-color: #198754 !important; color: #ffffff !important; text-decoration: none !important;">📱 Open in WayMate App</a>
-        </div>
+        <p>After verifying your email, you'll be able to choose whether to continue using WayMate on the web or download our mobile app for the best experience!</p>
         
         <hr style="border: none; height: 1px; background-color: #e9ecef; margin: 30px 0;">
         
         <p><strong>Having trouble?</strong><br/>
         Copy and paste this link into your browser:<br/>
         <a href="${webVerifyURL}" style="color: #0d6efd; word-break: break-all; font-size: 13px;">${webVerifyURL}</a></p>
-        
-        <p style="color: #6c757d; font-size: 13px;">
-        The "Open in WayMate App" button will automatically open the app if installed, or redirect to the web version.
-        </p>
         
         <p>Thanks,<br/>The ${escapeHTML(APP_NAME)} Team</p>
     `;
