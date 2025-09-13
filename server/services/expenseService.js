@@ -48,8 +48,14 @@ const calculateAndCacheSettlements = async (tripId) => {
             const debtor = debtors[j];
             const amountToSettle = Math.min(creditor.amount, debtor.amount);
             settlements.push({
-                from: userMap.get(debtor.userId),
-                to: userMap.get(creditor.userId),
+                from: {
+                    _id: debtor.userId,
+                    name: userMap.get(debtor.userId).name
+                },
+                to: {
+                    _id: creditor.userId, 
+                    name: userMap.get(creditor.userId).name
+                },
                 amount: parseFloat(amountToSettle.toFixed(2))
             });
             creditor.amount -= amountToSettle;
