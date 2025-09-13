@@ -60,7 +60,7 @@ exports.registerUser = async (req, res, next) => {
         
         // Create both mobile and web deep links
         const mobileVerifyURL = `waymate://verify-email?token=${verificationToken}&email=${encodeURIComponent(user.email)}`;
-        const webVerifyURL = `https://waymate.vercel.app/verify-email?token=${verificationToken}&email=${encodeURIComponent(user.email)}`;
+        const webVerifyURL = `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}&email=${encodeURIComponent(user.email)}`;
         
         await sendEmail({
             to: user.email,
@@ -142,7 +142,7 @@ exports.resendVerificationEmail = async (req, res, next) => {
         await user.save({ validateBeforeSave: false });
 
         const mobileVerifyURL = `waymate://verify-email?token=${verificationToken}&email=${encodeURIComponent(user.email)}`;
-        const webVerifyURL = `https://waymate.vercel.app/verify-email?token=${verificationToken}&email=${encodeURIComponent(user.email)}`;
+        const webVerifyURL = `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}&email=${encodeURIComponent(user.email)}`;
         
         await sendEmail({
             to: user.email,

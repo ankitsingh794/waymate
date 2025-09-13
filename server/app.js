@@ -25,6 +25,7 @@ const analyticsRoutes = require('./routes/analyticsRoutes');
 const metrics = require('./routes/metricsRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const surveyRoutes = require('./routes/surveyRoutes');
+const deepLinkRoutes = require('./routes/deepLinkRoutes');
 
 const app = express();
 
@@ -99,6 +100,9 @@ apiRouter.use('/notifications', notificationRoutes);
 apiRouter.use('/surveys', surveyRoutes);
 
 app.use('/api/v1', apiRouter);
+
+// --- Deep Link Routes (not behind API versioning) ---
+app.use('/app', deepLinkRoutes);
 
 // --- Health Check ---
 app.get('/health', (req, res) => {

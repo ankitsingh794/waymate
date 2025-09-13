@@ -22,6 +22,7 @@ import 'package:mobile/services/notification_integration_service.dart';
 import 'package:mobile/screens/researcher/enhanced_data_export_screen.dart';
 import 'package:mobile/services/permission_service.dart';
 import 'package:mobile/services/deep_link_service.dart';
+import 'package:mobile/screens/debug/deep_link_test_screen.dart';
 
 // --- ROUTING CONFIGURATION ---
 // Using go_router to handle all navigation, including deep links.
@@ -87,6 +88,11 @@ final GoRouter _router = GoRouter(
       path: '/researcher/data-export',
       builder: (context, state) => const EnhancedDataExportScreen(),
     ),
+    // Debug route for testing deep links
+    GoRoute(
+      path: '/debug/deep-links',
+      builder: (context, state) => const DeepLinkTestScreen(),
+    ),
   ],
 );
 
@@ -113,7 +119,13 @@ void main() async {
   _initializeServicesWithTimeout(container);
 
   // Initialize deep link service
-  DeepLinkService().initialize(_router);
+  try {
+    debugPrint('🔗 Starting deep link service initialization...');
+    await DeepLinkService().initialize(_router);
+    debugPrint('✅ Deep link service initialized successfully');
+  } catch (e) {
+    debugPrint('❌ Failed to initialize deep link service: $e');
+  }
 
   runApp(
     // ✅ ADDED: Use UncontrolledProviderScope to pass the existing container

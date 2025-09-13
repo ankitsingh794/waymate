@@ -66,19 +66,28 @@ const createEmailLayout = (title, content) => `
 
 exports.generateVerificationEmailHTML = (name, mobileVerifyURL, webVerifyURL) => {
     const safeName = escapeHTML(name);
+    
+    // Extract token and email from URLs for the redirect
+    const mobileUrlObj = new URL(mobileVerifyURL.replace('waymate://', 'https://'));
+    const token = mobileUrlObj.searchParams.get('token');
+    const email = mobileUrlObj.searchParams.get('email') || '';
+    
+    // Create universal redirect URL that works in all email clients
+    const universalMobileUrl = `${process.env.CLIENT_URL}/app-redirect?action=verify-email&token=${token}&email=${encodeURIComponent(email)}`;
+    
     const content = `
         <p>Hi ${safeName},</p>
         <p>Thanks for signing up! Please verify your email address by clicking the verification button below. This link is valid for 10 minutes.</p>
         
-        <!-- Primary Web Verification Button (works in all email clients) -->
+        <!-- Primary Web Verification Button -->
         <div class="button-container">
             <a href="${webVerifyURL}" class="button web-button" style="background-color: #0d6efd !important; color: #ffffff !important; text-decoration: none !important;">✅ Verify Your Email</a>
         </div>
         
-        <p style="text-align: center; color: #6c757d; font-size: 14px; margin: 20px 0;">
-            <strong>Have the WayMate mobile app?</strong><br/>
-            <a href="${mobileVerifyURL}" style="color: #198754; text-decoration: underline;">Tap here to open in the app</a>
-        </p>
+        <!-- Mobile App Button with Universal Link -->
+        <div class="button-container">
+            <a href="${universalMobileUrl}" class="button mobile-button" style="background-color: #198754 !important; color: #ffffff !important; text-decoration: none !important;">📱 Open in WayMate App</a>
+        </div>
         
         <hr style="border: none; height: 1px; background-color: #e9ecef; margin: 30px 0;">
         
@@ -87,8 +96,7 @@ exports.generateVerificationEmailHTML = (name, mobileVerifyURL, webVerifyURL) =>
         <a href="${webVerifyURL}" style="color: #0d6efd; word-break: break-all; font-size: 13px;">${webVerifyURL}</a></p>
         
         <p style="color: #6c757d; font-size: 13px;">
-        <strong>Mobile app users:</strong> If the app link doesn't work, copy this instead:<br/>
-        <code style="background: #f8f9fa; padding: 2px 6px; border-radius: 4px; font-size: 12px; color: #495057;">${mobileVerifyURL}</code>
+        The "Open in WayMate App" button will automatically open the app if installed, or redirect to the web version.
         </p>
         
         <p>Thanks,<br/>The ${escapeHTML(APP_NAME)} Team</p>
@@ -98,6 +106,12 @@ exports.generateVerificationEmailHTML = (name, mobileVerifyURL, webVerifyURL) =>
 
 exports.generatePasswordResetEmailHTML = (name, resetUrl) => {
     const safeName = escapeHTML(name);
+    
+    // Extract token for universal redirect
+    const resetUrlObj = new URL(resetUrl);
+    const token = resetUrlObj.searchParams.get('token');
+    const universalResetUrl = `${process.env.SERVER_URL}/app/app-redirect?action=reset-password&token=${token}`;
+    
     const content = `
         <p>Hi ${safeName},</p>
         <p>We received a request to reset your password. Click the button below to choose a new one. This link is valid for 10 minutes.</p>
@@ -105,6 +119,11 @@ exports.generatePasswordResetEmailHTML = (name, resetUrl) => {
         <div class="button-container">
             <a href="${resetUrl}" class="button" style="background-color: #dc3545 !important; color: #ffffff !important; text-decoration: none !important;">🔐 Reset Password</a>
         </div>
+        
+        <p style="text-align: center; color: #6c757d; font-size: 14px; margin: 20px 0;">
+            <strong>Have the WayMate mobile app?</strong><br/>
+            <a href="${universalResetUrl}" style="color: #dc3545; text-decoration: underline; background: #f8f9fa; padding: 8px 16px; border-radius: 6px; display: inline-block; margin: 5px;">📱 Open in WayMate App</a>
+        </p>
         
         <p><strong>Prefer to copy/paste?</strong><br/>
         <a href="${resetUrl}" style="color: #dc3545; word-break: break-all;">${resetUrl}</a></p>
