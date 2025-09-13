@@ -1,0 +1,249 @@
+{
+  "timestamp": "2025-09-13T18:06:57.964Z",
+  "totalTests": 17,
+  "passedTests": 15,
+  "failedTests": 2,
+  "categories": {
+    "authentication": {
+      "tests": [
+        {
+          "name": "User Registration",
+          "passed": true,
+          "duration": "286ms",
+          "timestamp": "2025-09-13T18:06:58.415Z",
+          "details": {
+            "userId": "68c5b2c2b53f49d6d0ea0471",
+            "email": "test-auth@waymate.test"
+          },
+          "error": null
+        },
+        {
+          "name": "Password Hashing",
+          "passed": true,
+          "duration": "287ms",
+          "timestamp": "2025-09-13T18:06:58.702Z",
+          "details": {
+            "hashLength": 60,
+            "bcryptValid": true
+          },
+          "error": null
+        },
+        {
+          "name": "JWT Token Generation",
+          "passed": true,
+          "duration": "10ms",
+          "timestamp": "2025-09-13T18:06:58.713Z",
+          "details": {
+            "tokenLength": 233,
+            "decodedId": "68c5b2c2b53f49d6d0ea0471",
+            "validExpiry": true
+          },
+          "error": null
+        },
+        {
+          "name": "Invalid Credentials Rejection",
+          "passed": true,
+          "duration": "296ms",
+          "timestamp": "2025-09-13T18:06:59.009Z",
+          "details": {
+            "properlyRejected": true
+          },
+          "error": null
+        }
+      ],
+      "passed": 4,
+      "failed": 0
+    },
+    "authorization": {
+      "tests": [
+        {
+          "name": "User Role Assignment",
+          "passed": true,
+          "duration": "615ms",
+          "timestamp": "2025-09-13T18:06:59.625Z",
+          "details": {
+            "userRole": "user",
+            "researcherRole": "researcher"
+          },
+          "error": null
+        },
+        {
+          "name": "User Data Isolation",
+          "passed": true,
+          "duration": "16ms",
+          "timestamp": "2025-09-13T18:06:59.641Z",
+          "details": {
+            "user1Notifications": 1,
+            "user2Notifications": 1
+          },
+          "error": null
+        }
+      ],
+      "passed": 2,
+      "failed": 0
+    },
+    "database": {
+      "tests": [
+        {
+          "name": "Database Connection Health",
+          "passed": true,
+          "duration": "18ms",
+          "timestamp": "2025-09-13T18:06:59.660Z",
+          "details": {
+            "uptime": 9174,
+            "connections": 6
+          },
+          "error": null
+        },
+        {
+          "name": "Index Configuration",
+          "passed": true,
+          "duration": "6ms",
+          "timestamp": "2025-09-13T18:06:59.666Z",
+          "details": {
+            "userIndexes": 4,
+            "notificationIndexes": 2
+          },
+          "error": null
+        },
+        {
+          "name": "Schema Validation",
+          "passed": true,
+          "duration": "2ms",
+          "timestamp": "2025-09-13T18:06:59.668Z",
+          "details": {
+            "validationWorking": true,
+            "errorType": "ValidationError"
+          },
+          "error": null
+        },
+        {
+          "name": "Query Performance",
+          "passed": true,
+          "duration": "26ms",
+          "timestamp": "2025-09-13T18:06:59.695Z",
+          "details": {
+            "queryDuration": "3ms",
+            "recordsFound": 10,
+            "totalRecords": 100
+          },
+          "error": null
+        }
+      ],
+      "passed": 4,
+      "failed": 0
+    },
+    "api": {
+      "tests": [
+        {
+          "name": "Environment Configuration",
+          "passed": true,
+          "duration": "1ms",
+          "timestamp": "2025-09-13T18:06:59.696Z",
+          "details": {
+            "configuredVars": 3
+          },
+          "error": null
+        },
+        {
+          "name": "Model Relationships",
+          "passed": false,
+          "duration": "4ms",
+          "timestamp": "2025-09-13T18:06:59.700Z",
+          "details": null,
+          "error": "Trip validation failed: destination: Path `destination` is required."
+        }
+      ],
+      "passed": 1,
+      "failed": 1
+    },
+    "performance": {
+      "tests": [
+        {
+          "name": "Bulk Operations",
+          "passed": true,
+          "duration": "173ms",
+          "timestamp": "2025-09-13T18:06:59.874Z",
+          "details": {
+            "insertTime": "142ms",
+            "queryTime": "31ms",
+            "recordsInserted": 1000,
+            "recordsFound": 1101
+          },
+          "error": null
+        },
+        {
+          "name": "Concurrent Operations",
+          "passed": true,
+          "duration": "12ms",
+          "timestamp": "2025-09-13T18:06:59.887Z",
+          "details": {
+            "concurrentQueries": 10,
+            "averageTime": "1.1ms",
+            "totalTime": "11ms"
+          },
+          "error": null
+        }
+      ],
+      "passed": 2,
+      "failed": 0
+    },
+    "security": {
+      "tests": [
+        {
+          "name": "Password Security",
+          "passed": true,
+          "duration": "0ms",
+          "timestamp": "2025-09-13T18:06:59.888Z",
+          "details": {
+            "hashType": "bcrypt",
+            "hashLength": 60
+          },
+          "error": null
+        },
+        {
+          "name": "JWT Expiry Security",
+          "passed": true,
+          "duration": "28ms",
+          "timestamp": "2025-09-13T18:06:59.916Z",
+          "details": {
+            "expiryWorking": true
+          },
+          "error": null
+        },
+        {
+          "name": "Input Sanitization",
+          "passed": false,
+          "duration": "322ms",
+          "timestamp": "2025-09-13T18:07:00.239Z",
+          "details": {
+            "sanitizationActive": false
+          },
+          "error": null
+        }
+      ],
+      "passed": 2,
+      "failed": 1
+    }
+  },
+  "performance": {
+    "averageResponseTime": 0,
+    "slowestQuery": null,
+    "fastestQuery": null,
+    "dbConnections": 0
+  },
+  "recommendations": [
+    {
+      "category": "Security",
+      "priority": "Critical",
+      "issue": "Security tests failed",
+      "recommendation": "Review and strengthen security measures immediately"
+    },
+    {
+      "category": "General",
+      "priority": "High",
+      "issue": "Overall success rate is 88.2%",
+      "recommendation": "Address failing tests to improve system reliability"
+    }
+  ]
+}

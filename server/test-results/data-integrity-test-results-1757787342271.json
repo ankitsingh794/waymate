@@ -1,0 +1,280 @@
+{
+  "timestamp": "2025-09-13T18:15:37.924Z",
+  "environment": "development",
+  "databaseTests": [
+    {
+      "name": "Database Connection Pool",
+      "operation": "connection-check",
+      "duration": 0,
+      "passed": true,
+      "timestamp": "2025-09-13T18:15:37.993Z",
+      "details": {
+        "connectionState": 1,
+        "poolSize": "unknown",
+        "recordsAffected": 0,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Concurrent Database Access",
+      "operation": "concurrent-query",
+      "duration": 23,
+      "passed": true,
+      "timestamp": "2025-09-13T18:15:38.016Z",
+      "details": {
+        "concurrentQueries": 10,
+        "recordsAffected": 10,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Successful Transaction",
+      "operation": "transaction-commit",
+      "duration": 446,
+      "passed": true,
+      "timestamp": "2025-09-13T18:15:38.463Z",
+      "details": {
+        "transactionType": "multi-document",
+        "recordsAffected": 2,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Transaction Rollback",
+      "operation": "transaction-rollback",
+      "duration": 323,
+      "passed": true,
+      "timestamp": "2025-09-13T18:15:38.786Z",
+      "details": {
+        "rollbackWorked": true,
+        "transactionType": "rollback-test",
+        "recordsAffected": 0,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Referential Integrity",
+      "operation": "populate-check",
+      "duration": 5,
+      "passed": false,
+      "timestamp": "2025-09-13T18:15:38.792Z",
+      "details": {
+        "recordsAffected": 0,
+        "errorMessage": "Cannot populate path `participants` because it is not in your schema. Set the `strictPopulate` option to false to override."
+      }
+    },
+    {
+      "name": "Cascade Operations",
+      "operation": "cascade-delete",
+      "duration": 14,
+      "passed": true,
+      "timestamp": "2025-09-13T18:15:38.807Z",
+      "details": {
+        "originalTripCount": 0,
+        "tripsAfterDelete": 0,
+        "cascadeImplemented": true,
+        "recordsAffected": 1,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Unique Email Constraint",
+      "operation": "constraint-validation",
+      "duration": 589,
+      "passed": true,
+      "timestamp": "2025-09-13T18:15:39.397Z",
+      "details": {
+        "constraintEnforced": true,
+        "errorType": 11000,
+        "recordsAffected": 1,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Required Fields Validation",
+      "operation": "validation-check",
+      "duration": 1,
+      "passed": true,
+      "timestamp": "2025-09-13T18:15:39.398Z",
+      "details": {
+        "validationEnforced": true,
+        "missingFields": [
+          "password",
+          "email",
+          "name"
+        ],
+        "recordsAffected": 0,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Concurrent User Creation",
+      "operation": "concurrent-insert",
+      "duration": 1544,
+      "passed": true,
+      "timestamp": "2025-09-13T18:15:40.943Z",
+      "details": {
+        "totalAttempts": 5,
+        "successful": 5,
+        "failed": 0,
+        "concurrencyLevel": "medium",
+        "recordsAffected": 5,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Concurrent Document Updates",
+      "operation": "concurrent-update",
+      "duration": 305,
+      "passed": true,
+      "timestamp": "2025-09-13T18:15:41.249Z",
+      "details": {
+        "totalUpdates": 3,
+        "successful": 3,
+        "concurrencyHandled": true,
+        "recordsAffected": 3,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Data Migration",
+      "operation": "bulk-update",
+      "duration": 15,
+      "passed": true,
+      "timestamp": "2025-09-13T18:15:41.264Z",
+      "details": {
+        "expectedRecords": 2,
+        "migratedRecords": 2,
+        "migrationComplete": true,
+        "recordsAffected": 2,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Data Backup Simulation",
+      "operation": "backup-operation",
+      "duration": 18,
+      "passed": true,
+      "timestamp": "2025-09-13T18:15:41.283Z",
+      "details": {
+        "totalRecords": 11,
+        "backedUpRecords": 9,
+        "backupSize": 5531,
+        "recordsAffected": 9,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Data Restore Verification",
+      "operation": "restore-verification",
+      "duration": 11,
+      "passed": true,
+      "timestamp": "2025-09-13T18:15:41.294Z",
+      "details": {
+        "expectedRecords": 9,
+        "foundRecords": 9,
+        "restoreIntegrity": true,
+        "recordsAffected": 9,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Data Recovery",
+      "operation": "soft-delete-recovery",
+      "duration": 312,
+      "passed": true,
+      "timestamp": "2025-09-13T18:15:41.607Z",
+      "details": {
+        "userRecovered": true,
+        "recoveryMethod": "soft-delete",
+        "recordsAffected": 1,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Index Usage",
+      "operation": "index-query",
+      "duration": 5,
+      "passed": false,
+      "timestamp": "2025-09-13T18:15:41.613Z",
+      "details": {
+        "indexUsed": false,
+        "docsExamined": 1,
+        "executionTime": 2,
+        "recordsAffected": 1,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Foreign Key Constraints",
+      "operation": "orphaned-reference",
+      "duration": 336,
+      "passed": false,
+      "timestamp": "2025-09-13T18:15:41.949Z",
+      "details": {
+        "recordsAffected": 0,
+        "errorMessage": "Cannot read properties of undefined (reading 'includes')"
+      }
+    },
+    {
+      "name": "Email Format Validation",
+      "operation": "email-validation",
+      "duration": 1,
+      "passed": true,
+      "timestamp": "2025-09-13T18:15:41.951Z",
+      "details": {
+        "validationEnforced": true,
+        "invalidEmail": "not-an-email",
+        "recordsAffected": 0,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Date Logic Validation",
+      "operation": "date-validation",
+      "duration": 4,
+      "passed": true,
+      "timestamp": "2025-09-13T18:15:41.956Z",
+      "details": {
+        "validationEnforced": true,
+        "dateLogicError": true,
+        "recordsAffected": 0,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Atomic Operations",
+      "operation": "atomic-increment",
+      "duration": 308,
+      "passed": false,
+      "timestamp": "2025-09-13T18:15:42.264Z",
+      "details": {
+        "expectedCount": 5,
+        "atomicityMaintained": false,
+        "recordsAffected": 1,
+        "errorMessage": null
+      }
+    }
+  ],
+  "transactionTests": [],
+  "consistencyTests": [],
+  "constraintTests": [],
+  "performance": {
+    "averageQueryTime": "224.21",
+    "slowestOperation": {
+      "operation": "Concurrent User Creation",
+      "duration": 1544
+    },
+    "fastestOperation": {
+      "operation": "Database Connection Pool",
+      "duration": 0
+    },
+    "totalOperations": 19
+  },
+  "dataReliability": {
+    "transactionSuccessRate": "100.0",
+    "constraintViolations": 0,
+    "dataCorruptions": 0,
+    "recoveryTests": 1
+  }
+}

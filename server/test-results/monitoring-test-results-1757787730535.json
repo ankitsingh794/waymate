@@ -1,0 +1,385 @@
+{
+  "timestamp": "2025-09-13T18:22:09.691Z",
+  "environment": "development",
+  "monitoringTests": [
+    {
+      "name": "ERROR Level Logging",
+      "category": "logging",
+      "duration": 0,
+      "passed": true,
+      "timestamp": "2025-09-13T18:22:09.758Z",
+      "details": {
+        "logLevel": "error",
+        "hasStructure": "2025-09-13T18:22:09.758Z",
+        "messageLength": 26,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "WARN Level Logging",
+      "category": "logging",
+      "duration": 0,
+      "passed": true,
+      "timestamp": "2025-09-13T18:22:09.758Z",
+      "details": {
+        "logLevel": "warn",
+        "hasStructure": "2025-09-13T18:22:09.758Z",
+        "messageLength": 25,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "INFO Level Logging",
+      "category": "logging",
+      "duration": 1,
+      "passed": true,
+      "timestamp": "2025-09-13T18:22:09.759Z",
+      "details": {
+        "logLevel": "info",
+        "hasStructure": "2025-09-13T18:22:09.758Z",
+        "messageLength": 25,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "DEBUG Level Logging",
+      "category": "logging",
+      "duration": 0,
+      "passed": true,
+      "timestamp": "2025-09-13T18:22:09.759Z",
+      "details": {
+        "logLevel": "debug",
+        "hasStructure": "2025-09-13T18:22:09.759Z",
+        "messageLength": 26,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Structured Log Format",
+      "category": "logging",
+      "duration": 0,
+      "passed": true,
+      "timestamp": "2025-09-13T18:22:09.759Z",
+      "details": {
+        "structuredFormat": "waymate-server",
+        "fieldCount": 8,
+        "hasMetadata": true,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "JSON Log Format",
+      "category": "logging",
+      "duration": 0,
+      "passed": true,
+      "timestamp": "2025-09-13T18:22:09.759Z",
+      "details": {
+        "jsonParseable": true,
+        "logSize": 105,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Log Rotation Setup",
+      "category": "logging",
+      "duration": 2,
+      "passed": true,
+      "timestamp": "2025-09-13T18:22:09.762Z",
+      "details": {
+        "logDirExists": true,
+        "fileSize": 56890,
+        "rotationCapable": true,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Database Error Logging",
+      "category": "logging",
+      "duration": 1,
+      "passed": true,
+      "timestamp": "2025-09-13T18:22:09.779Z",
+      "details": {
+        "errorCaptured": true,
+        "hasStack": true,
+        "hasContext": true,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Application Error Logging",
+      "category": "logging",
+      "duration": 0,
+      "passed": true,
+      "timestamp": "2025-09-13T18:22:09.780Z",
+      "details": {
+        "errorLogged": true,
+        "hasStatusCode": true,
+        "hasRequestContext": true,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Performance Logging",
+      "category": "logging",
+      "duration": 335,
+      "passed": true,
+      "timestamp": "2025-09-13T18:22:10.115Z",
+      "details": {
+        "operationTimed": true,
+        "duration": 335,
+        "hasResourceUsage": true,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Database Metrics Collection",
+      "category": "metrics",
+      "duration": 16,
+      "passed": true,
+      "timestamp": "2025-09-13T18:22:10.132Z",
+      "details": {
+        "connectionState": 1,
+        "collectionsFound": 11,
+        "operationsCounted": 3,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Application Metrics Collection",
+      "category": "metrics",
+      "duration": 9,
+      "passed": true,
+      "timestamp": "2025-09-13T18:22:10.142Z",
+      "details": {
+        "uptime": 0.9369956,
+        "memoryUsageMB": "22.33",
+        "featureMetrics": 2,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "User Activity Metrics",
+      "category": "metrics",
+      "duration": 23,
+      "passed": true,
+      "timestamp": "2025-09-13T18:22:10.166Z",
+      "details": {
+        "totalUsers": 3,
+        "activeUsers": 0,
+        "hasEngagementData": true,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "System Resource Metrics",
+      "category": "metrics",
+      "duration": 0,
+      "passed": true,
+      "timestamp": "2025-09-13T18:22:10.167Z",
+      "details": {
+        "memoryUsageMB": "18.21",
+        "memoryPercentage": "53.07",
+        "processUptime": 0.9708402,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Custom Business Metrics",
+      "category": "metrics",
+      "duration": 19,
+      "passed": true,
+      "timestamp": "2025-09-13T18:22:10.186Z",
+      "details": {
+        "activeTrips": 11,
+        "notificationsSent": 1000,
+        "hasBusinessLogic": true,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Database Health Check",
+      "category": "health",
+      "duration": 332,
+      "passed": false,
+      "timestamp": "2025-09-13T18:22:10.519Z",
+      "details": {
+        "status": "unhealthy",
+        "connectionOk": true,
+        "readWriteOk": true,
+        "checksPerformed": 4,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Application Health Check",
+      "category": "health",
+      "duration": 0,
+      "passed": true,
+      "timestamp": "2025-09-13T18:22:10.520Z",
+      "details": {
+        "status": "healthy",
+        "healthyChecks": 4,
+        "totalChecks": 4,
+        "memoryUsage": "57.61%",
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Dependency Health Checks",
+      "category": "health",
+      "duration": 3,
+      "passed": true,
+      "timestamp": "2025-09-13T18:22:10.523Z",
+      "details": {
+        "healthyDependencies": 3,
+        "totalDependencies": 3,
+        "mongoResponseTime": 2,
+        "filesystemOk": true,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Health Check Endpoint",
+      "category": "health",
+      "duration": 0,
+      "passed": true,
+      "timestamp": "2025-09-13T18:22:10.524Z",
+      "details": {
+        "hasStructure": {
+          "database": "healthy",
+          "memory": "healthy",
+          "disk": "healthy"
+        },
+        "status": "healthy",
+        "checksCount": 3,
+        "responseSize": 246,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Error Alerting System",
+      "category": "alerting",
+      "duration": 1,
+      "passed": true,
+      "timestamp": "2025-09-13T18:22:10.525Z",
+      "details": {
+        "errorConditions": 3,
+        "alertsTriggered": 3,
+        "criticalAlerts": 1,
+        "warningAlerts": 2,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Performance Alerting",
+      "category": "alerting",
+      "duration": 0,
+      "passed": true,
+      "timestamp": "2025-09-13T18:22:10.525Z",
+      "details": {
+        "thresholdsConfigured": 4,
+        "alertsTriggered": 0,
+        "metricsMonitored": 4,
+        "allMetricsHealthy": true,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "System Alerting",
+      "category": "alerting",
+      "duration": 0,
+      "passed": true,
+      "timestamp": "2025-09-13T18:22:10.525Z",
+      "details": {
+        "systemChecks": 3,
+        "issuesDetected": 0,
+        "diskSpaceOk": true,
+        "connectionPoolOk": true,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Operation Traceability",
+      "category": "observability",
+      "duration": 0,
+      "passed": true,
+      "timestamp": "2025-09-13T18:22:10.526Z",
+      "details": {
+        "traceId": "trace-1757787730526-zq35u9f4d",
+        "spansCount": 3,
+        "totalDuration": 230,
+        "allSpansSuccessful": true,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Audit Trail Logging",
+      "category": "observability",
+      "duration": 0,
+      "passed": true,
+      "timestamp": "2025-09-13T18:22:10.526Z",
+      "details": {
+        "hasAuditStructure": "2025-09-13T18:22:10.526Z",
+        "actionLogged": "CREATE",
+        "resourceType": "User",
+        "hasContext": true,
+        "changesTracked": true,
+        "errorMessage": null
+      }
+    },
+    {
+      "name": "Monitoring Dashboard",
+      "category": "observability",
+      "duration": 3,
+      "passed": true,
+      "timestamp": "2025-09-13T18:22:10.530Z",
+      "details": {
+        "hasOverview": true,
+        "hasMetrics": true,
+        "hasHealthData": true,
+        "dataCompleteness": {
+          "database": "healthy",
+          "application": "healthy",
+          "dependencies": "healthy"
+        },
+        "errorMessage": null
+      }
+    }
+  ],
+  "logTests": [],
+  "metricTests": [],
+  "healthTests": [],
+  "observability": {
+    "loggingLevel": "structured",
+    "metricsCollected": 5,
+    "healthChecksActive": 4,
+    "alertingConfigured": true
+  },
+  "performance": {
+    "logWriteSpeed": [
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      2,
+      1,
+      0,
+      335
+    ],
+    "metricCollectionTime": [
+      16,
+      9,
+      23,
+      0,
+      19
+    ],
+    "healthCheckResponseTime": [
+      332,
+      0,
+      3,
+      0
+    ]
+  }
+}

@@ -1,0 +1,156 @@
+{
+  "timestamp": "2025-09-13T18:08:30.936Z",
+  "stressTests": [
+    {
+      "name": "High Volume User Creation",
+      "duration": "977ms",
+      "timestamp": "2025-09-13T18:08:31.994Z",
+      "success": true,
+      "details": {
+        "recordsProcessed": 5000,
+        "batchSize": 100,
+        "throughput": "5118 users/sec"
+      },
+      "memoryUsage": {
+        "rss": 117424128,
+        "heapTotal": 82378752,
+        "heapUsed": 52317040,
+        "external": 20702835,
+        "arrayBuffers": 18484607
+      }
+    },
+    {
+      "name": "Concurrent Database Operations",
+      "duration": "2225ms",
+      "timestamp": "2025-09-13T18:08:34.220Z",
+      "success": true,
+      "details": {
+        "concurrentWorkers": 50,
+        "operationsPerWorker": 100,
+        "totalOperations": 5000,
+        "throughput": "2247 ops/sec"
+      },
+      "memoryUsage": {
+        "rss": 248119296,
+        "heapTotal": 199991296,
+        "heapUsed": 176530608,
+        "external": 28988280,
+        "arrayBuffers": 26770012
+      }
+    },
+    {
+      "name": "Massive Notification Delivery",
+      "duration": "603ms",
+      "timestamp": "2025-09-13T18:08:34.824Z",
+      "success": true,
+      "details": {
+        "recordsProcessed": 10000,
+        "queryDuration": "4ms",
+        "sampleQueryResults": 23,
+        "throughput": "16584 notifications/sec"
+      },
+      "memoryUsage": {
+        "rss": 269119488,
+        "heapTotal": 218865664,
+        "heapUsed": 187939472,
+        "external": 29776379,
+        "arrayBuffers": 27558111
+      }
+    },
+    {
+      "name": "Long Running Queries",
+      "duration": "442ms",
+      "timestamp": "2025-09-13T18:08:35.268Z",
+      "success": true,
+      "details": {
+        "aggregationTime": "322ms",
+        "aggregationResults": 2,
+        "searchTime": "17ms",
+        "searchResults": 100,
+        "complexQueryTime": "103ms",
+        "complexQueryResults": 200
+      },
+      "memoryUsage": {
+        "rss": 269627392,
+        "heapTotal": 219127808,
+        "heapUsed": 189048808,
+        "external": 29827845,
+        "arrayBuffers": 27609577
+      }
+    },
+    {
+      "name": "Memory Leak Detection",
+      "duration": "11682ms",
+      "timestamp": "2025-09-13T18:08:46.951Z",
+      "success": true,
+      "details": {
+        "iterations": 1000,
+        "initialMemory": "180MB",
+        "finalMemory": "44MB",
+        "memoryGrowth": "-136MB",
+        "snapshots": 10,
+        "leakDetected": false
+      },
+      "memoryUsage": {
+        "rss": 236437504,
+        "heapTotal": 185139200,
+        "heapUsed": 46198008,
+        "external": 22092268,
+        "arrayBuffers": 19874000
+      }
+    },
+    {
+      "name": "Database Connection Pooling",
+      "duration": "100ms",
+      "timestamp": "2025-09-13T18:08:47.051Z",
+      "success": true,
+      "details": {
+        "rapidQueries": 200,
+        "queryDuration": "90ms",
+        "connections": 102,
+        "availableConnections": 999898,
+        "totalCreated": 122
+      },
+      "memoryUsage": {
+        "rss": 236457984,
+        "heapTotal": 185139200,
+        "heapUsed": 39029704,
+        "external": 22054408,
+        "arrayBuffers": 19836140
+      }
+    },
+    {
+      "name": "Extreme Data Volumes",
+      "duration": "563ms",
+      "timestamp": "2025-09-13T18:08:47.615Z",
+      "success": true,
+      "details": {
+        "paginatedRecords": 10000,
+        "totalPages": 10,
+        "sortPerformance": "44ms",
+        "sortedResults": 100,
+        "countPerformance": "9ms",
+        "totalRecordsInDB": 12701
+      },
+      "memoryUsage": {
+        "rss": 238882816,
+        "heapTotal": 185139200,
+        "heapUsed": 41721352,
+        "external": 22176798,
+        "arrayBuffers": 19958530
+      }
+    }
+  ],
+  "performance": {
+    "peakMemoryUsage": 189049032,
+    "averageResponseTime": 2382.5714285714284,
+    "maxConcurrentUsers": 0,
+    "databaseConnections": 0,
+    "totalQueries": 15000
+  },
+  "reliability": {
+    "uptime": 16678,
+    "errorRate": 0,
+    "throughput": 899
+  }
+}
