@@ -44,6 +44,7 @@ exports.handleTripDataAppend = async (userId, tripId, dataBatch) => {
 
 /**
  * Finalizes a trip when the client signals it has ended.
+ * New logic: Collects all data → ML prediction → Check accuracy threshold → User nudging if needed
  */
 exports.handleTripEnd = async (user, tripId, endPoint) => {
     logger.info(`Finalizing trip ${tripId} for user ${user.email}`);
@@ -53,6 +54,7 @@ exports.handleTripEnd = async (user, tripId, endPoint) => {
         return;
     }
 
+    // Step 1: Collect all required data points
     const allPoints = [...trip.rawDataPoints, ...(endPoint ? [endPoint] : [])];
     if (allPoints.length < 2) {
         await Trip.findByIdAndDelete(tripId);
@@ -63,31 +65,113 @@ exports.handleTripEnd = async (user, tripId, endPoint) => {
     const startPoint = allPoints[0];
     const finalPoint = allPoints[allPoints.length - 1];
 
+    // Minimum distance validation
     if (haversineDistance(startPoint, finalPoint) < MIN_TRIP_DISTANCE_KM) {
         await Trip.findByIdAndDelete(tripId);
         logger.info(`Deleted trip ${tripId} as it did not meet the minimum distance.`);
         return;
     }
 
+    // Step 2: Send all data to ML model for prediction
+    logger.info(`Sending trip data to ML model for classification...`);
     const classification = await transportationClassifier.classifyTrip(allPoints);
+    
+    // Ensure we have both mode and accuracy from ML response
+    const mlMode = classification.mode || 'unknown';
+    const mlAccuracy = (classification.confidence || classification.accuracy || 0) * 100; // Convert to percentage
 
-    trip.endDate = new Date(finalPoint.timestamp);
-    trip.status = 'unconfirmed';
-    trip.detectedMode = classification.mode;
-    trip.confidence = classification.confidence;
-    trip.path = { type: 'LineString', coordinates: allPoints.map(p => [p.longitude, p.latitude]) };
-    trip.isConfirmed = false;
-    trip.rawDataPoints = allPoints;
+    // Step 3: Check accuracy threshold (70%)
+    const ACCURACY_THRESHOLD = 70;
+    
+    if (mlAccuracy >= ACCURACY_THRESHOLD) {
+        // High confidence: Directly populate in DB as confirmed
+        logger.info(`High accuracy (${mlAccuracy}%) - Auto-confirming trip as ${mlMode}`);
+        
+        trip.endDate = new Date(finalPoint.timestamp);
+        trip.status = 'completed';
+        trip.detectedMode = mlMode;
+        trip.confirmedMode = mlMode;
+        trip.confidence = mlAccuracy / 100; // Store as decimal
+        trip.isConfirmed = true;
+        trip.path = { type: 'LineString', coordinates: allPoints.map(p => [p.longitude, p.latitude]) };
+        trip.rawDataPoints = allPoints;
 
-    await trip.save();
-    logger.info(`Finalized trip ${trip._id} with mode: ${classification.mode}`);
+        // Update new ML prediction fields
+        trip.mlPrediction = {
+            detectedMode: mlMode,
+            accuracy: mlAccuracy / 100,
+            confidence: mlAccuracy / 100,
+            requiresUserConfirmation: false,
+            autoConfirmed: true,
+            confirmationRequested: null,
+            userConfirmedAt: new Date()
+        };
 
-    const message = `It looks like you completed a trip by ${classification.mode}. Please confirm the details.`;
-    notificationService.emitToUser(user._id.toString(), 'tripDetected', { message, tripId: trip._id });
+        // Mark as passively detected
+        trip.passiveData = {
+            ...trip.passiveData,
+            detectedMode: mlMode,
+            confirmedMode: mlMode,
+            modeConfidence: mlAccuracy / 100,
+            isPassivelyDetected: true
+        };
+
+        await trip.save();
+        logger.info(`Auto-confirmed trip ${trip._id} with mode: ${mlMode} (${mlAccuracy}% accuracy)`);
+
+        // Notify user of completed trip
+        await notificationService.sendTripCompletedNotification(user._id.toString(), {
+            tripId: trip._id,
+            mode: mlMode,
+            accuracy: mlAccuracy / 100
+        });
+
+    } else {
+        // Low confidence: Set as unconfirmed and nudge user
+        logger.info(`Low accuracy (${mlAccuracy}%) - Requesting user confirmation for trip ${tripId}`);
+        
+        trip.endDate = new Date(finalPoint.timestamp);
+        trip.status = 'unconfirmed';
+        trip.detectedMode = mlMode;
+        trip.confidence = mlAccuracy / 100; // Store as decimal
+        trip.isConfirmed = false;
+        trip.path = { type: 'LineString', coordinates: allPoints.map(p => [p.longitude, p.latitude]) };
+        trip.rawDataPoints = allPoints;
+
+        // Update new ML prediction fields
+        trip.mlPrediction = {
+            detectedMode: mlMode,
+            accuracy: mlAccuracy / 100,
+            confidence: mlAccuracy / 100,
+            requiresUserConfirmation: true,
+            autoConfirmed: false,
+            confirmationRequested: new Date(),
+            userConfirmedAt: null
+        };
+
+        // Mark as passively detected but unconfirmed
+        trip.passiveData = {
+            ...trip.passiveData,
+            detectedMode: mlMode,
+            modeConfidence: mlAccuracy / 100,
+            isPassivelyDetected: true
+        };
+
+        await trip.save();
+        logger.info(`Trip ${trip._id} requires user confirmation - ML accuracy: ${mlAccuracy}%`);
+
+        // Step 4: Nudge user for confirmation
+        await notificationService.sendTripConfirmationRequest(user._id.toString(), {
+            tripId: trip._id,
+            detectedMode: mlMode,
+            accuracy: mlAccuracy / 100
+        });
+    }
 };
 
 /**
  * Handles a user's manual correction or confirmation of a trip's mode.
+ * Updates the database with confirmed mode and ML feedback.
  */
 exports.handleUserCorrection = async (userId, tripId, correctedMode) => {
     const trip = await Trip.findOne({ _id: tripId, 'group.members.userId': userId });
@@ -96,13 +180,44 @@ exports.handleUserCorrection = async (userId, tripId, correctedMode) => {
         error.statusCode = 404;
         throw error;
     }
+
+    // Update trip confirmation status
     trip.isConfirmed = true;
     trip.confirmedMode = correctedMode;
-    // Only retrain if the mode was different from the detected one
+    trip.status = 'completed'; // Mark as completed after user confirmation
+
+    // Update ML prediction fields
+    if (trip.mlPrediction) {
+        trip.mlPrediction.requiresUserConfirmation = false;
+        trip.mlPrediction.userConfirmedAt = new Date();
+        
+        // Log if user corrected the ML prediction
+        if (trip.mlPrediction.detectedMode !== correctedMode) {
+            logger.info(`User corrected ML prediction from ${trip.mlPrediction.detectedMode} to ${correctedMode} for trip ${tripId}`);
+        }
+    }
+
+    // Update passive data
+    if (trip.passiveData) {
+        trip.passiveData.confirmedMode = correctedMode;
+    }
+
+    // Trigger ML model retraining if the mode was different from detected
     if (trip.detectedMode !== correctedMode) {
+        logger.info(`Triggering ML retraining: detected=${trip.detectedMode}, corrected=${correctedMode}`);
         transportationClassifier.triggerRetraining(trip, correctedMode);
     }
+
     await trip.save();
+    logger.info(`Trip ${tripId} confirmed by user as ${correctedMode}`);
+
+    // Notify user of successful confirmation
+    notificationService.emitToUser(userId.toString(), 'tripConfirmed', {
+        message: `Trip confirmed as ${correctedMode} travel. Thank you for your feedback!`,
+        tripId: trip._id,
+        confirmedMode: correctedMode
+    });
+
     return trip;
 };
 

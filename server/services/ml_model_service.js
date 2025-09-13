@@ -12,13 +12,13 @@ class MLModelService {
     /**
      * Predicts the transportation mode by calling the external ML API.
      * @param {Object} features - Features like averageSpeed, speedVariance, etc.
-     * @returns {Promise<Object>} A promise that resolves to a prediction object with `mode` and `confidence`.
+     * @returns {Promise<Object>} A promise that resolves to a prediction object with `mode` and `accuracy`.
      */
     async predictMode(features) {
         if (!ML_API_BASE_URL) {
             console.error('ML_API_BASE_URL environment variable is not set. Cannot make predictions.');
             // Fallback to a default low-confidence prediction
-            return { mode: 'unknown', confidence: 0.1 };
+            return { mode: 'unknown', accuracy: 0.1, confidence: 0.1 };
         }
 
         const endpoint = `${ML_API_BASE_URL}/predict`;
@@ -41,13 +41,22 @@ class MLModelService {
             }
 
             const prediction = await response.json();
-            // Assuming the ML API returns a body like { "mode": "driving", "confidence": 0.85 }
-            return prediction;
+            
+            // Ensure consistent response format: { "mode": "driving", "accuracy": 0.85 }
+            // Handle both "accuracy" and "confidence" fields for backward compatibility
+            const normalizedResponse = {
+                mode: prediction.mode || 'unknown',
+                accuracy: prediction.accuracy || prediction.confidence || 0.0,
+                confidence: prediction.confidence || prediction.accuracy || 0.0
+            };
+
+            console.log(`ML API response: mode=${normalizedResponse.mode}, accuracy=${normalizedResponse.accuracy}`);
+            return normalizedResponse;
 
         } catch (error) {
             console.error('Error calling ML prediction service:', error.message);
             // In case of error, return a default 'unknown' response so the app can prompt the user.
-            return { mode: 'unknown', confidence: 0.1 };
+            return { mode: 'unknown', accuracy: 0.1, confidence: 0.1 };
         }
     }
 

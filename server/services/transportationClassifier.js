@@ -19,24 +19,38 @@ const extractFeatures = (segment) => {
 };
 
 /**
- * Classifies a trip. This function is now async because it calls the ML service.
+ * Classifies a trip using ML model with accuracy threshold handling.
  * @param {Array} tripPoints - The array of data points for the trip.
- * @returns {Promise<Object>} A promise that resolves to an object with `mode` and `confidence`.
+ * @returns {Promise<Object>} A promise that resolves to an object with `mode` and `accuracy`.
  */
 const classifyTrip = async (tripPoints) => {
     const features = extractFeatures(tripPoints);
     const { averageSpeed, maxSpeed } = features;
 
-    if (averageSpeed < 7 && maxSpeed < 15) return { mode: 'walking', confidence: 0.9 };
-    if (averageSpeed > 7 && averageSpeed <= 25 && maxSpeed < 35) return { mode: 'cycling', confidence: 0.8 };
-    if (averageSpeed > 120 || maxSpeed > 140) return { mode: 'driving', confidence: 0.95 };
+    // Rule-based classification for obvious patterns (high confidence)
+    if (averageSpeed < 7 && maxSpeed < 15) {
+        return { mode: 'walking', accuracy: 0.9, confidence: 0.9 };
+    }
+    if (averageSpeed > 7 && averageSpeed <= 25 && maxSpeed < 35) {
+        return { mode: 'cycling', accuracy: 0.8, confidence: 0.8 };
+    }
+    if (averageSpeed > 120 || maxSpeed > 140) {
+        return { mode: 'driving', accuracy: 0.95, confidence: 0.95 };
+    }
 
+    // For complex patterns, use ML model
+    console.log('Using ML model for transportation classification...');
     const mlPrediction = await mlModelService.predictMode(features);
     
-    if (mlPrediction.confidence < 0.6) {
-        return { mode: 'unknown', confidence: mlPrediction.confidence };
-    }
-    return mlPrediction;
+    // Ensure we have both accuracy and confidence fields
+    const result = {
+        mode: mlPrediction.mode || 'unknown',
+        accuracy: mlPrediction.accuracy || mlPrediction.confidence || 0.0,
+        confidence: mlPrediction.confidence || mlPrediction.accuracy || 0.0
+    };
+
+    console.log(`Classification result: mode=${result.mode}, accuracy=${result.accuracy}`);
+    return result;
 };
 
 const triggerRetraining = (trip, correctedMode) => {

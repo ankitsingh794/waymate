@@ -272,6 +272,20 @@ const TripSchema = new mongoose.Schema({
     }
   },
 
+  // Enhanced fields for ML accuracy-based flow
+  mlPrediction: {
+    detectedMode: {
+      type: String,
+      enum: ['still', 'walking', 'running', 'cycling', 'driving', 'public_transport', 'unknown'],
+    },
+    accuracy: { type: Number, min: 0, max: 1 }, // ML model accuracy (0-1)
+    confidence: { type: Number, min: 0, max: 1 }, // Backward compatibility
+    requiresUserConfirmation: { type: Boolean, default: false },
+    autoConfirmed: { type: Boolean, default: false },
+    confirmationRequested: { type: Date },
+    userConfirmedAt: { type: Date }
+  },
+
   // ADD: Trip chain information
   tripChain: {
     chainId: { type: String },

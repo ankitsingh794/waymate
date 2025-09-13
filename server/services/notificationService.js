@@ -35,7 +35,20 @@ async function createAndDispatchNotification(notificationData) {
     try {
         const notification = await Notification.create(notificationData);
         logger.info(`Notification created in DB for user ${notificationData.user}`);
-        emitToUser(notification.user, 'newNotification', notification);
+        
+        // Enhanced notification dispatch with type-specific handling
+        const enhancedPayload = {
+            ...notification.toObject(),
+            timestamp: new Date().toISOString(),
+            priority: _getNotificationPriority(notificationData.type),
+            requiresAction: _requiresUserAction(notificationData.type),
+        };
+        
+        emitToUser(notification.user, 'newNotification', enhancedPayload);
+        
+        // Log notification metrics for analytics
+        _logNotificationMetrics(notificationData.type, notification.user);
+        
         return notification;
     } catch (error) {
         logger.error('Failed to create and dispatch notification', { 
@@ -44,6 +57,118 @@ async function createAndDispatchNotification(notificationData) {
         });
         return null;
     }
+}
+
+// Enhanced trip confirmation notification
+async function sendTripConfirmationRequest(userId, tripData) {
+    const notificationData = {
+        user: userId,
+        type: 'tripConfirmationRequired',
+        message: `We detected a trip by ${tripData.detectedMode}, but we're only ${Math.round(tripData.accuracy * 100)}% confident. Can you confirm the transportation mode?`,
+        data: {
+            tripId: tripData.tripId,
+            detectedMode: tripData.detectedMode,
+            accuracy: Math.round(tripData.accuracy * 100),
+            needsConfirmation: true,
+            priority: 'high',
+            actions: [
+                { id: `confirm_${tripData.detectedMode}`, label: `Confirm ${tripData.detectedMode}` },
+                { id: 'choose_mode', label: 'Choose Different Mode' }
+            ]
+        },
+        priority: 'high',
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // Expires in 24 hours
+    };
+    
+    const notification = await createAndDispatchNotification(notificationData);
+    
+    // Also emit a specific trip confirmation event
+    emitToUser(userId, 'tripConfirmationRequired', {
+        tripId: tripData.tripId,
+        detectedMode: tripData.detectedMode,
+        accuracy: Math.round(tripData.accuracy * 100),
+        message: notificationData.message,
+        actions: notificationData.data.actions
+    });
+    
+    return notification;
+}
+
+// Enhanced trip completion notification
+async function sendTripCompletedNotification(userId, tripData) {
+    const notificationData = {
+        user: userId,
+        type: 'tripCompleted',
+        message: `Trip completed! Detected as ${tripData.mode} travel with ${Math.round(tripData.accuracy * 100)}% confidence.`,
+        data: {
+            tripId: tripData.tripId,
+            mode: tripData.mode,
+            accuracy: Math.round(tripData.accuracy * 100),
+            autoConfirmed: true,
+            priority: 'normal'
+        },
+        priority: 'normal'
+    };
+    
+    const notification = await createAndDispatchNotification(notificationData);
+    
+    // Also emit a specific trip completed event
+    emitToUser(userId, 'tripCompleted', {
+        tripId: tripData.tripId,
+        mode: tripData.mode,
+        accuracy: Math.round(tripData.accuracy * 100),
+        message: notificationData.message
+    });
+    
+    return notification;
+}
+
+// Permission error notification
+async function sendPermissionErrorNotification(userId, permissionType, message) {
+    const notificationData = {
+        user: userId,
+        type: 'permissionError',
+        message: message || `${permissionType} permission is required for trip tracking`,
+        data: {
+            permissionType,
+            priority: 'high',
+            actions: [
+                { id: 'open_settings', label: 'Open Settings' },
+                { id: 'dismiss', label: 'Dismiss' }
+            ]
+        },
+        priority: 'high'
+    };
+    
+    return await createAndDispatchNotification(notificationData);
+}
+
+// Helper function to determine notification priority
+function _getNotificationPriority(type) {
+    const priorityMap = {
+        'tripConfirmationRequired': 'high',
+        'permissionError': 'high',
+        'tripCompleted': 'normal',
+        'general': 'low'
+    };
+    return priorityMap[type] || 'normal';
+}
+
+// Helper function to determine if notification requires user action
+function _requiresUserAction(type) {
+    const actionRequiredTypes = ['tripConfirmationRequired', 'permissionError'];
+    return actionRequiredTypes.includes(type);
+}
+
+// Helper function to log notification metrics
+function _logNotificationMetrics(type, userId) {
+    // This could be expanded to send to analytics service
+    logger.info('Notification metric', {
+        type,
+        userId: userId.toString(),
+        timestamp: new Date().toISOString(),
+        source: 'enhanced_notification_service'
+    });
 }
 
 async function sendStatusUpdate(userId, message) {
@@ -115,4 +240,8 @@ module.exports = {
   sendStatusUpdate,
   emitToUser,
   broadcastToTrip,
+  // Enhanced notification functions
+  sendTripConfirmationRequest,
+  sendTripCompletedNotification,
+  sendPermissionErrorNotification,
 };
