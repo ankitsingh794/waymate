@@ -20,27 +20,32 @@ class DeepLinkService {
     _router = router;
 
     try {
+      debugPrint('🔗 Initializing deep link service...');
+
       // Handle initial link when app is opened from deep link
       final initialLink = await _appLinks.getInitialLink();
       if (initialLink != null) {
-        debugPrint('🔗 Initial deep link: $initialLink');
+        debugPrint('🔗 Initial deep link found: $initialLink');
         await _handleDeepLink(initialLink);
+      } else {
+        debugPrint('🔗 No initial deep link found');
       }
 
       // Listen for incoming links when app is already running
       _linkSubscription = _appLinks.uriLinkStream.listen(
         (Uri uri) {
-          debugPrint('🔗 Incoming deep link: $uri');
+          debugPrint('🔗 Incoming deep link received: $uri');
           _handleDeepLink(uri);
         },
         onError: (err) {
-          debugPrint('❌ Deep link error: $err');
+          debugPrint('❌ Deep link stream error: $err');
         },
       );
 
-      debugPrint('✅ Deep link service initialized');
+      debugPrint('✅ Deep link service initialized successfully');
     } catch (e) {
       debugPrint('❌ Failed to initialize deep link service: $e');
+      rethrow;
     }
   }
 
@@ -76,6 +81,14 @@ class DeepLinkService {
 
   /// Handle custom scheme links (waymate://)
   Future<void> _handleCustomSchemeLink(Uri uri) async {
+    debugPrint('🔗 Processing custom scheme link...');
+    debugPrint('  - Full URI: $uri');
+    debugPrint('  - Scheme: ${uri.scheme}');
+    debugPrint('  - Host: ${uri.host}');
+    debugPrint('  - Path: ${uri.path}');
+    debugPrint('  - Query: ${uri.query}');
+    debugPrint('  - Query Parameters: ${uri.queryParameters}');
+
     final path = uri.host; // In waymate://verify-email, host is 'verify-email'
 
     switch (path) {
@@ -83,10 +96,14 @@ class DeepLinkService {
         final token = uri.queryParameters['token'];
         final email = uri.queryParameters['email'];
 
+        debugPrint('🔗 Email verification link detected');
+        debugPrint('  - Token: $token');
+        debugPrint('  - Email: $email');
+
         if (token != null && token.isNotEmpty) {
-          debugPrint(
-              '✅ Navigating to email verification: token=$token, email=$email');
-          _router!.go('/verify-email?token=$token&email=${email ?? ''}');
+          final route = '/verify-email?token=$token&email=${email ?? ''}';
+          debugPrint('✅ Navigating to: $route');
+          _router!.go(route);
         } else {
           debugPrint('❌ Invalid verification link - missing token');
         }

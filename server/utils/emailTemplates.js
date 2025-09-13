@@ -68,19 +68,28 @@ exports.generateVerificationEmailHTML = (name, mobileVerifyURL, webVerifyURL) =>
     const safeName = escapeHTML(name);
     const content = `
         <p>Hi ${safeName},</p>
-        <p>Thanks for signing up! Please verify your email address by clicking one of the buttons below. This link is valid for 10 minutes.</p>
+        <p>Thanks for signing up! Please verify your email address by clicking the verification button below. This link is valid for 10 minutes.</p>
         
+        <!-- Primary Web Verification Button (works in all email clients) -->
         <div class="button-container">
-            <a href="${mobileVerifyURL}" class="button mobile-button" style="background-color: #198754 !important; color: #ffffff !important; text-decoration: none !important;">📱 Open in WayMate App</a>
+            <a href="${webVerifyURL}" class="button web-button" style="background-color: #0d6efd !important; color: #ffffff !important; text-decoration: none !important;">✅ Verify Your Email</a>
         </div>
         
-        <div class="button-container">
-            <a href="${webVerifyURL}" class="button web-button" style="background-color: #0d6efd !important; color: #ffffff !important; text-decoration: none !important;">🌐 Verify in Browser</a>
-        </div>
+        <p style="text-align: center; color: #6c757d; font-size: 14px; margin: 20px 0;">
+            <strong>Have the WayMate mobile app?</strong><br/>
+            <a href="${mobileVerifyURL}" style="color: #198754; text-decoration: underline;">Tap here to open in the app</a>
+        </p>
         
-        <p><strong>Prefer to copy/paste?</strong><br/>
-        Mobile link: <a href="${mobileVerifyURL}" style="color: #0d6efd; word-break: break-all;">${mobileVerifyURL}</a><br/>
-        Web link: <a href="${webVerifyURL}" style="color: #0d6efd; word-break: break-all;">${webVerifyURL}</a></p>
+        <hr style="border: none; height: 1px; background-color: #e9ecef; margin: 30px 0;">
+        
+        <p><strong>Having trouble?</strong><br/>
+        Copy and paste this link into your browser:<br/>
+        <a href="${webVerifyURL}" style="color: #0d6efd; word-break: break-all; font-size: 13px;">${webVerifyURL}</a></p>
+        
+        <p style="color: #6c757d; font-size: 13px;">
+        <strong>Mobile app users:</strong> If the app link doesn't work, copy this instead:<br/>
+        <code style="background: #f8f9fa; padding: 2px 6px; border-radius: 4px; font-size: 12px; color: #495057;">${mobileVerifyURL}</code>
+        </p>
         
         <p>Thanks,<br/>The ${escapeHTML(APP_NAME)} Team</p>
     `;
