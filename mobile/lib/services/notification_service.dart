@@ -12,13 +12,12 @@ import 'package:mobile/services/socket_service.dart';
 // ✅ ADDED: The missing provider that creates and provides the NotificationService.
 // Your main.dart file needs this to be able to read the service.
 final notificationServiceProvider = Provider<NotificationService>((ref) {
-  return NotificationService(ref);
+  return NotificationService();
 });
 
 class NotificationService {
-  // ✅ CHANGED: It's good practice to make the 'ref' private.
-  final ProviderRef _ref; // For future Riverpod integrations
-  NotificationService(this._ref);
+  // Constructor no longer needs ref parameter
+  NotificationService();
 
   final ApiClient _apiClient = ApiClient();
   final SocketService _socketService = SocketService();
