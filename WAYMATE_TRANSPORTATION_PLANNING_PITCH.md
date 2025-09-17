@@ -631,12 +631,6 @@ Raw Sensor Data → Feature Extraction → ML Classification → Trip Validation
 
 ### **Contact for Implementation**
 
-#### **Transportation Research Team**
-- 📧 **Email**: transportation@waymate.ai
-- 📞 **Phone**: +1 (555) 123-PLAN
-- 🌐 **Website**: www.waymate.ai/transportation-planning
-- 📍 **Address**: 123 Innovation Drive, Palo Alto, CA 94301
-
 #### **Immediate Next Steps**
 1. **📞 Discovery Call** (30 minutes) - Understanding specific research needs
 2. **🎬 Technical Demo** (1 hour) - Platform capabilities and data examples
