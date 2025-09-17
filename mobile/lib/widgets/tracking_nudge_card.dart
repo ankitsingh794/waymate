@@ -97,7 +97,7 @@ class _TrackingNudgeCardState extends State<TrackingNudgeCard> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
-              Text(
+              const Text(
                 'Can you confirm the transportation mode?',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontWeight: FontWeight.w500),
@@ -167,7 +167,7 @@ class _TrackingNudgeCardState extends State<TrackingNudgeCard> {
               Text(_getModeName(mode)),
               if (isDetected) ...[
                 const SizedBox(width: 4),
-                Icon(Icons.psychology, size: 16),
+                const Icon(Icons.psychology, size: 16),
               ],
             ],
           ),
@@ -209,15 +209,15 @@ class _TrackingNudgeCardState extends State<TrackingNudgeCard> {
   Icon _getModeIcon(String mode) {
     switch (mode) {
       case 'walking':
-        return Icon(Icons.directions_walk, size: 16);
+        return const Icon(Icons.directions_walk, size: 16);
       case 'cycling':
-        return Icon(Icons.directions_bike, size: 16);
+        return const Icon(Icons.directions_bike, size: 16);
       case 'driving':
-        return Icon(Icons.directions_car, size: 16);
+        return const Icon(Icons.directions_car, size: 16);
       case 'public_transport':
-        return Icon(Icons.directions_transit, size: 16);
+        return const Icon(Icons.directions_transit, size: 16);
       default:
-        return Icon(Icons.help_outline, size: 16);
+        return const Icon(Icons.help_outline, size: 16);
     }
   }
 

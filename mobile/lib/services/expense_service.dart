@@ -29,8 +29,9 @@ class ExpenseService {
       if (order != null) queryParams['order'] = order;
       if (minAmount != null) queryParams['minAmount'] = minAmount.toString();
       if (maxAmount != null) queryParams['maxAmount'] = maxAmount.toString();
-      if (startDate != null)
+      if (startDate != null) {
         queryParams['startDate'] = startDate.toIso8601String();
+      }
       if (endDate != null) queryParams['endDate'] = endDate.toIso8601String();
       if (limit != null) queryParams['limit'] = limit.toString();
       if (offset != null) queryParams['offset'] = offset.toString();
@@ -178,8 +179,9 @@ class ExpenseService {
       String endpoint = 'trips/$tripId/expenses/analytics';
       final queryParams = <String, String>{};
 
-      if (startDate != null)
+      if (startDate != null) {
         queryParams['startDate'] = startDate.toIso8601String();
+      }
       if (endDate != null) queryParams['endDate'] = endDate.toIso8601String();
 
       if (queryParams.isNotEmpty) {
@@ -210,8 +212,9 @@ class ExpenseService {
       String endpoint = 'trips/$tripId/expenses/export';
       final queryParams = <String, String>{'format': format};
 
-      if (startDate != null)
+      if (startDate != null) {
         queryParams['startDate'] = startDate.toIso8601String();
+      }
       if (endDate != null) queryParams['endDate'] = endDate.toIso8601String();
 
       final query = queryParams.entries

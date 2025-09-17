@@ -28,8 +28,8 @@ class _BudgetManagementScreenState extends State<BudgetManagementScreen>
 
   // Budget data (in a real app, this would come from an API)
   double _totalBudget = 0.0;
-  Map<ExpenseCategory, double> _categoryBudgets = {};
-  Map<String, double> _dailyBudgets = {};
+  final Map<ExpenseCategory, double> _categoryBudgets = {};
+  final Map<String, double> _dailyBudgets = {};
 
   final TextEditingController _budgetController = TextEditingController();
 
@@ -52,7 +52,7 @@ class _BudgetManagementScreenState extends State<BudgetManagementScreen>
     _totalBudget = widget.trip?.budget?.total.toDouble() ?? 50000.0;
 
     // Initialize category budgets (distribute total budget)
-    final categories = ExpenseCategory.values;
+    const categories = ExpenseCategory.values;
     final budgetPerCategory = _totalBudget / categories.length;
 
     for (final category in categories) {
@@ -438,7 +438,7 @@ class _BudgetManagementScreenState extends State<BudgetManagementScreen>
         padding: const EdgeInsets.all(12),
         child: Row(
           children: [
-            Container(
+            SizedBox(
               width: 60,
               child: Column(
                 children: [
@@ -614,7 +614,7 @@ class _BudgetManagementScreenState extends State<BudgetManagementScreen>
   }
 
   void _redistributeCategoryBudgets() {
-    final categories = ExpenseCategory.values;
+    const categories = ExpenseCategory.values;
     final budgetPerCategory = _totalBudget / categories.length;
 
     for (final category in categories) {

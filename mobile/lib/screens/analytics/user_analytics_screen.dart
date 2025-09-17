@@ -440,7 +440,7 @@ class _UserAnalyticsScreenState extends State<UserAnalyticsScreen>
                       getTitlesWidget: _getPurposeTitleWidget,
                     ),
                   ),
-                  leftTitles: AxisTitles(
+                  leftTitles: const AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
                       reservedSize: 40,
@@ -613,14 +613,15 @@ class _UserAnalyticsScreenState extends State<UserAnalyticsScreen>
   }
 
   String _getMostPopularPurpose() {
-    if (_purposeDistribution == null || _purposeDistribution!.isEmpty)
+    if (_purposeDistribution == null || _purposeDistribution!.isEmpty) {
       return 'N/A';
+    }
     final most = _purposeDistribution!.first;
     return _formatPurposeName(most['_id']);
   }
 
   Color _getModeColor(String mode) {
-    switch (mode?.toLowerCase()) {
+    switch (mode.toLowerCase()) {
       case 'car':
       case 'driving':
         return Colors.blue;
@@ -640,7 +641,7 @@ class _UserAnalyticsScreenState extends State<UserAnalyticsScreen>
   }
 
   String _formatModeName(String mode) {
-    switch (mode?.toLowerCase()) {
+    switch (mode.toLowerCase()) {
       case 'car':
       case 'driving':
         return 'Car/Driving';
@@ -662,7 +663,7 @@ class _UserAnalyticsScreenState extends State<UserAnalyticsScreen>
   }
 
   String _formatPurposeName(String purpose) {
-    switch (purpose?.toLowerCase()) {
+    switch (purpose.toLowerCase()) {
       case 'work':
         return 'Work';
       case 'education':

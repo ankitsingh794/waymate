@@ -425,7 +425,7 @@ class _EnhancedHouseholdSurveyScreenState
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: value,
+          initialValue: value,
           decoration: InputDecoration(
             hintText: hint,
             border: OutlineInputBorder(
@@ -511,7 +511,7 @@ class _EnhancedHouseholdSurveyScreenState
         children: [
           Row(
             children: [
-              Icon(Icons.info, color: primaryColor),
+              const Icon(Icons.info, color: primaryColor),
               const SizedBox(width: 8),
               Text(
                 'Household Information',
@@ -555,7 +555,7 @@ class _EnhancedHouseholdSurveyScreenState
         children: [
           Row(
             children: [
-              Icon(Icons.person_add, color: accentColor),
+              const Icon(Icons.person_add, color: accentColor),
               const SizedBox(width: 8),
               Text(
                 'Invite Management',

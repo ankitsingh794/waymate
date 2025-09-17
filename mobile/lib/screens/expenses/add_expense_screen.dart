@@ -245,7 +245,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: _selectedPaidBy,
+              initialValue: _selectedPaidBy,
               decoration: const InputDecoration(
                 labelText: 'Paid by *',
                 border: OutlineInputBorder(),

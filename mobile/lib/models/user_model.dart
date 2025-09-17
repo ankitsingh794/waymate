@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:isar/isar.dart';
-import 'dart:convert';
 
 part 'user_model.g.dart';
 
@@ -67,9 +66,28 @@ class UserLocation {
 @embedded
 class ConsentEntry {
   late String key;
-  late String value;
+  late String status;
+  late DateTime updatedAt;
 
-  ConsentEntry();
+  ConsentEntry({
+    this.key = '',
+    this.status = 'revoked',
+  }) : updatedAt = DateTime.now();
+
+  factory ConsentEntry.fromJson(String key, Map<String, dynamic> json) {
+    return ConsentEntry(
+      key: key,
+      status: json['status'] ?? 'revoked',
+    )..updatedAt =
+        DateTime.parse(json['updatedAt'] ?? DateTime.now().toIso8601String());
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'status': status,
+      'updatedAt': updatedAt.toIso8601String(),
+    };
+  }
 }
 
 @embedded
@@ -81,14 +99,14 @@ class User {
   late String accountStatus;
   late bool isEmailVerified;
   String? profileImage;
-  late UserPreferences preferences;
+  UserPreferences? preferences;
   UserLocation? location;
   late List<String> favoriteTrips;
   String? householdId;
   DateTime? passwordChangedAt;
-  // ADD: Consents field
-  final Map<String, ConsentInfo> consents;
-  final String? anonymizedHash;
+  // ADD: Consents field - changed from Map to List for Isar compatibility
+  late List<ConsentEntry> consents;
+  late String? anonymizedHash;
 
   // FIX: Add constructor with optional parameters
   User({
@@ -104,7 +122,7 @@ class User {
     this.favoriteTrips = const [],
     this.householdId,
     this.passwordChangedAt,
-    this.consents = const {},
+    this.consents = const [],
     this.anonymizedHash,
   }) : preferences = preferences ?? UserPreferences();
 
@@ -136,13 +154,13 @@ class User {
     }
   }
 
-  static Map<String, ConsentInfo> _parseConsents(dynamic consentsJson) {
-    if (consentsJson == null) return {};
+  static List<ConsentEntry> _parseConsents(dynamic consentsJson) {
+    if (consentsJson == null) return [];
 
-    final Map<String, ConsentInfo> consents = {};
+    final List<ConsentEntry> consents = [];
 
     for (final entry in (consentsJson as Map<String, dynamic>).entries) {
-      consents[entry.key] = ConsentInfo.fromJson(entry.value);
+      consents.add(ConsentEntry.fromJson(entry.key, entry.value));
     }
 
     return consents;
@@ -157,19 +175,23 @@ class User {
       'accountStatus': accountStatus,
       'isEmailVerified': isEmailVerified,
       'profileImage': profileImage,
-      'preferences': preferences.toJson(),
+      'preferences': preferences?.toJson(),
       'location': location?.toJson(),
       'favoriteTrips': favoriteTrips,
       'householdId': householdId,
       'passwordChangedAt': passwordChangedAt?.toIso8601String(),
-      'consents': {for (var entry in consents.entries) entry.key: entry.value.toJson()},
+      'consents': {for (var entry in consents) entry.key: entry.toJson()},
       'anonymizedHash': anonymizedHash,
     };
   }
 
   // Helper methods for consent
   String getConsent(String consentType) {
-    return consents[consentType]?.status ?? 'revoked';
+    final entry = consents.firstWhere(
+      (entry) => entry.key == consentType,
+      orElse: () => ConsentEntry(key: consentType, status: 'revoked'),
+    );
+    return entry.status;
   }
 
   bool hasConsent(String consentType) {
@@ -178,11 +200,18 @@ class User {
 
   // Create a copy with updated consent (for setState)
   User copyWithConsent(String consentType, String status) {
-    final newConsents = Map<String, ConsentInfo>.from(consents);
-    newConsents[consentType] = ConsentInfo(
+    final newConsents = List<ConsentEntry>.from(consents);
+
+    // Remove existing consent entry for this type
+    newConsents.removeWhere((entry) => entry.key == consentType);
+
+    // Add new consent entry
+    final newEntry = ConsentEntry(
+      key: consentType,
       status: status,
-      updatedAt: DateTime.now(),
     );
+    newEntry.updatedAt = DateTime.now();
+    newConsents.add(newEntry);
 
     return User(
       id: id,
@@ -203,30 +232,4 @@ class User {
   }
 
   // ... rest of existing methods
-}
-
-// ADD: ConsentInfo class
-class ConsentInfo {
-  final String status;
-  final DateTime updatedAt;
-
-  ConsentInfo({
-    required this.status,
-    required this.updatedAt,
-  });
-
-  factory ConsentInfo.fromJson(Map<String, dynamic> json) {
-    return ConsentInfo(
-      status: json['status'] ?? 'revoked',
-      updatedAt:
-          DateTime.parse(json['updatedAt'] ?? DateTime.now().toIso8601String()),
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'status': status,
-      'updatedAt': updatedAt.toIso8601String(),
-    };
-  }
 }

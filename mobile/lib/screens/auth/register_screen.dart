@@ -19,6 +19,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _authService = AuthService();
   bool _isLoading = false;
   String _selectedRole = 'user';
+  bool _isPasswordVisible = false;
 
   void _handleRegister() async {
     if (_nameController.text.isEmpty ||
@@ -45,7 +46,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (result['success']) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
             content: Text(
                 'Registration successful! Please check your email to verify your account, then login.')),
       );
@@ -111,7 +112,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   _buildTextField(
                       label: 'Password',
                       controller: _passwordController,
-                      obscureText: true),
+                      obscureText: true,
+                      isPassword: true),
                   const SizedBox(height: 32),
                   Text('Select your role',
                       style: GoogleFonts.poppins(
@@ -154,7 +156,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       Text("Already have an account? ",
                           style: GoogleFonts.poppins(color: Colors.white70)),
                       GestureDetector(
-                        onTap: () => Navigator.pop(context),
+                        onTap: () => context.go('/login'),
                         child: Text('Login',
                             style: GoogleFonts.poppins(
                                 color: Colors.white,
@@ -176,10 +178,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
       {required String label,
       required TextEditingController controller,
       bool obscureText = false,
-      TextInputType? keyboardType}) {
+      TextInputType? keyboardType,
+      bool isPassword = false}) {
     return TextField(
       controller: controller,
-      obscureText: obscureText,
+      obscureText: isPassword ? !_isPasswordVisible : obscureText,
       keyboardType: keyboardType,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
@@ -190,6 +193,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
         border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide.none),
+        suffixIcon: isPassword
+            ? IconButton(
+                icon: Icon(
+                  _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                  color: Colors.white70,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _isPasswordVisible = !_isPasswordVisible;
+                  });
+                },
+              )
+            : null,
       ),
     );
   }

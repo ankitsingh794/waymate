@@ -49,7 +49,7 @@ class _AdvancedTripActionsWidgetState extends State<AdvancedTripActionsWidget> {
         children: [
           Row(
             children: [
-              Icon(Icons.star, color: accentColor),
+              const Icon(Icons.star, color: accentColor),
               const SizedBox(width: 8),
               Text(
                 'Advanced Features',
@@ -288,7 +288,7 @@ class _AdvancedTripActionsWidgetState extends State<AdvancedTripActionsWidget> {
           builder: (context) => AlertDialog(
             title: Row(
               children: [
-                Icon(Icons.psychology, color: Colors.purple),
+                const Icon(Icons.psychology, color: Colors.purple),
                 const SizedBox(width: 8),
                 Text(
                   'AI Scheduling Complete',
@@ -370,7 +370,7 @@ class _AdvancedTripActionsWidgetState extends State<AdvancedTripActionsWidget> {
           builder: (context) => AlertDialog(
             title: Row(
               children: [
-                Icon(Icons.person_add, color: Colors.blue),
+                const Icon(Icons.person_add, color: Colors.blue),
                 const SizedBox(width: 8),
                 Text(
                   'Invite Link Generated',

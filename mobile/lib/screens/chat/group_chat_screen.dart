@@ -41,7 +41,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     super.initState();
 
     // FIX: Periodically check connection status
-    _connectionStatusTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
+    _connectionStatusTimer =
+        Timer.periodic(const Duration(seconds: 2), (timer) {
       if (mounted) {
         setState(() {
           // This will rebuild the AppBar with current connection status
@@ -83,7 +84,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       await _socketService.connect();
 
       // FIX: Join the specific chat session
-      _socketService.joinChatSession(widget.session.id);
+      _socketService.joinSession(widget.session.id);
 
       // FIX: Listen for real-time messages
       _messageSubscription?.cancel(); // Cancel any existing subscription
@@ -218,9 +219,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
               debugPrint('  - Current User: ${_currentUser?.id}');
 
               // Test rejoining the session
-              _socketService.leaveChatSession(widget.session.id);
+              _socketService.leaveSession(widget.session.id);
               Future.delayed(const Duration(seconds: 1), () {
-                _socketService.joinChatSession(widget.session.id);
+                _socketService.joinSession(widget.session.id);
               });
             },
           ),
@@ -310,7 +311,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     // Clean up socket connections
     _messageSubscription?.cancel();
     _connectionSubscription?.cancel();
-    _socketService.leaveChatSession(widget.session.id);
+    _socketService.leaveSession(widget.session.id);
 
     _textController.dispose();
     super.dispose();

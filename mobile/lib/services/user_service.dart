@@ -140,6 +140,72 @@ class UserService {
     }
   }
 
+  /// Updates user consent for a specific consent type
+  Future<User> updateConsent(String consentType, String status) async {
+    try {
+      final responseData = await _apiClient.put('/users/consent', body: {
+        'consentType': consentType,
+        'status': status,
+      });
+      return User.fromJson(responseData['data']['user']);
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException(
+          'An unexpected error occurred while updating consent.');
+    }
+  }
+
+  /// Updates user location with coordinates
+  Future<User> updateLocation({
+    String? city,
+    String? country,
+    List<double>? coordinates,
+  }) async {
+    try {
+      final Map<String, dynamic> body = {};
+      if (city != null) body['city'] = city;
+      if (country != null) body['country'] = country;
+      if (coordinates != null) {
+        body['coordinates'] = coordinates;
+      }
+
+      final responseData = await _apiClient.patch('/users/profile/location', body: body);
+      return User.fromJson(responseData['data']['user']);
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException(
+          'An unexpected error occurred while updating location.');
+    }
+  }
+
+  /// Updates user demographics information
+  Future<User> updateDemographics({
+    String? ageRange,
+    String? gender,
+    String? occupation,
+    String? educationLevel,
+    String? incomeRange,
+  }) async {
+    try {
+      final Map<String, dynamic> body = {};
+      if (ageRange != null) body['ageRange'] = ageRange;
+      if (gender != null) body['gender'] = gender;
+      if (occupation != null) body['occupation'] = occupation;
+      if (educationLevel != null) body['educationLevel'] = educationLevel;
+      if (incomeRange != null) body['incomeRange'] = incomeRange;
+
+      final responseData = await _apiClient.patch('/users/profile/demographics', body: body);
+      return User.fromJson(responseData['data']['user']);
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException(
+          'An unexpected error occurred while updating demographics.');
+    }
+  }
+
   Future<List<User>> getAllUsers() async {
     try {
       final responseData = await _apiClient.get('users');

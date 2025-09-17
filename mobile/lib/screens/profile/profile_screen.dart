@@ -7,6 +7,7 @@ import 'package:mobile/models/socio_economic_survey_models.dart';
 import 'package:mobile/models/user_model.dart';
 import 'package:mobile/screens/profile/change_password_screen.dart';
 import 'package:mobile/screens/profile/edit_profile_screen.dart';
+import 'package:mobile/screens/profile/enhanced_edit_profile_screen.dart';
 import 'package:mobile/screens/profile/household_management_screen.dart';
 import 'package:mobile/screens/profile/privacy_consent_screen.dart';
 import 'package:mobile/screens/profile/survey_screen.dart';
@@ -173,6 +174,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     context,
                     MaterialPageRoute(
                         builder: (context) => EditProfileScreen(user: user)),
+                  );
+                  if (updatedUser != null) {
+                    _loadProfileData();
+                  }
+                },
+              ),
+              _buildMenuOption(
+                icon: Icons.settings_outlined,
+                title: 'Enhanced Profile Settings',
+                subtitle: 'Advanced profile management',
+                onTap: () async {
+                  final updatedUser = await Navigator.push<User>(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => EnhancedEditProfileScreen(user: user)),
                   );
                   if (updatedUser != null) {
                     _loadProfileData();

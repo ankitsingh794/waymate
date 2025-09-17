@@ -1,7 +1,6 @@
 // lib/main.dart
 
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:go_router/go_router.dart';
@@ -21,6 +20,7 @@ import 'package:mobile/services/notification_integration_service.dart';
 import 'package:mobile/screens/researcher/enhanced_data_export_screen.dart';
 import 'package:mobile/services/permission_service.dart';
 import 'package:mobile/screens/debug/deep_link_test_screen.dart';
+import 'package:mobile/utils/logger.dart';
 
 // --- ROUTING CONFIGURATION ---
 // Using go_router to handle all navigation, including deep links.
@@ -75,13 +75,13 @@ void main() async {
 
   try {
     await Firebase.initializeApp();
-  } catch (e) {
-    debugPrint('Firebase initialization failed: $e');
+  } catch (e, s) {
+    logger.e('Firebase initialization failed', error: e, stackTrace: s);
   }
 
   // Request all permissions on app start (non-blocking)
-  PermissionService.requestAllPermissions().catchError((e) {
-    debugPrint('Permission request failed: $e');
+  PermissionService.requestAllPermissions().catchError((e, s) {
+    logger.e('Permission request failed', error: e, stackTrace: s);
     return false; // Return false to indicate failure
   });
 
@@ -92,7 +92,7 @@ void main() async {
   _initializeServicesWithTimeout(container);
 
   // Deep link service removed - email verification now handled on web only
-  debugPrint('📧 Email verification will be handled on web platform');
+  logger.i('Email verification will be handled on web platform');
 
   runApp(
     // ✅ ADDED: Use UncontrolledProviderScope to pass the existing container
@@ -106,33 +106,32 @@ void main() async {
 
 /// Initialize services with timeout to prevent app hanging
 Future<void> _initializeServicesWithTimeout(ProviderContainer container) async {
-  Future.microtask(() async {
-    try {
-      // Initialize enhanced notification service with timeout
-      await container
-          .read(enhancedNotificationServiceProvider)
-          .initialize()
-          .timeout(const Duration(seconds: 10));
+  try {
+    // Initialize enhanced notification service with timeout
+    await container
+        .read(enhancedNotificationServiceProvider)
+        .initialize()
+        .timeout(const Duration(seconds: 15)); // Increased timeout
 
-      // Initialize background service manager with timeout
-      await BackgroundServiceManager.instance
-          .initialize()
-          .timeout(const Duration(seconds: 5));
+    // Initialize background service manager with timeout
+    await BackgroundServiceManager.instance
+        .initialize()
+        .timeout(const Duration(seconds: 10)); // Increased timeout
 
-      await BackgroundServiceManager.instance
-          .startNotificationChecking()
-          .timeout(const Duration(seconds: 5));
+    await BackgroundServiceManager.instance
+        .startNotificationChecking()
+        .timeout(const Duration(seconds: 10)); // Increased timeout
 
-      // Initialize notification integration service with timeout
-      await NotificationIntegrationService.instance
-          .initialize()
-          .timeout(const Duration(seconds: 10));
+    // Initialize notification integration service with timeout
+    await NotificationIntegrationService.instance
+        .initialize()
+        .timeout(const Duration(seconds: 15)); // Increased timeout
 
-      debugPrint('✅ All services initialized successfully');
-    } catch (e) {
-      debugPrint('⚠️ Service initialization failed (app will continue): $e');
-    }
-  });
+    logger.i('✅ All services initialized successfully');
+  } catch (e, s) {
+    logger.e('Service initialization failed (app will continue)',
+        error: e, stackTrace: s);
+  }
 }
 
 // --- ROOT WIDGET ---

@@ -274,7 +274,7 @@ class EnhancedNotificationService {
         return NotificationConfig(
           title: '✅ Trip Completed',
           body: _getTripCompletedBody(data),
-          details: NotificationDetails(
+          details: const NotificationDetails(
             android: AndroidNotificationDetails(
               'trip_completed',
               'Trip Completed',
@@ -283,7 +283,7 @@ class EnhancedNotificationService {
               // priority: Priority.defaultPriority,
               category: AndroidNotificationCategory.status,
             ),
-            iOS: const DarwinNotificationDetails(
+            iOS: DarwinNotificationDetails(
               categoryIdentifier: 'TRIP_COMPLETED',
               interruptionLevel: InterruptionLevel.passive,
             ),
@@ -294,7 +294,7 @@ class EnhancedNotificationService {
         return NotificationConfig(
           title: '⚠️ Permission Required',
           body: data?['message'] ?? 'App permissions need attention',
-          details: NotificationDetails(
+          details: const NotificationDetails(
             android: AndroidNotificationDetails(
               'permission_alerts',
               'Permission Alerts',
@@ -310,7 +310,7 @@ class EnhancedNotificationService {
                 ),
               ],
             ),
-            iOS: const DarwinNotificationDetails(
+            iOS: DarwinNotificationDetails(
               categoryIdentifier: 'PERMISSION_ALERT',
               interruptionLevel: InterruptionLevel.critical,
             ),
@@ -321,7 +321,7 @@ class EnhancedNotificationService {
         return NotificationConfig(
           title: 'WayMate',
           body: data?['message'] ?? 'New notification',
-          details: NotificationDetails(
+          details: const NotificationDetails(
             android: AndroidNotificationDetails(
               'general_updates',
               'General Updates',
@@ -329,7 +329,7 @@ class EnhancedNotificationService {
               importance: Importance.low,
               // priority: Priority.low,
             ),
-            iOS: const DarwinNotificationDetails(
+            iOS: DarwinNotificationDetails(
               categoryIdentifier: 'GENERAL',
               interruptionLevel: InterruptionLevel.passive,
             ),
@@ -359,11 +359,11 @@ class EnhancedNotificationService {
 
     return [
       AndroidNotificationAction(
-        'confirm_${detectedMode}',
+        'confirm_$detectedMode',
         'Confirm $detectedMode',
-        icon: DrawableResourceAndroidBitmap('ic_check'),
+        icon: const DrawableResourceAndroidBitmap('ic_check'),
       ),
-      AndroidNotificationAction(
+      const AndroidNotificationAction(
         'choose_mode',
         'Choose Mode',
         icon: DrawableResourceAndroidBitmap('ic_edit'),
@@ -426,7 +426,7 @@ class EnhancedNotificationService {
         DateTime.now().millisecondsSinceEpoch,
         'Trip Confirmed',
         'Trip confirmed as $mode travel. Thank you!',
-        NotificationDetails(
+        const NotificationDetails(
           android: AndroidNotificationDetails(
             'trip_completed',
             'Trip Completed',

@@ -30,11 +30,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.user.name);
-    _selectedCurrency = widget.user.preferences.currency;
-    _selectedLanguage = widget.user.preferences.language;
+    _selectedCurrency = widget.user.preferences?.currency ?? 'USD';
+    _selectedLanguage = widget.user.preferences?.language ?? 'en';
     _profileImageUrl = widget.user.profileImage;
   }
-  
+
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
@@ -50,14 +50,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (_newProfileImage == null) return;
     setState(() => _isLoading = true);
     try {
-      final updatedUser = await _userService.uploadProfilePhoto(_newProfileImage!);
+      final updatedUser =
+          await _userService.uploadProfilePhoto(_newProfileImage!);
       setState(() {
         _profileImageUrl = updatedUser.profileImage;
         _newProfileImage = null; // Clear the selected file
       });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile photo updated!')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile photo updated!')));
     } on ApiException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Upload failed: ${e.message}')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Upload failed: ${e.message}')));
     } finally {
       setState(() => _isLoading = false);
     }
@@ -72,12 +75,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         language: _selectedLanguage,
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile saved successfully!')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Profile saved successfully!')));
         Navigator.of(context).pop(updatedUser); // Return updated user data
       }
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.message}')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: ${e.message}')));
       }
     } finally {
       if (mounted) {
@@ -102,7 +107,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
           ),
         ),
-        title: Text('Edit Profile', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text('Edit Profile',
+            style: GoogleFonts.poppins(
+                color: Colors.white, fontWeight: FontWeight.bold)),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
@@ -115,7 +122,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   // --- UPDATED: Show picked image file or network image ---
                   backgroundImage: _newProfileImage != null
                       ? FileImage(_newProfileImage!)
-                      : (_profileImageUrl != null && _profileImageUrl!.isNotEmpty
+                      : (_profileImageUrl != null &&
+                              _profileImageUrl!.isNotEmpty
                           ? NetworkImage(_profileImageUrl!)
                           : null) as ImageProvider?,
                   child: _profileImageUrl == null && _newProfileImage == null
@@ -129,7 +137,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     radius: 18,
                     backgroundColor: Theme.of(context).primaryColor,
                     child: IconButton(
-                      icon: const Icon(Icons.edit, size: 18, color: Colors.white),
+                      icon:
+                          const Icon(Icons.edit, size: 18, color: Colors.white),
                       onPressed: _pickImage,
                     ),
                   ),
@@ -140,23 +149,33 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           const SizedBox(height: 32),
           TextFormField(
             controller: _nameController,
-            decoration: const InputDecoration(labelText: 'Full Name', border: OutlineInputBorder()),
+            decoration: const InputDecoration(
+                labelText: 'Full Name', border: OutlineInputBorder()),
           ),
           const SizedBox(height: 20),
           DropdownButtonFormField<String>(
             initialValue: _selectedCurrency,
-            decoration: const InputDecoration(labelText: 'Preferred Currency', border: OutlineInputBorder()),
+            decoration: const InputDecoration(
+                labelText: 'Preferred Currency', border: OutlineInputBorder()),
             items: ['INR', 'USD', 'EUR']
-                .map((label) => DropdownMenuItem(value: label, child: Text(label)))
+                .map((label) =>
+                    DropdownMenuItem(value: label, child: Text(label)))
                 .toList(),
             onChanged: (value) => setState(() => _selectedCurrency = value),
           ),
           const SizedBox(height: 20),
           DropdownButtonFormField<String>(
             initialValue: _selectedLanguage,
-            decoration: const InputDecoration(labelText: 'Language', border: OutlineInputBorder()),
+            decoration: const InputDecoration(
+                labelText: 'Language', border: OutlineInputBorder()),
             items: ['en', 'hi', 'es']
-                .map((langCode) => DropdownMenuItem(value: langCode, child: Text({'en': 'English', 'hi': 'Hindi', 'es': 'Spanish'}[langCode]!)))
+                .map((langCode) => DropdownMenuItem(
+                    value: langCode,
+                    child: Text({
+                      'en': 'English',
+                      'hi': 'Hindi',
+                      'es': 'Spanish'
+                    }[langCode]!)))
                 .toList(),
             onChanged: (value) => setState(() => _selectedLanguage = value),
           ),
@@ -166,7 +185,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             child: ElevatedButton(
               onPressed: _isLoading ? null : _saveChanges,
               child: _isLoading
-                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2))
                   : const Text('Save Changes'),
             ),
           ),

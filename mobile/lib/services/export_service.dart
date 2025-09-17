@@ -227,10 +227,7 @@ class ExportService {
       // First try app-specific external storage (no permission needed)
       Directory? directory = await getExternalStorageDirectory();
 
-      if (directory == null) {
-        // Fall back to app documents directory
-        directory = await getApplicationDocumentsDirectory();
-      }
+      directory ??= await getApplicationDocumentsDirectory();
 
       debugPrint('💾 Saving to app directory: ${directory.path}');
 

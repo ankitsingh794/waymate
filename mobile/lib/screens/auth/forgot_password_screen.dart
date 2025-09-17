@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mobile/services/auth_service.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -40,7 +41,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
      if (result['success']) {
        // Optionally pop the screen after a delay
        Future.delayed(const Duration(seconds: 2), () {
-         if(mounted) Navigator.of(context).pop();
+         if(mounted) context.go('/login');
        });
      }
   }
@@ -59,7 +60,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => context.go('/login'),
         ),
       ),
       body: Container(

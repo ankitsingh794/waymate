@@ -8,6 +8,7 @@ import 'package:mobile/models/trip_models.dart';
 import 'package:mobile/models/user_model.dart'; // Keep this without prefix
 import 'package:mobile/screens/chat/group_chat_screen.dart';
 import 'package:mobile/screens/trip_details/itinerary_tab.dart';
+import 'package:mobile/utils/logger.dart';
 import 'package:mobile/screens/trip_details/manage_members_screen.dart';
 import 'package:mobile/screens/trip_details/edit_trip_screen.dart';
 import 'package:mobile/services/chat_service.dart';
@@ -101,11 +102,20 @@ class _TripDetailsScreenState extends State<TripDetailsScreen>
   Future<void> _toggleFavorite(Trip trip) async {
     try {
       final isNowFavorite = await _tripService.toggleFavoriteStatus(trip.id);
+
+      // Check if widget is still mounted before updating state or using context
+      if (!mounted) {
+        logger.d(
+            "_toggleFavorite: Widget is no longer mounted, skipping UI updates");
+        return;
+      }
+
       setState(() {
         // Optimistically update the UI
         _tripDetailsFuture =
             Future.value(trip.copyWith(favorite: isNowFavorite));
       });
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             content: Text(isNowFavorite
@@ -113,8 +123,11 @@ class _TripDetailsScreenState extends State<TripDetailsScreen>
                 : 'Removed from favorites.')),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Error: $e')));
+      // Only show error if widget is still mounted
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     }
   }
 
@@ -934,6 +947,6 @@ class _TripDetailsScreenState extends State<TripDetailsScreen>
           trip: trip,
         ),
       ),
-    ).then((_) => _reloadData()); 
+    ).then((_) => _reloadData());
   }
 }

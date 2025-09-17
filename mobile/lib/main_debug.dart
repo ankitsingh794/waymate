@@ -87,8 +87,8 @@ void main() async {
   }
 
   runApp(
-    ProviderScope(
-      child: const MyAppDebug(),
+    const ProviderScope(
+      child: MyAppDebug(),
     ),
   );
 }

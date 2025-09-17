@@ -1,7 +1,7 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:mobile/services/api_client.dart';
 import 'package:mobile/models/chat_session_model.dart';
+import 'package:mobile/utils/logger.dart';
 
 /// Provides an interface for all chat-related API endpoints.
 /// This service handles HTTP requests, while SocketService handles real-time events.
@@ -43,7 +43,7 @@ class ChatService {
     try {
       // FIX: Use the correct endpoint from your backend routes
       final response = await _apiClient.get('chat/sessions/group');
-      debugPrint('Chat sessions response: $response');
+      logger.d('Chat sessions response: $response');
 
       if (response != null && response['data'] != null) {
         final responseData = response['data'];
@@ -55,7 +55,7 @@ class ChatService {
         } else if (responseData is List) {
           sessionsJson = responseData;
         } else {
-          debugPrint('Unexpected response structure: $responseData');
+          logger.w('Unexpected response structure: $responseData');
           return [];
         }
 
@@ -63,12 +63,12 @@ class ChatService {
             .map((json) => ChatSession.fromJson(json as Map<String, dynamic>))
             .toList();
 
-        debugPrint("Fetched ${sessions.length} group sessions");
+        logger.i("Fetched ${sessions.length} group sessions");
         return sessions;
       }
       return [];
-    } catch (e) {
-      debugPrint("Failed to fetch group sessions: $e");
+    } catch (e, s) {
+      logger.e("Failed to fetch group sessions", error: e, stackTrace: s);
       throw ApiException(
           "An unexpected error occurred while fetching group chats.", null);
     }
@@ -78,33 +78,33 @@ class ChatService {
     try {
       final allSessions = await getGroupSessions();
 
-      debugPrint('Looking for session with tripId: $tripId');
-      debugPrint('Found ${allSessions.length} total sessions');
+      logger.d('Looking for session with tripId: $tripId');
+      logger.d('Found ${allSessions.length} total sessions');
 
       for (int i = 0; i < allSessions.length; i++) {
         final session = allSessions[i];
-        debugPrint('Session $i:');
-        debugPrint('  - Session ID: ${session.id}');
-        debugPrint('  - Session tripId: ${session.tripId?.id}');
-        debugPrint('  - Does tripId match? ${session.tripId?.id == tripId}');
+        logger.d('Session $i:');
+        logger.d('  - Session ID: ${session.id}');
+        logger.d('  - Session tripId: ${session.tripId?.id}');
+        logger.d('  - Does tripId match? ${session.tripId?.id == tripId}');
       }
 
       // Find the session where the nested tripId matches.
       final sessionForTrip = allSessions.where((session) {
         final matches = session.tripId?.id == tripId;
-        debugPrint('Session ${session.id} matches tripId $tripId: $matches');
+        logger.d('Session ${session.id} matches tripId $tripId: $matches');
         return matches;
       }).firstOrNull;
 
       if (sessionForTrip != null) {
-        debugPrint('✅ Found matching session: ${sessionForTrip.id}');
+        logger.i('✅ Found matching session: ${sessionForTrip.id}');
       } else {
-        debugPrint('❌ No matching session found for tripId: $tripId');
+        logger.w('❌ No matching session found for tripId: $tripId');
       }
 
       return sessionForTrip;
-    } catch (e) {
-      debugPrint('Error getting session for trip: $e');
+    } catch (e, s) {
+      logger.e('Error getting session for trip', error: e, stackTrace: s);
       return null;
     }
   }
@@ -176,13 +176,13 @@ class ChatService {
 
   Future<ChatSession?> createChatSessionForTrip(String tripId) async {
     try {
-      debugPrint('Creating chat session for trip: $tripId');
+      logger.d('Creating chat session for trip: $tripId');
 
       final response = await _apiClient.post('chat/sessions/group', body: {
         'tripId': tripId,
       });
 
-      debugPrint('Create session response: $response');
+      logger.d('Create session response: $response');
 
       if (response != null && response['data'] != null) {
         final responseData = response['data'];
@@ -195,8 +195,8 @@ class ChatService {
       }
 
       return null;
-    } catch (e) {
-      debugPrint('Error creating chat session: $e');
+    } catch (e, s) {
+      logger.e('Error creating chat session', error: e, stackTrace: s);
       return null;
     }
   }

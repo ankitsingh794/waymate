@@ -7,6 +7,7 @@ import 'package:mobile/services/permission_service.dart';
 import 'package:mobile/services/sensor_service.dart';
 import 'package:mobile/services/tracking_service.dart';
 import 'package:mobile/services/tracking_events.dart';
+import 'package:mobile/utils/logger.dart';
 
 // Defines the current state of the passive tracking
 enum TrackingState { idle, monitoring, awaitingConfirmation, inProgress }
@@ -45,11 +46,20 @@ class PassiveTrackingManager {
       // Prevent multiple subscriptions
       _sensorService.trackingPointStream.listen(_onNewTrackingPoint);
       _mlService.predictedActivityStream.listen(_onActivityChanged);
-      await _sensorService.startTracking();
-      debugPrint("✅ PassiveTrackingManager started successfully");
+
+      try {
+        await _sensorService.startTracking();
+      } catch (sensorError) {
+        // Handle microphone permission or other sensor errors gracefully
+        logger.w("Sensor tracking initialization failed: $sensorError");
+        _eventController.add(PermissionError("$sensorError"));
+        // Continue with limited tracking even if sensor tracking fails
+      }
+
+      logger.i("PassiveTrackingManager started successfully");
       return true;
-    } catch (e) {
-      debugPrint("❌ PassiveTrackingManager start failed: $e");
+    } catch (e, s) {
+      logger.e("PassiveTrackingManager start failed", error: e, stackTrace: s);
       _eventController.add(TrackingError("Failed to start tracking: $e"));
       return false;
     }
@@ -57,7 +67,7 @@ class PassiveTrackingManager {
 
   void stop() {
     _sensorService.stopTracking();
-    debugPrint("PassiveTrackingManager stopped.");
+    logger.i("PassiveTrackingManager stopped.");
   }
 
   void _onNewTrackingPoint(TrackingPoint point) {

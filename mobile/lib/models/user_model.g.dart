@@ -2,8 +2,6 @@
 
 part of 'user_model.dart';
 
-
-
 // **************************************************************************
 // IsarEmbeddedGenerator
 // **************************************************************************
@@ -955,10 +953,15 @@ const ConsentEntrySchema = Schema(
       name: r'key',
       type: IsarType.string,
     ),
-    r'value': PropertySchema(
+    r'status': PropertySchema(
       id: 1,
-      name: r'value',
+      name: r'status',
       type: IsarType.string,
+    ),
+    r'updatedAt': PropertySchema(
+      id: 2,
+      name: r'updatedAt',
+      type: IsarType.dateTime,
     )
   },
   estimateSize: _consentEntryEstimateSize,
@@ -974,7 +977,7 @@ int _consentEntryEstimateSize(
 ) {
   var bytesCount = offsets.last;
   bytesCount += 3 + object.key.length * 3;
-  bytesCount += 3 + object.value.length * 3;
+  bytesCount += 3 + object.status.length * 3;
   return bytesCount;
 }
 
@@ -985,7 +988,8 @@ void _consentEntrySerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeString(offsets[0], object.key);
-  writer.writeString(offsets[1], object.value);
+  writer.writeString(offsets[1], object.status);
+  writer.writeDateTime(offsets[2], object.updatedAt);
 }
 
 ConsentEntry _consentEntryDeserialize(
@@ -994,9 +998,11 @@ ConsentEntry _consentEntryDeserialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  final object = ConsentEntry();
-  object.key = reader.readString(offsets[0]);
-  object.value = reader.readString(offsets[1]);
+  final object = ConsentEntry(
+    key: reader.readStringOrNull(offsets[0]) ?? '',
+    status: reader.readStringOrNull(offsets[1]) ?? 'revoked',
+  );
+  object.updatedAt = reader.readDateTime(offsets[2]);
   return object;
 }
 
@@ -1008,9 +1014,11 @@ P _consentEntryDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset) ?? '') as P;
     case 1:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset) ?? 'revoked') as P;
+    case 2:
+      return (reader.readDateTime(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -1150,13 +1158,13 @@ extension ConsentEntryQueryFilter
     });
   }
 
-  QueryBuilder<ConsentEntry, ConsentEntry, QAfterFilterCondition> valueEqualTo(
+  QueryBuilder<ConsentEntry, ConsentEntry, QAfterFilterCondition> statusEqualTo(
     String value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'value',
+        property: r'status',
         value: value,
         caseSensitive: caseSensitive,
       ));
@@ -1164,7 +1172,7 @@ extension ConsentEntryQueryFilter
   }
 
   QueryBuilder<ConsentEntry, ConsentEntry, QAfterFilterCondition>
-      valueGreaterThan(
+      statusGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
@@ -1172,14 +1180,15 @@ extension ConsentEntryQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         include: include,
-        property: r'value',
+        property: r'status',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<ConsentEntry, ConsentEntry, QAfterFilterCondition> valueLessThan(
+  QueryBuilder<ConsentEntry, ConsentEntry, QAfterFilterCondition>
+      statusLessThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
@@ -1187,14 +1196,14 @@ extension ConsentEntryQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.lessThan(
         include: include,
-        property: r'value',
+        property: r'status',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<ConsentEntry, ConsentEntry, QAfterFilterCondition> valueBetween(
+  QueryBuilder<ConsentEntry, ConsentEntry, QAfterFilterCondition> statusBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -1203,7 +1212,7 @@ extension ConsentEntryQueryFilter
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
-        property: r'value',
+        property: r'status',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
@@ -1214,50 +1223,50 @@ extension ConsentEntryQueryFilter
   }
 
   QueryBuilder<ConsentEntry, ConsentEntry, QAfterFilterCondition>
-      valueStartsWith(
+      statusStartsWith(
     String value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'value',
+        property: r'status',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<ConsentEntry, ConsentEntry, QAfterFilterCondition> valueEndsWith(
+  QueryBuilder<ConsentEntry, ConsentEntry, QAfterFilterCondition>
+      statusEndsWith(
     String value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'value',
+        property: r'status',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<ConsentEntry, ConsentEntry, QAfterFilterCondition> valueContains(
-      String value,
-      {bool caseSensitive = true}) {
+  QueryBuilder<ConsentEntry, ConsentEntry, QAfterFilterCondition>
+      statusContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.contains(
-        property: r'value',
+        property: r'status',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<ConsentEntry, ConsentEntry, QAfterFilterCondition> valueMatches(
+  QueryBuilder<ConsentEntry, ConsentEntry, QAfterFilterCondition> statusMatches(
       String pattern,
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.matches(
-        property: r'value',
+        property: r'status',
         wildcard: pattern,
         caseSensitive: caseSensitive,
       ));
@@ -1265,21 +1274,77 @@ extension ConsentEntryQueryFilter
   }
 
   QueryBuilder<ConsentEntry, ConsentEntry, QAfterFilterCondition>
-      valueIsEmpty() {
+      statusIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'value',
+        property: r'status',
         value: '',
       ));
     });
   }
 
   QueryBuilder<ConsentEntry, ConsentEntry, QAfterFilterCondition>
-      valueIsNotEmpty() {
+      statusIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'value',
+        property: r'status',
         value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<ConsentEntry, ConsentEntry, QAfterFilterCondition>
+      updatedAtEqualTo(DateTime value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'updatedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ConsentEntry, ConsentEntry, QAfterFilterCondition>
+      updatedAtGreaterThan(
+    DateTime value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'updatedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ConsentEntry, ConsentEntry, QAfterFilterCondition>
+      updatedAtLessThan(
+    DateTime value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'updatedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ConsentEntry, ConsentEntry, QAfterFilterCondition>
+      updatedAtBetween(
+    DateTime lower,
+    DateTime upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'updatedAt',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
       ));
     });
   }
@@ -1300,66 +1365,71 @@ const UserSchema = Schema(
       name: r'accountStatus',
       type: IsarType.string,
     ),
-    r'consents': PropertySchema(
+    r'anonymizedHash': PropertySchema(
       id: 1,
+      name: r'anonymizedHash',
+      type: IsarType.string,
+    ),
+    r'consents': PropertySchema(
+      id: 2,
       name: r'consents',
       type: IsarType.objectList,
       target: r'ConsentEntry',
     ),
     r'email': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'email',
       type: IsarType.string,
     ),
     r'favoriteTrips': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'favoriteTrips',
       type: IsarType.stringList,
     ),
     r'householdId': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'householdId',
       type: IsarType.string,
     ),
     r'id': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'id',
       type: IsarType.string,
     ),
     r'isEmailVerified': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'isEmailVerified',
       type: IsarType.bool,
     ),
     r'location': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'location',
       type: IsarType.object,
       target: r'UserLocation',
     ),
     r'name': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'name',
       type: IsarType.string,
     ),
     r'passwordChangedAt': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'passwordChangedAt',
       type: IsarType.dateTime,
     ),
     r'preferences': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'preferences',
       type: IsarType.object,
       target: r'UserPreferences',
     ),
     r'profileImage': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'profileImage',
       type: IsarType.string,
     ),
     r'role': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'role',
       type: IsarType.string,
     )
@@ -1377,13 +1447,17 @@ int _userEstimateSize(
 ) {
   var bytesCount = offsets.last;
   bytesCount += 3 + object.accountStatus.length * 3;
+  {
+    final value = object.anonymizedHash;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.consents.length * 3;
   {
     final offsets = allOffsets[ConsentEntry]!;
-    for (final e in object.consents.entries) {
-      final value = ConsentEntry()
-        ..key = e.key
-        ..value = json.encode(e.value.toJson());
+    for (var i = 0; i < object.consents.length; i++) {
+      final value = object.consents[i];
       bytesCount += ConsentEntrySchema.estimateSize(value, offsets, allOffsets);
     }
   }
@@ -1411,9 +1485,14 @@ int _userEstimateSize(
     }
   }
   bytesCount += 3 + object.name.length * 3;
-  bytesCount += 3 +
-      UserPreferencesSchema.estimateSize(
-          object.preferences, allOffsets[UserPreferences]!, allOffsets);
+  {
+    final value = object.preferences;
+    if (value != null) {
+      bytesCount += 3 +
+          UserPreferencesSchema.estimateSize(
+              value, allOffsets[UserPreferences]!, allOffsets);
+    }
+  }
   {
     final value = object.profileImage;
     if (value != null) {
@@ -1431,37 +1510,34 @@ void _userSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeString(offsets[0], object.accountStatus);
+  writer.writeString(offsets[1], object.anonymizedHash);
   writer.writeObjectList<ConsentEntry>(
-    offsets[1],
+    offsets[2],
     allOffsets,
     ConsentEntrySchema.serialize,
-    object.consents.entries
-        .map((e) => ConsentEntry()
-          ..key = e.key
-          ..value = json.encode(e.value.toJson()))
-        .toList(),
+    object.consents,
   );
-  writer.writeString(offsets[2], object.email);
-  writer.writeStringList(offsets[3], object.favoriteTrips);
-  writer.writeString(offsets[4], object.householdId);
-  writer.writeString(offsets[5], object.id);
-  writer.writeBool(offsets[6], object.isEmailVerified);
+  writer.writeString(offsets[3], object.email);
+  writer.writeStringList(offsets[4], object.favoriteTrips);
+  writer.writeString(offsets[5], object.householdId);
+  writer.writeString(offsets[6], object.id);
+  writer.writeBool(offsets[7], object.isEmailVerified);
   writer.writeObject<UserLocation>(
-    offsets[7],
+    offsets[8],
     allOffsets,
     UserLocationSchema.serialize,
     object.location,
   );
-  writer.writeString(offsets[8], object.name);
-  writer.writeDateTime(offsets[9], object.passwordChangedAt);
+  writer.writeString(offsets[9], object.name);
+  writer.writeDateTime(offsets[10], object.passwordChangedAt);
   writer.writeObject<UserPreferences>(
-    offsets[10],
+    offsets[11],
     allOffsets,
     UserPreferencesSchema.serialize,
     object.preferences,
   );
-  writer.writeString(offsets[11], object.profileImage);
-  writer.writeString(offsets[12], object.role);
+  writer.writeString(offsets[12], object.profileImage);
+  writer.writeString(offsets[13], object.role);
 }
 
 User _userDeserialize(
@@ -1472,36 +1548,33 @@ User _userDeserialize(
 ) {
   final object = User(
     accountStatus: reader.readStringOrNull(offsets[0]) ?? 'pending',
-    consents: {
-      for (var e in reader.readObjectList<ConsentEntry>(
-            offsets[1],
-            ConsentEntrySchema.deserialize,
-            allOffsets,
-            ConsentEntry(),
-          ) ??
-          const [])
-        e.key: ConsentInfo.fromJson(json.decode(e.value))
-    },
-    email: reader.readStringOrNull(offsets[2]) ?? '',
-    favoriteTrips: reader.readStringList(offsets[3]) ?? const [],
-    householdId: reader.readStringOrNull(offsets[4]),
-    id: reader.readStringOrNull(offsets[5]) ?? '',
-    isEmailVerified: reader.readBoolOrNull(offsets[6]) ?? false,
+    anonymizedHash: reader.readStringOrNull(offsets[1]),
+    consents: reader.readObjectList<ConsentEntry>(
+          offsets[2],
+          ConsentEntrySchema.deserialize,
+          allOffsets,
+          ConsentEntry(),
+        ) ??
+        const [],
+    email: reader.readStringOrNull(offsets[3]) ?? '',
+    favoriteTrips: reader.readStringList(offsets[4]) ?? const [],
+    householdId: reader.readStringOrNull(offsets[5]),
+    id: reader.readStringOrNull(offsets[6]) ?? '',
+    isEmailVerified: reader.readBoolOrNull(offsets[7]) ?? false,
     location: reader.readObjectOrNull<UserLocation>(
-      offsets[7],
+      offsets[8],
       UserLocationSchema.deserialize,
       allOffsets,
     ),
-    name: reader.readStringOrNull(offsets[8]) ?? '',
-    passwordChangedAt: reader.readDateTimeOrNull(offsets[9]),
+    name: reader.readStringOrNull(offsets[9]) ?? '',
+    passwordChangedAt: reader.readDateTimeOrNull(offsets[10]),
     preferences: reader.readObjectOrNull<UserPreferences>(
-          offsets[10],
-          UserPreferencesSchema.deserialize,
-          allOffsets,
-        ) ??
-        UserPreferences(),
-    profileImage: reader.readStringOrNull(offsets[11]),
-    role: reader.readStringOrNull(offsets[12]) ?? 'user',
+      offsets[11],
+      UserPreferencesSchema.deserialize,
+      allOffsets,
+    ),
+    profileImage: reader.readStringOrNull(offsets[12]),
+    role: reader.readStringOrNull(offsets[13]) ?? 'user',
   );
   return object;
 }
@@ -1516,6 +1589,8 @@ P _userDeserializeProp<P>(
     case 0:
       return (reader.readStringOrNull(offset) ?? 'pending') as P;
     case 1:
+      return (reader.readStringOrNull(offset)) as P;
+    case 2:
       return (reader.readObjectList<ConsentEntry>(
             offset,
             ConsentEntrySchema.deserialize,
@@ -1523,36 +1598,35 @@ P _userDeserializeProp<P>(
             ConsentEntry(),
           ) ??
           const []) as P;
-    case 2:
-      return (reader.readStringOrNull(offset) ?? '') as P;
     case 3:
-      return (reader.readStringList(offset) ?? const []) as P;
-    case 4:
-      return (reader.readStringOrNull(offset)) as P;
-    case 5:
       return (reader.readStringOrNull(offset) ?? '') as P;
+    case 4:
+      return (reader.readStringList(offset) ?? const []) as P;
+    case 5:
+      return (reader.readStringOrNull(offset)) as P;
     case 6:
-      return (reader.readBoolOrNull(offset) ?? false) as P;
+      return (reader.readStringOrNull(offset) ?? '') as P;
     case 7:
+      return (reader.readBoolOrNull(offset) ?? false) as P;
+    case 8:
       return (reader.readObjectOrNull<UserLocation>(
         offset,
         UserLocationSchema.deserialize,
         allOffsets,
       )) as P;
-    case 8:
-      return (reader.readStringOrNull(offset) ?? '') as P;
     case 9:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset) ?? '') as P;
     case 10:
-      return (reader.readObjectOrNull<UserPreferences>(
-            offset,
-            UserPreferencesSchema.deserialize,
-            allOffsets,
-          ) ??
-          UserPreferences()) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 11:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readObjectOrNull<UserPreferences>(
+        offset,
+        UserPreferencesSchema.deserialize,
+        allOffsets,
+      )) as P;
     case 12:
+      return (reader.readStringOrNull(offset)) as P;
+    case 13:
       return (reader.readStringOrNull(offset) ?? 'user') as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1685,6 +1759,152 @@ extension UserQueryFilter on QueryBuilder<User, User, QFilterCondition> {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'accountStatus',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<User, User, QAfterFilterCondition> anonymizedHashIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'anonymizedHash',
+      ));
+    });
+  }
+
+  QueryBuilder<User, User, QAfterFilterCondition> anonymizedHashIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'anonymizedHash',
+      ));
+    });
+  }
+
+  QueryBuilder<User, User, QAfterFilterCondition> anonymizedHashEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'anonymizedHash',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<User, User, QAfterFilterCondition> anonymizedHashGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'anonymizedHash',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<User, User, QAfterFilterCondition> anonymizedHashLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'anonymizedHash',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<User, User, QAfterFilterCondition> anonymizedHashBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'anonymizedHash',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<User, User, QAfterFilterCondition> anonymizedHashStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'anonymizedHash',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<User, User, QAfterFilterCondition> anonymizedHashEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'anonymizedHash',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<User, User, QAfterFilterCondition> anonymizedHashContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'anonymizedHash',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<User, User, QAfterFilterCondition> anonymizedHashMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'anonymizedHash',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<User, User, QAfterFilterCondition> anonymizedHashIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'anonymizedHash',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<User, User, QAfterFilterCondition> anonymizedHashIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'anonymizedHash',
         value: '',
       ));
     });
@@ -2614,6 +2834,22 @@ extension UserQueryFilter on QueryBuilder<User, User, QFilterCondition> {
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<User, User, QAfterFilterCondition> preferencesIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'preferences',
+      ));
+    });
+  }
+
+  QueryBuilder<User, User, QAfterFilterCondition> preferencesIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'preferences',
       ));
     });
   }

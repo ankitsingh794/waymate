@@ -66,7 +66,7 @@ class _AiTripCreationScreenState extends State<AiTripCreationScreen> {
       await _socketService.connect();
 
       // Now it is safe to join and listen for messages
-      _socketService.joinChatSession(sessionId);
+      _socketService.joinSession(sessionId);
       _messageSubscription =
           _socketService.onNewMessage.listen(_handleNewMessage);
       _statusSubscription =
@@ -475,7 +475,7 @@ class _AiTripCreationScreenState extends State<AiTripCreationScreen> {
 
   @override
   void dispose() {
-    if (_sessionId != null) _socketService.leaveChatSession(_sessionId!);
+    if (_sessionId != null) _socketService.leaveSession(_sessionId!);
     _messageSubscription?.cancel();
     _statusSubscription?.cancel();
     _tripCreatedSubscription?.cancel();

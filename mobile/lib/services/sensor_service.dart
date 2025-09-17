@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'tracking_service.dart';
 import 'permission_service.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:sensors_plus/sensors_plus.dart';
+import 'package:mobile/utils/logger.dart';
 
 /// Service to handle the collection of data from all device sensors.
 class SensorService {
@@ -97,10 +97,14 @@ class SensorService {
           soundDb: _lastSoundDb,
         );
         _trackingPointController.add(trackingPoint);
-      }, onError: (e) => _trackingPointController.addError(e));
+      }, onError: (e, s) {
+        logger.e("Error in position stream", error: e, stackTrace: s);
+        _trackingPointController.addError(e);
+      });
 
-      debugPrint("SensorService started tracking all sensors.");
-    } catch (e) {
+      logger.i("SensorService started tracking all sensors.");
+    } catch (e, s) {
+      logger.e("Failed to start sensor tracking", error: e, stackTrace: s);
       _trackingPointController.addError(e.toString());
       // Ensure we clean up if setup fails.
       await stopTracking();
@@ -117,7 +121,7 @@ class SensorService {
     if (_recorder.isRecording) {
       await _recorder.stopRecorder();
     }
-    debugPrint("SensorService stopped tracking.");
+    logger.i("SensorService stopped tracking.");
   }
 
   Future<void> dispose() async {
