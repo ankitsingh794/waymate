@@ -20,8 +20,22 @@ const authenticateSocket = async (socket, next) => {
     }
     logger.debug('[2/7] Token found in handshake.');
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    logger.debug(`[3/7] JWT verification successful. Decoded payload:`, decoded);
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+      logger.debug(`[3/7] JWT verification successful. Decoded payload:`, decoded);
+    } catch (jwtError) {
+      if (jwtError.name === 'TokenExpiredError') {
+        logger.warn(`[FAIL] Authentication failed: JWT token has expired. Expired at: ${jwtError.expiredAt}`);
+        return next(new Error('Authentication failed: Token expired'));
+      } else if (jwtError.name === 'JsonWebTokenError') {
+        logger.warn(`[FAIL] Authentication failed: Invalid JWT token. Error: ${jwtError.message}`);
+        return next(new Error('Authentication failed: Invalid token'));
+      } else {
+        logger.error(`[FAIL] JWT verification error: ${jwtError.message}`);
+        return next(new Error('Authentication failed: Token verification failed'));
+      }
+    }
 
     if (!decoded.jti) {
       logger.warn('[FAIL] Authentication failed: Token missing JTI (JWT ID).');

@@ -214,6 +214,12 @@ exports.handleChatMessage = async (req, res) => {
                 return sendSuccess(res, 200, 'Feature in development response sent.');
             }
 
+            case 'non_transportation': {
+                const rejectionReply = `I'm WayMate, your travel assistant! 🧳✈️ I'm here to help with transportation, trip planning, and travel-related questions. I can't assist with topics outside of travel. How can I help you plan your next adventure? 🗺️`;
+                await createAndUpdateAiReply(sessionId, rejectionReply, userMessage._id, userId);
+                return sendSuccess(res, 200, 'Non-transportation query politely declined.');
+            }
+
             case 'casual_chat':
             default:
                 return handleCasualChatIntent(req, res, message, userMessage._id, sessionId);

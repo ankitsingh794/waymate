@@ -4,7 +4,78 @@ const logger = require('../utils/logger');
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const PARSING_MODEL = process.env.PARSING_MODEL || 'mistralai/mistral-small-3.2-24b-instruct:free';
 
+/**
+ * Pre-filters queries to check if they are transportation/travel-related
+ * @param {string} userMessage - The user's message to check
+ * @returns {Promise<boolean>} - True if transportation-related, false otherwise
+ */
+async function checkIfTransportationRelated(userMessage) {
+  const filterPrompt = `
+You are a transportation and travel topic classifier. Your job is to determine if a user's query is related to transportation, travel, or trip planning.
+
+TRANSPORTATION/TRAVEL TOPICS INCLUDE:
+- Trip planning, itineraries, destinations
+- Transportation (flights, trains, buses, cars, boats, etc.)
+- Hotels, accommodations, lodging
+- Tourist attractions, activities, restaurants while traveling
+- Travel advice, visa requirements, weather for travel
+- Local places, "near me" searches when traveling
+- Budget planning for trips
+- Travel safety, packing advice
+- Cultural tips for destinations
+
+NON-TRANSPORTATION TOPICS INCLUDE:
+- Cooking recipes, food preparation at home
+- Technology support, programming help
+- General health advice (not travel-related)
+- Personal relationships, dating advice
+- Home improvement, gardening
+- Academic subjects (math, science, etc.)
+- Entertainment recommendations (unless travel-related)
+- Shopping for non-travel items
+- Work/career advice (unless travel-related)
+
+Respond with ONLY "YES" if the query is transportation/travel-related, or "NO" if it's not.
+
+User Query: "${userMessage}"
+
+Response:`;
+
+  try {
+    const response = await axios.post(
+      'https://openrouter.ai/api/v1/chat/completions',
+      { 
+        model: PARSING_MODEL, 
+        messages: [{ role: 'user', content: filterPrompt }],
+        max_tokens: 10
+      },
+      { 
+        headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}` }, 
+        timeout: 15000 
+      }
+    );
+    
+    const aiResponse = response.data.choices[0].message.content.trim().toUpperCase();
+    const isTransportationRelated = aiResponse === 'YES';
+    
+    logger.info(`Transportation filter check for "${userMessage}": ${aiResponse} (${isTransportationRelated})`);
+    return isTransportationRelated;
+    
+  } catch (error) {
+    logger.error('Transportation filter check failed:', { errorMessage: error.message, query: userMessage });
+    // If filter fails, default to allowing the query to be safe
+    return true;
+  }
+}
+
 async function detectIntentAndExtractEntity(userMessage) {
+  // First, check if the query is transportation/travel-related
+  const isTransportationRelated = await checkIfTransportationRelated(userMessage);
+  if (!isTransportationRelated) {
+    logger.info(`Non-transportation query rejected: "${userMessage}"`);
+    return { intent: 'non_transportation', details: {} };
+  }
+
   const prompt = `
 You are an expert travel assistant AI that functions as an intelligent router. Your primary function is to analyze the user's message, classify it into ONE of the defined intents, and extract all available entities into a single, minified JSON object. Your output must ONLY be this JSON object.
 
