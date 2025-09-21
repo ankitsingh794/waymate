@@ -13,29 +13,47 @@ async function checkIfTransportationRelated(userMessage) {
   const filterPrompt = `
 You are a transportation and travel topic classifier. Your job is to determine if a user's query is related to transportation, travel, or trip planning.
 
-TRANSPORTATION/TRAVEL TOPICS INCLUDE:
-- Trip planning, itineraries, destinations
-- Transportation (flights, trains, buses, cars, boats, etc.)
-- Hotels, accommodations, lodging
-- Tourist attractions, activities, restaurants while traveling
-- Travel advice, visa requirements, weather for travel
-- Local places, "near me" searches when traveling
-- Budget planning for trips
-- Travel safety, packing advice
-- Cultural tips for destinations
+ALWAYS RESPOND "YES" FOR THESE TRANSPORTATION/TRAVEL TOPICS:
+- Trip planning, vacation planning, journey planning
+- ANY mention of destinations, cities, countries to visit
+- Transportation modes (flights, trains, buses, cars, boats, planes, etc.)
+- Hotels, accommodations, lodging, where to stay
+- Tourist attractions, sightseeing, activities while traveling
+- Travel advice, visa requirements, weather for destinations
+- Local places, restaurants, "near me" searches for travelers
+- Budget planning for trips, travel costs
+- Travel safety, packing advice, travel tips
+- Cultural tips for destinations, what to see/do
+- Group travel, solo travel, family trips
+- Adventure travel, leisure travel, business travel
+- Travel dates, itineraries, scheduling trips
 
-NON-TRANSPORTATION TOPICS INCLUDE:
+EXAMPLE "YES" QUERIES:
+- "Plan a trip to Tokyo"
+- "I want to visit Paris next month"
+- "Find hotels in Mumbai"
+- "Best restaurants near the Eiffel Tower"
+- "How much does a 5-day trip to Thailand cost?"
+- "I'm planning a budget trip by train to Vizag with friends"
+
+ONLY RESPOND "NO" FOR CLEARLY NON-TRAVEL TOPICS:
 - Cooking recipes, food preparation at home
-- Technology support, programming help
-- General health advice (not travel-related)
+- Technology support, programming, computer help
+- General health advice (not travel health)
 - Personal relationships, dating advice
-- Home improvement, gardening
-- Academic subjects (math, science, etc.)
-- Entertainment recommendations (unless travel-related)
+- Home improvement, gardening, household tasks
+- Academic subjects (math, science homework)
+- Local entertainment (not travel-related)
 - Shopping for non-travel items
-- Work/career advice (unless travel-related)
+- Work/career advice (not travel jobs)
 
-Respond with ONLY "YES" if the query is transportation/travel-related, or "NO" if it's not.
+EXAMPLE "NO" QUERIES:
+- "Help me bake a cake"
+- "Fix my computer"
+- "Solve this math equation"
+- "Dating advice for relationships"
+
+CRITICAL: If there's ANY doubt, respond "YES". It's better to allow a borderline query than reject a travel query.
 
 User Query: "${userMessage}"
 
