@@ -61,6 +61,16 @@ class TrackingPoint {
 
 // --- Service Class ---
 class TrackingService {
+  /// Confirm that a detected trip is valid and should be kept
+  Future<void> confirmTrip(String tripId) async {
+    await _apiClient.post('tracking/confirm', body: {'tripId': tripId});
+  }
+
+  /// Reject a detected trip (delete it)
+  Future<void> rejectTrip(String tripId) async {
+    await _apiClient.post('tracking/reject', body: {'tripId': tripId});
+  }
+
   final ApiClient _apiClient = ApiClient();
 
   Future<Map<String, dynamic>> startTrip(TrackingPoint startPoint) async {

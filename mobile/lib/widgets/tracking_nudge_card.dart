@@ -93,17 +93,38 @@ class _TrackingNudgeCardState extends State<TrackingNudgeCard> {
                       fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               Text(
-                'We detected a trip by ${event.detectedMode}, but we\'re only ${event.accuracy.toStringAsFixed(0)}% confident.',
+                event.message,
                 textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Can you confirm the transportation mode?',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 16),
-              _buildModeSelectionButtons(event.tripId, event.detectedMode),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton.icon(
+                    icon: Icon(Icons.check, color: Colors.white),
+                    label: Text('Yes, this was a trip'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                    ),
+                    onPressed: () async {
+                      await _trackingManager.userConfirmedTrip(event.tripId);
+                      setState(() => _currentEvent = null);
+                    },
+                  ),
+                  const SizedBox(width: 16),
+                  ElevatedButton.icon(
+                    icon: Icon(Icons.close, color: Colors.white),
+                    label: Text('No, delete this'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                    ),
+                    onPressed: () async {
+                      await _trackingManager.userRejectedTrip(event.tripId);
+                      setState(() => _currentEvent = null);
+                    },
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -143,37 +164,6 @@ class _TrackingNudgeCardState extends State<TrackingNudgeCard> {
     }
 
     return const SizedBox.shrink();
-  }
-
-  Widget _buildModeSelectionButtons(String tripId, String detectedMode) {
-    final modes = ['walking', 'cycling', 'driving', 'public_transport'];
-
-    return Wrap(
-      spacing: 8.0,
-      runSpacing: 8.0,
-      children: modes.map((mode) {
-        final isDetected = mode == detectedMode;
-        return ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: isDetected ? Colors.orange.shade200 : null,
-            foregroundColor: isDetected ? Colors.orange.shade800 : null,
-          ),
-          onPressed: () => _confirmTripMode(tripId, mode),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _getModeIcon(mode),
-              const SizedBox(width: 4),
-              Text(_getModeName(mode)),
-              if (isDetected) ...[
-                const SizedBox(width: 4),
-                const Icon(Icons.psychology, size: 16),
-              ],
-            ],
-          ),
-        );
-      }).toList(),
-    );
   }
 
   void _confirmTripMode(String tripId, String mode) async {

@@ -75,3 +75,126 @@ class Notification {
     );
   }
 }
+
+/// Specific notification models for different notification types
+
+class TripConfirmationNotification {
+  final String tripId;
+  final String message;
+  final Map<String, dynamic>? tripData;
+  final DateTime timestamp;
+
+  TripConfirmationNotification({
+    required this.tripId,
+    required this.message,
+    this.tripData,
+    required this.timestamp,
+  });
+
+  factory TripConfirmationNotification.fromJson(Map<String, dynamic> json) {
+    return TripConfirmationNotification(
+      tripId: json['tripId'] ?? '',
+      message: json['message'] ?? '',
+      tripData: json['tripData'] as Map<String, dynamic>?,
+      timestamp: DateTime.now(),
+    );
+  }
+}
+
+class TravelAlert {
+  final String alertId;
+  final String message;
+  final String type; // weather, delay, traffic, etc.
+  final String? tripId;
+  final String priority; // low, medium, high, critical
+  final Map<String, dynamic>? alertData;
+  final DateTime timestamp;
+
+  TravelAlert({
+    required this.alertId,
+    required this.message,
+    required this.type,
+    this.tripId,
+    required this.priority,
+    this.alertData,
+    required this.timestamp,
+  });
+
+  factory TravelAlert.fromJson(Map<String, dynamic> json) {
+    return TravelAlert(
+      alertId: json['alertId'] ??
+          json['id'] ??
+          DateTime.now().millisecondsSinceEpoch.toString(),
+      message: json['message'] ?? '',
+      type: json['type'] ?? 'general',
+      tripId: json['tripId'],
+      priority: json['priority'] ?? 'medium',
+      alertData: json['data'] as Map<String, dynamic>?,
+      timestamp: DateTime.now(),
+    );
+  }
+}
+
+class TripStatusNotification {
+  final String tripId;
+  final String status; // confirmed, completed, cancelled, etc.
+  final String message;
+  final Map<String, dynamic>? statusData;
+  final DateTime timestamp;
+
+  TripStatusNotification({
+    required this.tripId,
+    required this.status,
+    required this.message,
+    this.statusData,
+    required this.timestamp,
+  });
+
+  factory TripStatusNotification.fromJson(Map<String, dynamic> json) {
+    return TripStatusNotification(
+      tripId: json['tripId'] ?? '',
+      status: json['status'] ?? 'unknown',
+      message: json['message'] ?? '',
+      statusData: json['data'] as Map<String, dynamic>?,
+      timestamp: DateTime.now(),
+    );
+  }
+}
+
+/// Enum for notification types to help with type safety
+enum NotificationType {
+  newMessage,
+  newNotification,
+  tripConfirmed,
+  tripConfirmationRequired,
+  tripCompleted,
+  newTravelAlert,
+  proactiveTravelAlert,
+  statusUpdate,
+  tripCreated,
+}
+
+extension NotificationTypeExtension on NotificationType {
+  String get eventName {
+    switch (this) {
+      case NotificationType.newMessage:
+        return 'newMessage';
+      case NotificationType.newNotification:
+        return 'newNotification';
+      case NotificationType.tripConfirmed:
+        return 'tripConfirmed';
+      case NotificationType.tripConfirmationRequired:
+        return 'tripConfirmationRequired';
+      case NotificationType.tripCompleted:
+        return 'tripCompleted';
+      case NotificationType.newTravelAlert:
+        return 'newTravelAlert';
+      case NotificationType.proactiveTravelAlert:
+        return 'proactiveTravelAlert';
+      case NotificationType.statusUpdate:
+        return 'statusUpdate';
+      case NotificationType.tripCreated:
+        return 'tripCreated';
+    }
+  }
+}

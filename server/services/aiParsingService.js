@@ -4,95 +4,10 @@ const logger = require('../utils/logger');
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const PARSING_MODEL = process.env.PARSING_MODEL || 'mistralai/mistral-small-3.2-24b-instruct:free';
 
-/**
- * Pre-filters queries to check if they are transportation/travel-related
- * @param {string} userMessage - The user's message to check
- * @returns {Promise<boolean>} - True if transportation-related, false otherwise
- */
-async function checkIfTransportationRelated(userMessage) {
-  const filterPrompt = `
-You are a transportation and travel topic classifier. Your job is to determine if a user's query is related to transportation, travel, or trip planning.
 
-ALWAYS RESPOND "YES" FOR THESE TRANSPORTATION/TRAVEL TOPICS:
-- Trip planning, vacation planning, journey planning
-- ANY mention of destinations, cities, countries to visit
-- Transportation modes (flights, trains, buses, cars, boats, planes, etc.)
-- Hotels, accommodations, lodging, where to stay
-- Tourist attractions, sightseeing, activities while traveling
-- Travel advice, visa requirements, weather for destinations
-- Local places, restaurants, "near me" searches for travelers
-- Budget planning for trips, travel costs
-- Travel safety, packing advice, travel tips
-- Cultural tips for destinations, what to see/do
-- Group travel, solo travel, family trips
-- Adventure travel, leisure travel, business travel
-- Travel dates, itineraries, scheduling trips
-
-EXAMPLE "YES" QUERIES:
-- "Plan a trip to Tokyo"
-- "I want to visit Paris next month"
-- "Find hotels in Mumbai"
-- "Best restaurants near the Eiffel Tower"
-- "How much does a 5-day trip to Thailand cost?"
-- "I'm planning a budget trip by train to Vizag with friends"
-
-ONLY RESPOND "NO" FOR CLEARLY NON-TRAVEL TOPICS:
-- Cooking recipes, food preparation at home
-- Technology support, programming, computer help
-- General health advice (not travel health)
-- Personal relationships, dating advice
-- Home improvement, gardening, household tasks
-- Academic subjects (math, science homework)
-- Local entertainment (not travel-related)
-- Shopping for non-travel items
-- Work/career advice (not travel jobs)
-
-EXAMPLE "NO" QUERIES:
-- "Help me bake a cake"
-- "Fix my computer"
-- "Solve this math equation"
-- "Dating advice for relationships"
-
-CRITICAL: If there's ANY doubt, respond "YES". It's better to allow a borderline query than reject a travel query.
-
-User Query: "${userMessage}"
-
-Response:`;
-
-  try {
-    const response = await axios.post(
-      'https://openrouter.ai/api/v1/chat/completions',
-      { 
-        model: PARSING_MODEL, 
-        messages: [{ role: 'user', content: filterPrompt }],
-        max_tokens: 10
-      },
-      { 
-        headers: { Authorization: `Bearer ${OPENROUTER_API_KEY}` }, 
-        timeout: 15000 
-      }
-    );
-    
-    const aiResponse = response.data.choices[0].message.content.trim().toUpperCase();
-    const isTransportationRelated = aiResponse === 'YES';
-    
-    logger.info(`Transportation filter check for "${userMessage}": ${aiResponse} (${isTransportationRelated})`);
-    return isTransportationRelated;
-    
-  } catch (error) {
-    logger.error('Transportation filter check failed:', { errorMessage: error.message, query: userMessage });
-    // If filter fails, default to allowing the query to be safe
-    return true;
-  }
-}
 
 async function detectIntentAndExtractEntity(userMessage) {
-  // First, check if the query is transportation/travel-related
-  const isTransportationRelated = await checkIfTransportationRelated(userMessage);
-  if (!isTransportationRelated) {
-    logger.info(`Non-transportation query rejected: "${userMessage}"`);
-    return { intent: 'non_transportation', details: {} };
-  }
+  // Transportation filtering removed; all queries are processed by main intent/entity extraction
 
   const prompt = `
 You are an expert travel assistant AI that functions as an intelligent router. Your primary function is to analyze the user's message, classify it into ONE of the defined intents, and extract all available entities into a single, minified JSON object. Your output must ONLY be this JSON object.

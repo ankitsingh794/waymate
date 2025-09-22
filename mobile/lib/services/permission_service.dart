@@ -193,6 +193,15 @@ class PermissionService {
     return await Permission.bluetooth.isGranted;
   }
 
+  static Future<bool> hasActivityRecognitionPermission() async {
+    return await Permission.activityRecognition.isGranted;
+  }
+
+  static Future<bool> requestActivityRecognitionPermission() async {
+    final status = await Permission.activityRecognition.request();
+    return status == PermissionStatus.granted;
+  }
+
   static Future<void> openAppSettings() async {
     try {
       debugPrint('🔧 Opening app settings...');

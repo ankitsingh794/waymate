@@ -10,7 +10,7 @@ import React, {
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/axiosInstance';
-import { getSocket, disconnectSocket } from '../utils/socketManager';
+import { getSocket, disconnectSocket, setTokenRefreshCallback, reconnectSocket } from '../utils/socketManager';
 
 const AuthContext = createContext();
 
@@ -59,6 +59,30 @@ export default function AuthProvider({ children }) {
   }, [navigate]);
 
   /**
+   * Refreshes the access token and reconnects the socket
+   */
+  const handleTokenRefresh = useCallback(async () => {
+    try {
+      console.log("Attempting to refresh access token for socket authentication...");
+      const { data } = await api.post('/auth/refresh-token');
+      const newAccessToken = data.data.accessToken;
+      
+      localStorage.setItem('accessToken', newAccessToken);
+      api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
+      
+      // Reconnect socket with new token
+      reconnectSocket(newAccessToken);
+      console.log("Token refreshed and socket reconnected successfully.");
+      
+      return newAccessToken;
+    } catch (error) {
+      console.error("Could not refresh token for socket authentication. Session is invalid.", error);
+      handleLogout();
+      throw error;
+    }
+  }, [handleLogout]);
+
+  /**
    * Schedules a periodic refresh of the access token before it expires.
    */
   const scheduleTokenRefresh = useCallback(() => {
@@ -85,6 +109,11 @@ export default function AuthProvider({ children }) {
 
     tokenRefreshIntervalRef.current = setInterval(refreshToken, REFRESH_INTERVAL);
   }, [connectSocket, handleLogout]);
+
+  // Set up socket token refresh callback
+  useEffect(() => {
+    setTokenRefreshCallback(handleTokenRefresh);
+  }, [handleTokenRefresh]);
 
   /**
    * Logs in the user, sets state, and initializes the session.

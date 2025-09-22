@@ -26,14 +26,16 @@ class _PrivacyConsentScreenState extends State<PrivacyConsentScreen> {
 
   Future<void> _loadUserProfile() async {
     try {
-      setState(() => _isLoading = true);
+      if (mounted) setState(() => _isLoading = true);
       final user = await _userService.getUserProfile();
-      setState(() {
-        _user = user;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _user = user;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to load settings: ${e.toString()}')),
@@ -46,9 +48,11 @@ class _PrivacyConsentScreenState extends State<PrivacyConsentScreen> {
     if (_user == null) return;
 
     // Show pending state
-    setState(() {
-      _pendingUpdates[consentType] = true;
-    });
+    if (mounted) {
+      setState(() {
+        _pendingUpdates[consentType] = true;
+      });
+    }
 
     try {
       final status = isGranted ? 'granted' : 'revoked';
@@ -56,10 +60,12 @@ class _PrivacyConsentScreenState extends State<PrivacyConsentScreen> {
           consentType: consentType, status: status);
 
       // Update local user state
-      setState(() {
-        _user = _user!.copyWithConsent(consentType, status);
-        _pendingUpdates.remove(consentType);
-      });
+      if (mounted) {
+        setState(() {
+          _user = _user!.copyWithConsent(consentType, status);
+          _pendingUpdates.remove(consentType);
+        });
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -71,9 +77,11 @@ class _PrivacyConsentScreenState extends State<PrivacyConsentScreen> {
       }
     } catch (e) {
       // Revert the change and show error
-      setState(() {
-        _pendingUpdates.remove(consentType);
-      });
+      if (mounted) {
+        setState(() {
+          _pendingUpdates.remove(consentType);
+        });
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -6,9 +6,21 @@ import 'package:mobile/services/enhanced_notification_service.dart';
 import 'package:mobile/services/passive_tracking_manager.dart';
 import 'package:mobile/services/sensor_service.dart';
 import 'package:mobile/services/ml_service.dart';
+import 'package:mobile/services/socket_service.dart';
+import 'package:mobile/services/auth_service.dart';
+import 'package:mobile/services/notification_handler.dart';
+
+// --- AUTH ---
+final authServiceProvider = Provider((ref) => AuthService());
+
+// --- SOCKET ---
+final socketServiceProvider = Provider((ref) => SocketService());
+
+// --- NOTIFICATION HANDLER ---
+final notificationHandlerProvider = Provider((ref) => NotificationHandler());
 
 // --- NOTIFICATION ---
-final notificationServiceProvider = Provider((ref) => NotificationService(ref));
+final notificationServiceProvider = Provider((ref) => NotificationService());
 
 // --- ENHANCED NOTIFICATION ---
 final enhancedNotificationServiceProvider =

@@ -128,11 +128,24 @@ class _AiTripCreationScreenState extends State<AiTripCreationScreen> {
   }
 
   void _handleNewMessage(Message message) {
+    debugPrint(
+        "🔥 DEBUG: _handleNewMessage called with message: ${message.text}");
+    debugPrint(
+        "🔥 DEBUG: Message sender: ${message.sender?.id}, Current user: ${_currentUser?.id}");
+    debugPrint(
+        "🔥 DEBUG: Should show message: ${message.sender?.id != _currentUser?.id}");
+
     if (mounted && message.sender?.id != _currentUser?.id) {
+      debugPrint("🔥 DEBUG: Adding message to UI");
       setState(() {
         _messages.insert(0, message);
         _isWaitingForResponse = false;
       });
+      debugPrint(
+          "🔥 DEBUG: Message added successfully. Total messages: ${_messages.length}");
+    } else {
+      debugPrint(
+          "🔥 DEBUG: Message not added - either not mounted or sender is current user");
     }
   }
 

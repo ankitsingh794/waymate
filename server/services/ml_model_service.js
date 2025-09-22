@@ -11,7 +11,7 @@ class MLModelService {
 
     /**
      * Predicts the transportation mode by calling the external ML API.
-     * @param {Object} features - Features like averageSpeed, speedVariance, etc.
+     * @param {Object} features - Aggregated sensor features matching your ML backend format
      * @returns {Promise<Object>} A promise that resolves to a prediction object with `mode` and `accuracy`.
      */
     async predictMode(features) {
@@ -22,7 +22,8 @@ class MLModelService {
         }
 
         const endpoint = `${ML_API_BASE_URL}/predict`;
-        console.log(`Calling external ML API at ${endpoint} with features:`, features);
+        console.log(`Calling external ML API at ${endpoint}`);
+        console.log('Features being sent:', JSON.stringify(features, null, 2));
 
         try {
             const response = await fetch(endpoint, {
@@ -31,8 +32,8 @@ class MLModelService {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${ML_API_KEY}` // Using Bearer token for authentication
                 },
-                body: JSON.stringify({ features }),
-                timeout: 5000 // 5-second timeout
+                body: JSON.stringify(features), // Send features directly in the expected format
+                timeout: 10000 // 10-second timeout for ML processing
             });
 
             if (!response.ok) {
@@ -45,9 +46,9 @@ class MLModelService {
             // Ensure consistent response format: { "mode": "driving", "accuracy": 0.85 }
             // Handle both "accuracy" and "confidence" fields for backward compatibility
             const normalizedResponse = {
-                mode: prediction.mode || 'unknown',
-                accuracy: prediction.accuracy || prediction.confidence || 0.0,
-                confidence: prediction.confidence || prediction.accuracy || 0.0
+                mode: prediction.mode || prediction.predicted_mode || 'unknown',
+                accuracy: prediction.accuracy || prediction.confidence || prediction.probability || 0.0,
+                confidence: prediction.confidence || prediction.accuracy || prediction.probability || 0.0
             };
 
             console.log(`ML API response: mode=${normalizedResponse.mode}, accuracy=${normalizedResponse.accuracy}`);

@@ -62,3 +62,5 @@ class TripConfirmed extends TrackingEvent {
     required this.message,
   });
 }
+
+// Note: Using existing TripConfirmationRequired for post-trip confirmations
