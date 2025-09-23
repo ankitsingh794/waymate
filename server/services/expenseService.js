@@ -21,9 +21,15 @@ const calculateAndCacheSettlements = async (tripId) => {
 
         const expenses = await Expense.find({ tripId }).populate('paidBy', 'name');
         
-        const userMap = new Map(trip.group.members.map(m => [m.userId._id.toString(), m.userId]));
-        const balances = new Map();
-        trip.group.members.forEach(member => balances.set(member.userId._id.toString(), 0));
+                const userMap = new Map(
+                    trip.group.members
+                        .filter(m => m.userId)
+                        .map(m => [m.userId._id.toString(), m.userId])
+                );
+                const balances = new Map();
+                trip.group.members
+                    .filter(member => member.userId)
+                    .forEach(member => balances.set(member.userId._id.toString(), 0));
 
         expenses.forEach(expense => {
             const paidByStr = expense.paidBy._id.toString();
