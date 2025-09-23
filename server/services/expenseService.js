@@ -32,11 +32,15 @@ const calculateAndCacheSettlements = async (tripId) => {
                     .forEach(member => balances.set(member.userId._id.toString(), 0));
 
         expenses.forEach(expense => {
-            const paidByStr = expense.paidBy._id.toString();
-            balances.set(paidByStr, (balances.get(paidByStr) || 0) + expense.amount);
+            if (expense.paidBy && expense.paidBy._id) {
+                const paidByStr = expense.paidBy._id.toString();
+                balances.set(paidByStr, (balances.get(paidByStr) || 0) + expense.amount);
+            }
             expense.participants.forEach(p => {
-                const participantIdStr = p.userId.toString();
-                balances.set(participantIdStr, (balances.get(participantIdStr) || 0) - p.share);
+                if (p.userId) {
+                    const participantIdStr = p.userId.toString();
+                    balances.set(participantIdStr, (balances.get(participantIdStr) || 0) - p.share);
+                }
             });
         });
 

@@ -1,3 +1,9 @@
+// Stub for push notification support (implement with FCM, APNS, etc. if needed)
+function sendPushNotification(userId, title, body, data) {
+    logger.info(`(Stub) Would send push notification to user ${userId}: ${title} - ${body}`);
+    // Integrate with FCM/APNS here if needed
+}
+
 
 const mongoose = require('mongoose');
 const Notification = require('../models/Notification');
@@ -239,9 +245,10 @@ module.exports = {
   sendSystemMessageToTrip,
   sendStatusUpdate,
   emitToUser,
-  broadcastToTrip,
-  // Enhanced notification functions
-  sendTripConfirmationRequest,
-  sendTripCompletedNotification,
-  sendPermissionErrorNotification,
+    broadcastToTrip,
+    // Enhanced notification functions
+    sendTripConfirmationRequest,
+    sendTripCompletedNotification,
+    sendPermissionErrorNotification,
+    sendPushNotification,
 };
