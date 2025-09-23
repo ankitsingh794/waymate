@@ -32,12 +32,16 @@ const calculateAndCacheSettlements = async (tripId) => {
                     .forEach(member => balances.set(member.userId._id.toString(), 0));
 
         expenses.forEach(expense => {
-            if (expense.paidBy && expense.paidBy._id) {
+            if (!expense.paidBy || !expense.paidBy._id) {
+                logger.error(`Expense paidBy is null or missing _id. Expense: ${JSON.stringify(expense)}`);
+            } else {
                 const paidByStr = expense.paidBy._id.toString();
                 balances.set(paidByStr, (balances.get(paidByStr) || 0) + expense.amount);
             }
             expense.participants.forEach(p => {
-                if (p.userId) {
+                if (!p.userId) {
+                    logger.error(`Expense participant userId is null. Expense: ${JSON.stringify(expense)}, Participant: ${JSON.stringify(p)}`);
+                } else {
                     const participantIdStr = p.userId.toString();
                     balances.set(participantIdStr, (balances.get(participantIdStr) || 0) - p.share);
                 }
