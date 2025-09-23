@@ -20,7 +20,7 @@ async function findPlaces(query, location, userCoords) {
     let cacheKey = `v4-justified:${normalizedLocation}:${normalizedQuery}`;
     if (userCoords?.lat && userCoords?.lon) {
         const latKey = userCoords.lat.toFixed(3);
-        const lonKey = user.lon.toFixed(3);
+        const lonKey = userCoords.lon.toFixed(3);
         cacheKey = `v4-justified:geo-${latKey},${lonKey}:${normalizedQuery}`;
     }
 
