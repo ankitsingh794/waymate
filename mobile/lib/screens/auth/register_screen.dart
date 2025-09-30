@@ -22,11 +22,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isPasswordVisible = false;
 
   void _handleRegister() async {
-    if (_nameController.text.isEmpty ||
-        _emailController.text.isEmpty ||
-        _passwordController.text.isEmpty) {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (name.isEmpty || email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all fields')),
+      );
+      return;
+    }
+
+    final passwordRegExp =
+        RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$');
+    if (!passwordRegExp.hasMatch(password)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a number, and a special character.',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.redAccent,
+          duration: Duration(seconds: 5),
+        ),
       );
       return;
     }
@@ -34,9 +52,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _isLoading = true);
 
     final result = await _authService.register(
-      name: _nameController.text.trim(),
-      email: _emailController.text.trim(),
-      password: _passwordController.text.trim(),
+      name: name,
+      email: email,
+      password: password,
       role: _selectedRole,
     );
 
@@ -47,10 +65,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (result['success']) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
+            // --- UPDATED: Email delay text added ---
             content: Text(
-                'Registration successful! Please check your email to verify your account, then login.')),
+                'Registration successful! Please check your email to verify your account. Note: The email may take a few minutes to arrive and could be in your spam folder. After verifying, you can log in.')),
       );
-      // Navigate to login screen instead of email verification
       context.go('/login');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(

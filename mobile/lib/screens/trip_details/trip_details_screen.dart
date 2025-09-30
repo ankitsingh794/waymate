@@ -8,23 +8,21 @@ import 'package:mobile/models/trip_models.dart';
 import 'package:mobile/models/user_model.dart'; // Keep this without prefix
 import 'package:mobile/screens/chat/group_chat_screen.dart';
 import 'package:mobile/screens/trip_details/itinerary_tab.dart';
-import 'package:mobile/utils/logger.dart';
 import 'package:mobile/screens/trip_details/manage_members_screen.dart';
 import 'package:mobile/screens/trip_details/edit_trip_screen.dart';
 import 'package:mobile/services/chat_service.dart';
 import 'package:mobile/services/expense_service.dart';
 import 'package:mobile/services/trip_service.dart';
 import 'package:mobile/services/user_service.dart';
-import 'package:mobile/services/socket_service.dart';
 import 'package:mobile/widgets/expense_summary_card.dart';
 import 'package:mobile/screens/expenses/expense_management_screen.dart';
 import 'package:mobile/widgets/place_card.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:mobile/screens/trip_details/trip_offline_map_screen.dart';
 
 class TripDetailsScreen extends StatefulWidget {
   final String tripId;
-
-  const TripDetailsScreen({super.key, required this.tripId});
+  const TripDetailsScreen({Key? key, required this.tripId}) : super(key: key);
 
   @override
   State<TripDetailsScreen> createState() => _TripDetailsScreenState();
@@ -33,63 +31,36 @@ class TripDetailsScreen extends StatefulWidget {
 class _TripDetailsScreenState extends State<TripDetailsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final TripService _tripService = TripService();
-  final ExpenseService _expenseService = ExpenseService();
-  final ChatService _chatService = ChatService();
-  final UserService _userService =
-      UserService(); // --- NEW: Instantiate UserService ---
-  bool _isNavigatingToChat = false;
-
   late Future<Trip> _tripDetailsFuture;
-  late Future<expense_models.TripExpenseBundle> _expenseFuture; // Use prefix
-  late Future<User> _userFuture; // --- NEW: Future to get the current user ---
-
-  final Map<String, IconData> _weatherIcons = {
-    'sunny': Icons.wb_sunny_outlined,
-    'clear': Icons.nightlight_round_outlined,
-    'partly cloudy': Icons.cloud_outlined,
-    'cloudy': Icons.cloud,
-    'rain': Icons.grain,
-    'showers': Icons.shower,
-    'thunderstorm': Icons.thunderstorm_outlined,
-    'snow': Icons.ac_unit,
-    'mist': Icons.blur_on,
-    'default': Icons.thermostat,
-  };
-
-  final SocketService _socketService = SocketService();
+  late Future<User> _userFuture;
+  late Future<expense_models.TripExpenseBundle> _expenseFuture;
+  late TripService _tripService;
+  late UserService _userService;
+  late ExpenseService _expenseService;
+  late ChatService _chatService;
   StreamSubscription? _alertSubscription;
+  bool _isNavigatingToChat = false;
+  final Map<String, IconData> _weatherIcons = {
+    'clear': Icons.wb_sunny,
+    'clouds': Icons.cloud,
+    'rain': Icons.beach_access,
+    'snow': Icons.ac_unit,
+    'thunderstorm': Icons.flash_on,
+    'drizzle': Icons.grain,
+    'default': Icons.wb_cloudy,
+  };
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this, initialIndex: 0);
-    _loadTripData();
-    _userFuture = _userService.getUserProfile(); // --- NEW: Fetch the user ---
-
-    _alertSubscription = _socketService.onNewTravelAlert.listen((alertData) {
-      if (mounted && alertData['tripId'] == widget.tripId) {
-        debugPrint("Alert received for current trip. Reloading data...");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(alertData['message'] ?? 'New travel alert received!'),
-            backgroundColor: Colors.orange.shade800,
-          ),
-        );
-        _reloadData();
-      }
-    });
-  }
-
-  void _loadTripData() {
+    _tripService = TripService();
+    _userService = UserService();
+    _expenseService = ExpenseService();
+    _chatService = ChatService();
     _tripDetailsFuture = _tripService.getTripById(widget.tripId);
+    _userFuture = _userService.getUserProfile();
     _expenseFuture = _expenseService.getExpensesForTrip(widget.tripId);
-  }
-
-  void _reloadData() {
-    setState(() {
-      _loadTripData();
-    });
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -99,23 +70,21 @@ class _TripDetailsScreenState extends State<TripDetailsScreen>
     super.dispose();
   }
 
+  void _reloadData() {
+    setState(() {
+      _tripDetailsFuture = _tripService.getTripById(widget.tripId);
+      _expenseFuture = _expenseService.getExpensesForTrip(widget.tripId);
+    });
+  }
+
   Future<void> _toggleFavorite(Trip trip) async {
     try {
       final isNowFavorite = await _tripService.toggleFavoriteStatus(trip.id);
-
-      // Check if widget is still mounted before updating state or using context
-      if (!mounted) {
-        logger.d(
-            "_toggleFavorite: Widget is no longer mounted, skipping UI updates");
-        return;
-      }
-
+      if (!mounted) return;
       setState(() {
-        // Optimistically update the UI
         _tripDetailsFuture =
             Future.value(trip.copyWith(favorite: isNowFavorite));
       });
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             content: Text(isNowFavorite
@@ -123,7 +92,6 @@ class _TripDetailsScreenState extends State<TripDetailsScreen>
                 : 'Removed from favorites.')),
       );
     } catch (e) {
-      // Only show error if widget is still mounted
       if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Error: $e')));
@@ -131,7 +99,6 @@ class _TripDetailsScreenState extends State<TripDetailsScreen>
     }
   }
 
-  // --- NEW: Method to launch PDF download URL ---
   Future<void> _downloadPdf(Trip trip) async {
     final url = Uri.parse(_tripService.getTripPdfDownloadUrl(trip.id));
     if (!await launchUrl(url)) {
@@ -141,7 +108,6 @@ class _TripDetailsScreenState extends State<TripDetailsScreen>
     }
   }
 
-  // --- NEW: Method to update trip status ---
   Future<void> _updateStatus(Trip trip, String status) async {
     try {
       final updatedTrip = await _tripService.updateTripStatus(trip.id, status);
@@ -157,7 +123,6 @@ class _TripDetailsScreenState extends State<TripDetailsScreen>
     }
   }
 
-  // --- NEW: Confirmation dialog for canceling a trip ---
   void _showCancelConfirmation(Trip trip) {
     showDialog(
       context: context,
@@ -188,7 +153,6 @@ class _TripDetailsScreenState extends State<TripDetailsScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Trip deleted successfully.')));
-        // Pop back to the previous screen since this one no longer exists
         Navigator.of(context).pop();
       }
     } catch (e) {
@@ -199,7 +163,6 @@ class _TripDetailsScreenState extends State<TripDetailsScreen>
     }
   }
 
-  // --- NEW: Confirmation dialog for deleting a trip ---
   void _showDeleteConfirmation(Trip trip) {
     showDialog(
       context: context,
@@ -235,19 +198,21 @@ class _TripDetailsScreenState extends State<TripDetailsScreen>
         }
         if (snapshot.hasError) {
           return Scaffold(
-              body: Center(child: Text('Error: ${snapshot.error}')));
+              body: Center(child: Text('Error: [${snapshot.error}')));
         }
         if (!snapshot.hasData) {
           return const Scaffold(body: Center(child: Text('Trip not found.')));
         }
-
         final Trip trip = snapshot.data![0];
         final User currentUser = snapshot.data![1];
-
         return _buildContent(trip, currentUser);
       },
     );
   }
+
+  // All helper widgets and methods from below go here:
+
+// End of _TripDetailsScreenState
 
   Widget _buildContent(Trip trip, User currentUser) {
     final member = trip.group?.members.firstWhere(
@@ -370,6 +335,59 @@ class _TripDetailsScreenState extends State<TripDetailsScreen>
                     _navigateToExpenseManagement(trip);
                   } else if (value == 'Download PDF') {
                     _downloadPdf(trip);
+                  } else if (value == 'Download Offline Map') {
+                    if (trip.destinationCoordinates != null) {
+                      // Collect all places with coordinates
+                      final List<PlaceMarker> places = [];
+                      for (final a in trip.attractions) {
+                        if (a.coords != null) {
+                          places.add(PlaceMarker(
+                            latitude: a.coords!.lat,
+                            longitude: a.coords!.lon,
+                            name: a.name,
+                            type: 'attraction',
+                          ));
+                        }
+                      }
+                      for (final f in trip.foodRecommendations) {
+                        if (f.coords != null) {
+                          places.add(PlaceMarker(
+                            latitude: f.coords!.lat,
+                            longitude: f.coords!.lon,
+                            name: f.name,
+                            type: 'food',
+                          ));
+                        }
+                      }
+                      for (final acc in trip.accommodationSuggestions) {
+                        if (acc.coords != null) {
+                          places.add(PlaceMarker(
+                            latitude: acc.coords!.lat,
+                            longitude: acc.coords!.lon,
+                            name: acc.name,
+                            type: 'accommodation',
+                          ));
+                        }
+                      }
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => TripOfflineMapScreen(
+                            latitude: trip.destinationCoordinates!.lat,
+                            longitude: trip.destinationCoordinates!.lon,
+                            tripName: trip.destination,
+                            // mapboxAccessToken will be provided via app config
+                            places: places,
+                          ),
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text(
+                                'No destination coordinates for this trip.')),
+                      );
+                    }
                   } else if (value == 'Cancel Trip') {
                     _showCancelConfirmation(trip);
                   } else if (value == 'Delete Trip') {
@@ -377,7 +395,6 @@ class _TripDetailsScreenState extends State<TripDetailsScreen>
                   }
                 },
                 itemBuilder: (context) => [
-                  // --- UPDATED: Conditionally show edit/delete options ---
                   if (canEdit)
                     const PopupMenuItem<String>(
                         value: 'Edit Trip', child: Text('Edit Trip Details')),
@@ -389,6 +406,9 @@ class _TripDetailsScreenState extends State<TripDetailsScreen>
                   const PopupMenuItem<String>(
                       value: 'Download PDF',
                       child: Text('Download Itinerary (PDF)')),
+                  const PopupMenuItem<String>(
+                      value: 'Download Offline Map',
+                      child: Text('Download Offline Map')),
                   if (canEdit)
                     const PopupMenuItem<String>(
                         value: 'Cancel Trip', child: Text('Cancel Trip')),

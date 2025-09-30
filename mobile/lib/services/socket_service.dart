@@ -99,13 +99,15 @@ class SocketService {
     _connectionController.add(false); // Notify listeners we are connecting
 
     final token = await _authService.getAccessToken();
+    logger.i(
+        "[SOCKET] Using access token for connection: ${token != null ? token.substring(0, 16) : 'null'}...");
     if (token == null) {
       logger.e("FATAL: No auth token found. Cannot connect.");
       _isConnecting = false;
       _connectionController.add(false);
       return;
     }
-    logger.d("Auth token found.");
+    logger.d("Auth token found and will be used for socket connection.");
 
     try {
       // Cancel any existing reconnection timer
@@ -227,10 +229,18 @@ class SocketService {
     _socket!.on('newMessage', (data) {
       try {
         logger.i("🔥 DEBUG: Received 'newMessage' event with data: $data");
-        final message = Message.fromJson(data);
-        logger.i("🔥 DEBUG: Successfully parsed message: ${message.text}");
-        _messageController.add(message);
-        logger.i("🔥 DEBUG: Message added to controller stream");
+        if (data is Map<String, dynamic>) {
+          final message = Message.fromJson(data);
+          logger.i("🔥 DEBUG: Successfully parsed message: ${message.text}");
+          _messageController.add(message);
+          logger.i("🔥 DEBUG: Message added to controller stream");
+        } else if (data is String) {
+          logger.w(
+              "⚠️ Received newMessage as String, skipping Message parsing. Data: $data");
+        } else {
+          logger.e(
+              "❌ Received newMessage of unexpected type: ${data.runtimeType}. Data: $data");
+        }
       } catch (e, s) {
         logger.e("❌ Error parsing 'newMessage'", error: e, stackTrace: s);
       }

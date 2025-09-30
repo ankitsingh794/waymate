@@ -189,6 +189,10 @@ function processPlaces(response, placeType) {
       rating: p.rating || 0,
       image: getGooglePhotoUrl(p.photos?.[0]?.photo_reference),
       vicinity: p.vicinity,
+      coords: p.geometry && p.geometry.location ? {
+        lat: p.geometry.location.lat,
+        lon: p.geometry.location.lng
+      } : undefined,
     })).slice(0, placeType === 'lodging' ? 5 : 10);
   }
   logger.warn(`No results or failed response for place type: ${placeType}`);

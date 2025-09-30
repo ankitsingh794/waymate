@@ -26,7 +26,11 @@ const placeSchema = new mongoose.Schema({
   image: { type: String },
   website: { type: String },
   vicinity: { type: String },
-  photo_reference: { type: String }
+  photo_reference: { type: String },
+  coordinates: {
+    lat: { type: Number },
+    lon: { type: Number }
+  }
 }, { _id: false });
 
 // Sub-schema for richer weather data

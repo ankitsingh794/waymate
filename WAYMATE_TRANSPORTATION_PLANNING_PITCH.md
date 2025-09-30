@@ -779,14 +779,14 @@ Raw Trip Data → Privacy Filter → Quality Control → Research Database → N
 ```
 App Install → Welcome → Permissions → Tutorial → Background Setup → Ready
      ↓          ↓          ↓           ↓           ↓               ↓
-┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────────┐ ┌─────────┐
-│ Store   │ │ Intro   │ │ Privacy │ │ Demo    │ │ Service     │ │ Auto    │
-│ Install │►│ Screens │►│ Consent │►│ Trip    │►│ Start       │►│ Detect  │
-│         │ │         │ │         │ │         │ │             │ │         │
-│• Download│ │• Purpose│ │• Location│ │• Sample │ │• Background │ │• Real   │
-│• Open   │ │• Benefits│ │• Motion │ │• Review │ │• Sensor Init│ │• Trips  │
-│• Accept │ │• Privacy│ │• Research│ │• Features│ │• ML Load    │ │• Track  │
-└─────────┘ └─────────┘ └─────────┘ └─────────┘ └─────────────┘ └─────────┘
+┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌─────────────┐ ┌─────────┐
+│ Store    │ │ Intro    │ │ Privacy  │ │ Demo     │ │ Service     │ │ Auto    │
+│ Install  │►│ Screens  │►│ Consent  │►│ Trip     │►│ Start       │►│ Detect  │
+│          │ │          │ │          │ │          │ │             │ │         │
+│• Download│ │• Purpose │ │• Location│ │• Sample  │ │• Background │ │• Real   │
+│• Open    │ │• Benefits│ │• Motion  │ │• Review  │ │• Sensor Init│ │• Trips  │
+│• Accept  │ │• Privacy │ │• Research│ │• Features│ │• ML Load    │ │• Track  │
+└──────────┘ └──────────┘ └──────────┘ └──────────┘ └─────────────┘ └─────────┘
 ```
 
 #### **2. Daily Usage Workflow**

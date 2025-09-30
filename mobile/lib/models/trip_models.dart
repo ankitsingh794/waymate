@@ -303,18 +303,24 @@ class Recommendation {
   final double rating;
   final String? image;
   final String vicinity;
+  final Coordinates? coords;
 
-  Recommendation(
-      {this.name = '', this.rating = 0.0, this.image, this.vicinity = ''});
+  Recommendation({
+    this.name = '',
+    this.rating = 0.0,
+    this.image,
+    this.vicinity = '',
+    this.coords,
+  });
 
   factory Recommendation.fromJson(Map<String, dynamic> json) {
     return Recommendation(
-      name: json['name'] ?? '', // FIX: Added null safety
-      rating: json['rating'] != null
-          ? (json['rating'] as num).toDouble()
-          : 0.0, // FIX: Added null safety
+      name: json['name'] ?? '',
+      rating: json['rating'] != null ? (json['rating'] as num).toDouble() : 0.0,
       image: json['image'],
-      vicinity: json['vicinity'] ?? '', // FIX: Added null safety
+      vicinity: json['vicinity'] ?? '',
+      coords:
+          json['coords'] != null ? Coordinates.fromJson(json['coords']) : null,
     );
   }
 }

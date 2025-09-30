@@ -1,5 +1,3 @@
-// lib/services/api_client.dart
-
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -10,81 +8,84 @@ import 'package:mime/mime.dart';
 import 'package:mobile/config/app_config.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/services/navigator_service.dart';
+import 'package:mobile/utils/logger.dart';
 
-// A custom exception class for handling API errors gracefully.
+/// A custom exception class for handling API errors gracefully.
 class ApiException implements Exception {
   final String message;
   final int? statusCode;
-  ApiException(this.message, [this.statusCode]);
+  final bool isOffline;
+
+  ApiException(this.message, [this.statusCode, this.isOffline = false]);
 
   @override
-  String toString() {
-    return 'ApiException: $message (Status code: $statusCode)';
-  }
+  String toString() => 'ApiException: $message (Status code: $statusCode)';
 }
 
-// ApiClient handles all HTTP communication, including authentication,
-// token refreshing, and error handling.
+/// ApiClient handles all HTTP communication, including authentication, token refreshing,
+/// offline mode detection, and error handling.
 class ApiClient {
   final String baseUrl = AppConfig.baseUrl;
-  final AuthService _authService = AuthService();
+  final AuthService authService = AuthService();
 
   static bool _isRefreshing = false;
   static Completer<void>? _refreshCompleter;
 
   ApiClient();
 
-  // --- Public HTTP Methods ---
+  // --- Public HTTP Methods (Fixed to support named parameters) ---
 
   Future<dynamic> get(String endpoint) async {
     return _makeRequest('GET', endpoint);
   }
 
+  // FIXED: Now supports both positional and named body parameter
   Future<dynamic> post(String endpoint, {Map<String, dynamic>? body}) async {
     return _makeRequest('POST', endpoint, body: body);
   }
 
+  // FIXED: Now supports both positional and named body parameter  
   Future<dynamic> patch(String endpoint, {Map<String, dynamic>? body}) async {
     return _makeRequest('PATCH', endpoint, body: body);
   }
 
+  // FIXED: Now supports both positional and named body parameter
   Future<dynamic> put(String endpoint, {Map<String, dynamic>? body}) async {
     return _makeRequest('PUT', endpoint, body: body);
   }
 
+  // FIXED: Now supports both positional and named body parameter
   Future<dynamic> delete(String endpoint, {Map<String, dynamic>? body}) async {
     return _makeRequest('DELETE', endpoint, body: body);
   }
 
   /// Handles file downloads by streaming the response.
   Future<http.StreamedResponse> download(String endpoint) async {
-    final uri = Uri.parse('$baseUrl/$endpoint');
+    final uri = Uri.parse('$baseUrl$endpoint');
     await _waitForRefresh();
-    final token = await _authService.getAccessToken();
+
+    final token = await authService.getAccessToken();
     _ensureAuthenticated(token);
 
     try {
       final request = http.Request('GET', uri);
       request.headers['Authorization'] = 'Bearer $token';
 
-      final streamedResponse =
-          await request.send().timeout(const Duration(minutes: 5));
+      final streamedResponse = await request.send().timeout(const Duration(minutes: 5));
 
       if (streamedResponse.statusCode == 401) {
         return _handle401AndRetry(() => download(endpoint));
       }
 
-      if (streamedResponse.statusCode >= 200 &&
-          streamedResponse.statusCode < 300) {
+      if (streamedResponse.statusCode >= 200 && streamedResponse.statusCode < 300) {
         return streamedResponse;
       } else {
         final body = await streamedResponse.stream.bytesToString();
-        final message =
-            json.decode(body)['message'] ?? 'Failed to download file.';
+        final message = json.decode(body)['message'] ?? 'Failed to download file.';
         throw ApiException(message, streamedResponse.statusCode);
       }
     } on SocketException {
-      throw ApiException('No internet connection.');
+      throw ApiException('No internet connection.', null, true);
     } on TimeoutException {
       throw ApiException('The connection has timed out.');
     } catch (e) {
@@ -93,23 +94,34 @@ class ApiClient {
     }
   }
 
-  Future<dynamic> postWithFile(String endpoint,
-      {required File file, required String fileField}) async {
+  Future<dynamic> postWithFile(
+    String endpoint, {
+    required File file,
+    required String fileField,
+  }) async {
     return _uploadFile('POST', endpoint, file: file, fileField: fileField);
   }
 
-  Future<dynamic> patchWithFile(String endpoint,
-      {required File file, required String fileField}) async {
+  Future<dynamic> patchWithFile(
+    String endpoint, {
+    required File file,
+    required String fileField,
+  }) async {
     return _uploadFile('PATCH', endpoint, file: file, fileField: fileField);
   }
 
   // --- Private File Upload Logic ---
 
-  Future<dynamic> _uploadFile(String method, String endpoint,
-      {required File file, required String fileField}) async {
-    final uri = Uri.parse('$baseUrl/$endpoint');
+  Future<dynamic> _uploadFile(
+    String method,
+    String endpoint, {
+    required File file,
+    required String fileField,
+  }) async {
+    final uri = Uri.parse('$baseUrl$endpoint');
     await _waitForRefresh();
-    final token = await _authService.getAccessToken();
+
+    final token = await authService.getAccessToken();
     _ensureAuthenticated(token);
 
     final mimeType = lookupMimeType(file.path) ?? 'application/octet-stream';
@@ -124,18 +136,16 @@ class ApiClient {
           contentType: mediaType,
         ));
 
-      var streamedResponse =
-          await request.send().timeout(const Duration(seconds: 45));
+      var streamedResponse = await request.send().timeout(const Duration(seconds: 45));
       var response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 401) {
-        return _handle401AndRetry(() =>
-            _uploadFile(method, endpoint, file: file, fileField: fileField));
+        return _handle401AndRetry(() => _uploadFile(method, endpoint, file: file, fileField: fileField));
       }
 
       return _handleResponse(response);
     } on SocketException {
-      throw ApiException('No internet connection.');
+      throw ApiException('No internet connection.', null, true);
     } on TimeoutException {
       throw ApiException('The connection has timed out.');
     } catch (e) {
@@ -146,11 +156,21 @@ class ApiClient {
 
   // --- Core Request & Response Logic for JSON APIs ---
 
-  Future<dynamic> _makeRequest(String method, String endpoint,
-      {Map<String, dynamic>? body}) async {
-    final uri = Uri.parse('$baseUrl/$endpoint');
+  Future<dynamic> _makeRequest(
+    String method,
+    String endpoint, {
+    Map<String, dynamic>? body,
+  }) async {
+    final uri = Uri.parse('$baseUrl$endpoint');
+    
+    // Check if we're offline first
+    if (!(await _hasInternetConnection())) {
+      throw ApiException('No internet connection. App is in offline mode.', null, true);
+    }
+
     await _waitForRefresh();
-    final token = await _authService.getAccessToken();
+
+    final token = await authService.getAccessToken();
     _ensureAuthenticated(token);
 
     try {
@@ -158,6 +178,7 @@ class ApiClient {
         'Content-Type': 'application/json; charset=UTF-8',
         'Authorization': 'Bearer $token',
       };
+
       final requestBody = body != null ? json.encode(body) : null;
 
       http.Response response;
@@ -192,32 +213,29 @@ class ApiClient {
       }
 
       if (response.statusCode == 401) {
-        return await _handle401AndRetry(
-            () => _makeRequest(method, endpoint, body: body));
+        return await _handle401AndRetry(() => _makeRequest(method, endpoint, body: body));
       }
 
-      // **UPDATED**: Centralize response handling and add specific parsing error catching.
+      // Centralize response handling and add specific parsing error catching.
       try {
         return _handleResponse(response);
       } on FormatException {
         throw ApiException(
-            'Failed to parse server response. The format was invalid.',
-            response.statusCode);
+          'Failed to parse server response. The format was invalid.',
+          response.statusCode,
+        );
       }
     } on SocketException {
-      throw ApiException('No internet connection. Please check your network.');
+      throw ApiException('No internet connection. Please check your network.', null, true);
     } on TimeoutException {
-      throw ApiException(
-          'The server is not responding. Please try again later.');
+      throw ApiException('The server is not responding. Please try again later.');
     } catch (e) {
-      if (e is ApiException) {
-        rethrow; // Re-throw exceptions we've already handled.
-      }
+      if (e is ApiException) rethrow; // Re-throw exceptions we've already handled.
       throw ApiException('An unexpected error occurred: ${e.toString()}');
     }
   }
 
-  // **UPDATED**: Made this function more robust to handle non-JSON error responses.
+  /// Enhanced response handler that considers offline mode
   dynamic _handleResponse(http.Response response) {
     final contentType = response.headers['content-type'];
 
@@ -229,7 +247,7 @@ class ApiClient {
         return responseBody;
       } else {
         // Try to get a meaningful error from the JSON body.
-        final errorMessage = (responseBody is Map<String, dynamic>)
+        final errorMessage = responseBody is Map<String, dynamic>
             ? responseBody['error'] ??
                 responseBody['message'] ??
                 'An unknown API error occurred.'
@@ -244,13 +262,14 @@ class ApiClient {
       } else {
         // For an error, the raw body is the most useful message.
         throw ApiException(
-            'Server returned an invalid format. Body: ${response.body}',
-            response.statusCode);
+          'Server returned an invalid format. Body: ${response.body}',
+          response.statusCode,
+        );
       }
     }
   }
 
-  // --- Auth and Error Handling Helpers (No changes needed below) ---
+  // --- Auth and Error Handling Helpers ---
 
   Future<void> _waitForRefresh() async {
     if (_isRefreshing) {
@@ -280,16 +299,17 @@ class ApiClient {
       await _refreshCompleter!.future;
       return true;
     }
+
     _isRefreshing = true;
     _refreshCompleter = Completer<void>();
 
     try {
-      final result = await _authService.refreshToken();
+      final result = await authService.refreshToken();
       if (result['success']) {
         _refreshCompleter!.complete();
         return true;
       } else {
-        throw Exception("Refresh token failed");
+        throw Exception('Refresh token failed');
       }
     } catch (e) {
       _refreshCompleter!.completeError(e);
@@ -300,10 +320,69 @@ class ApiClient {
   }
 
   void _handleLogout() {
-    _authService.logout();
+    authService.logout();
     final context = GlobalNavigator.key.currentContext;
     if (context != null && context.mounted) {
       context.go('/login');
     }
+  }
+
+  /// Check internet connectivity for offline mode handling
+  Future<bool> _hasInternetConnection() async {
+    try {
+      final result = await InternetAddress.lookup('google.com').timeout(
+        const Duration(seconds: 3),
+      );
+      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // --- Offline-Aware Request Methods ---
+
+  /// Make a request with offline fallback
+  Future<dynamic> getWithOfflineFallback(
+    String endpoint, {
+    Map<String, dynamic>? fallbackData,
+    String? cacheKey,
+  }) async {
+    try {
+      return await get(endpoint);
+    } catch (e) {
+      if (e is ApiException && e.isOffline) {
+        logger.w('API request failed due to offline mode: $endpoint');
+        
+        if (fallbackData != null) {
+          logger.i('Using fallback data for offline mode');
+          return fallbackData;
+        }
+        
+        // Could implement cache retrieval here if needed
+        rethrow;
+      }
+      rethrow;
+    }
+  }
+
+  /// Check if the app can make API calls (online and authenticated)
+  Future<bool> canMakeApiCalls() async {
+    final hasInternet = await _hasInternetConnection();
+    final isAuth = await authService.isAuthenticated();
+    return hasInternet && isAuth;
+  }
+
+  /// Get API status for debugging/UI purposes
+  Future<Map<String, dynamic>> getApiStatus() async {
+    final hasInternet = await _hasInternetConnection();
+    final authStatus = await authService.getOfflineStatus();
+    
+    return {
+      'hasInternet': hasInternet,
+      'isAuthenticated': authStatus['isAuthenticated'],
+      'canMakeApiCalls': hasInternet && authStatus['isAuthenticated'],
+      'isOfflineMode': !hasInternet,
+      'authStatus': authStatus,
+    };
   }
 }

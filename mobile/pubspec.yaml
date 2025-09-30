@@ -73,6 +73,8 @@ dependencies:
   flutter_bluetooth_serial: ^0.4.0
   network_info_plus: ^7.0.0
   open_file: ^3.3.2
+  mapbox_maps_flutter: ^2.11.0
+  jwt_decode: ^0.3.1
 
 dev_dependencies:
   flutter_test:

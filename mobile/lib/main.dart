@@ -6,6 +6,10 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_styled_toast/flutter_styled_toast.dart';
+import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
+
+// Import your app configuration
+import 'package:mobile/config/app_config.dart'; 
 
 import 'package:mobile/screens/auth/forgot_password_screen.dart';
 import 'package:mobile/screens/auth/login_screen.dart';
@@ -72,6 +76,9 @@ final GoRouter _router = GoRouter(
 // --- APP INITIALIZATION ---
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // FIX: Set Mapbox access token using the value from your AppConfig
+  MapboxOptions.setAccessToken(AppConfig.mapboxAccessToken);
 
   try {
     await Firebase.initializeApp();
@@ -168,3 +175,4 @@ class MyApp extends ConsumerWidget {
     );
   }
 }
+
