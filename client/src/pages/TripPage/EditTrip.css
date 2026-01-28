@@ -1,238 +1,379 @@
-:root {
-    --primary-color: #edafb8;
-    --secondary-color: #f7e1d7;
-    --accent-color: #b0c4b1;
-    --text-color: #4a5759;
-    --background-color: #dedbd2;
-    --card-bg-color: #fcfaf9;
-    --border-color: #e0e0e0;
-}
+/* ============================================
+   EDIT TRIP PAGE
+   ============================================ */
 
 .edit-trip-page {
-    min-height: 100vh;
-    font-family: 'Poppins', sans-serif;
-    background-color: var(--background-color);
-    color: var(--text-color);
+  min-height: 100vh;
+  font-family: var(--font-primary);
+  background: var(--color-background);
+  color: var(--text-primary);
 }
 
-/* --- Navigation Bar --- */
+/* ============================================
+   NAVIGATION BAR
+   ============================================ */
+
 .edit-trip-nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.75rem 2rem;
-    background-color: rgba(252, 250, 249, 0.8); /* Semi-transparent card background */
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid var(--border-color);
-    position: sticky;
-    top: 0;
-    z-index: 100;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md) var(--space-xl);
+  background: var(--color-surface);
+  border-bottom: 1px solid rgba(var(--color-primary-rgb), 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(8px);
 }
 
 .edit-trip-title {
-    margin: 0;
-    font-size: 3rem;
-    font-weight: 600;
+  margin: 0;
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
+  font-weight: 700;
+  font-family: var(--font-secondary);
+  flex: 1;
+  text-align: center;
 }
 
-.nav-back-button, .save-button-nav {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-weight: 500;
+.nav-back-button,
+.save-button-nav {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-weight: 600;
 }
 
 .nav-back-button {
-    text-decoration: none;
-    color: var(--text-color);
-    justify-content: flex-start;
+  text-decoration: none;
+  color: var(--text-primary);
+  justify-content: flex-start;
+  transition: color var(--transition-fast);
+  cursor: pointer;
+}
+
+.nav-back-button:hover {
+  color: var(--color-primary);
 }
 
 .save-button-nav {
-    padding: 0.6rem 1.2rem;
-    background-color: var(--primary-color);
-    color: white;
-    border: none;
-    border-radius: 50px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    justify-content: flex-end;
-    max-width: fit-content;
-    margin-left: 21vw;
+  padding: var(--space-sm) var(--space-lg);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  color: white;
+  border: none;
+  border-radius: var(--radius-full);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  justify-content: flex-end;
+  box-shadow: var(--shadow-md);
 }
 
-.save-button-nav:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+.save-button-nav:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
 }
 
 .save-button-nav:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-/* --- Main Form Container --- */
+/* ============================================
+   FORM CONTAINER
+   ============================================ */
+
 .edit-trip-container {
-    max-width: 900px;
-    margin: 2.5rem auto;
-    padding: 2.5rem 3rem;
-    background-color: var(--card-bg-color);
-    border-radius: 1.5rem; /* More pronounced rounding */
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-    border: 1px solid #fff;
+  max-width: 900px;
+  margin: var(--space-2xl) auto;
+  padding: var(--space-2xl) var(--space-3xl);
+  background: var(--color-surface);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.1);
 }
 
 .edit-trip-form {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2.5rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2xl);
 }
 
 .form-column {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+/* ============================================
+   FORM ELEMENTS
+   ============================================ */
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
 }
 
 .form-group label {
-    display: block;
-    margin-bottom: 0.75rem;
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: var(--text-color);
+  display: block;
+  margin: 0;
+  font-weight: 700;
+  font-size: clamp(0.85rem, 2vw, 0.95rem);
+  color: var(--text-primary);
+  font-family: var(--font-secondary);
 }
 
 .edit-trip-form input,
 .edit-trip-form select {
-    width: 100%;
-    padding: 0.85rem 1rem;
-    font-size: 1rem;
-    border: 2px solid var(--border-color);
-    border-radius: 8px;
-    background-color: #fff;
-    box-sizing: border-box;
-    transition: all 0.2s ease-in-out;
+  width: 100%;
+  padding: var(--space-md) var(--space-lg);
+  font-size: 1rem;
+  border: 2px solid rgba(var(--color-primary-rgb), 0.15);
+  border-radius: var(--radius-lg);
+  background: var(--color-background);
+  box-sizing: border-box;
+  transition: all var(--transition-normal);
+  font-family: var(--font-primary);
+  color: var(--text-primary);
+}
+
+.edit-trip-form input::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.6;
 }
 
 .edit-trip-form input:focus,
 .edit-trip-form select:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 4px rgba(237, 175, 184, 0.3);
-    outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.15);
+  outline: none;
 }
 
-/* --- Status Selector --- */
+/* ============================================
+   STATUS SELECTOR
+   ============================================ */
+
 .status-selector {
-    display: flex;
-    width: 100%;
-    background-color: #f0f0f0;
-    border-radius: 8px;
-    padding: 4px;
-    border: 1px solid var(--border-color);
+  display: flex;
+  width: 100%;
+  background: var(--color-background);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xs);
+  border: 2px solid rgba(var(--color-primary-rgb), 0.15);
+  gap: var(--space-xs);
 }
 
 .status-option {
-    flex: 1;
-    padding: 0.6rem;
-    border: none;
-    background-color: transparent;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 600;
-    color: #666;
-    transition: all 0.3s ease;
-    font-size: 0.85rem;
+  flex: 1;
+  padding: var(--space-md) var(--space-sm);
+  border: none;
+  background-color: transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--text-secondary);
+  transition: all var(--transition-normal);
+  font-size: 0.85rem;
+  text-transform: capitalize;
+}
+
+.status-option:hover {
+  color: var(--color-primary);
 }
 
 .status-option.active {
-    background-color: #fff;
-    color: var(--text-color);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    transform: translateY(-1px);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  color: white;
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
 }
 
-/* --- Footer Message --- */
+/* ============================================
+   FORM MESSAGES
+   ============================================ */
+
 .form-message-footer {
-    grid-column: 1 / -1;
-    text-align: center;
-    margin-top: 1rem;
-    font-weight: 500;
-    padding: 0.75rem;
-    border-radius: 8px;
-    background-color: rgba(176, 196, 177, 0.3);
-    color: var(--text-color);
+  grid-column: 1 / -1;
+  text-align: center;
+  margin-top: var(--space-xl);
+  font-weight: 600;
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  background: rgba(var(--color-secondary-rgb), 0.15);
+  color: var(--color-secondary);
+  border: 1px solid rgba(var(--color-secondary-rgb), 0.2);
 }
 
-.edit-trip-container h6{
-    color: red;
+.edit-trip-container h6 {
+  color: var(--color-error);
+  font-size: 0.85rem;
+  margin: var(--space-sm) 0;
 }
 
-/* ... (all existing CSS styles) ... */
+/* ============================================
+   DANGER ZONE
+   ============================================ */
 
-/* --- NEW: Danger Zone Styles --- */
 .danger-zone {
-    margin-top: 2.5rem;
-    padding-top: 1.5rem;
-    border-top: 2px dashed rgba(231, 76, 60, 0.3);
+  margin-top: var(--space-2xl);
+  padding-top: var(--space-xl);
+  border-top: 2px dashed rgba(var(--color-error-rgb), 0.3);
 }
 
 .danger-zone-header h4 {
-    margin: 0 0 0.25rem 0;
-    color: #e74c3c; /* Red for danger */
-    font-size: 1.1rem;
-    padding: 0.625rem 1.25rem;
+  margin: 0 0 var(--space-sm) 0;
+  color: var(--color-error);
+  font-size: 1.1rem;
+  font-weight: 700;
+  padding: var(--space-md) var(--space-lg);
 }
 
 .danger-zone-header p {
-    margin: 0 0 1.5rem 0;
-    font-size: 0.9rem;
-    opacity: 0.8;
-    padding: 0.625rem 1.25rem;
+  margin: 0 0 var(--space-lg) 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  padding: 0 var(--space-lg);
 }
 
 .delete-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    width: auto;
-    padding: 0.7rem 1.5rem;
-    font-size: 1rem;
-    font-weight: 600;
-    color: white;
-    background-color: #e74c3c;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    margin:  0.625rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-xl);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(135deg, var(--color-error) 0%, #c53030 100%);
+  border: none;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  margin: var(--space-md) var(--space-lg);
+  box-shadow: var(--shadow-md);
 }
 
-.delete-button:hover {
-    background-color: #c0392b;
-    box-shadow: 0 4px 10px rgba(231, 76, 60, 0.3);
+.delete-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.delete-button:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .delete-button:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-/* --- Responsive Design --- */
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+@media (max-width: 1024px) {
+  .edit-trip-form {
+    grid-template-columns: 1fr;
+    gap: var(--space-xl);
+  }
+}
+
 @media (max-width: 768px) {
-    .edit-trip-form {
-        grid-template-columns: 1fr;
-    }
+  .edit-trip-nav {
+    flex-wrap: wrap;
+    gap: var(--space-md);
+    padding: var(--space-md);
+  }
 
-    .edit-trip-nav {
-        padding: 0.75rem 1rem;
-    }
+  .edit-trip-title {
+    font-size: clamp(1.25rem, 4vw, 1.75rem);
+    order: 1;
+    width: 100%;
+  }
 
-    .edit-trip-container {
-        margin: 1.5rem;
-        padding: 1.5rem;
-    }
+  .nav-back-button {
+    order: 0;
+    flex: 0;
+  }
+
+  .save-button-nav {
+    order: 2;
+    justify-content: center;
+    flex: 0;
+  }
+
+  .edit-trip-container {
+    margin: var(--space-xl);
+    padding: var(--space-xl);
+    border-radius: var(--radius-xl);
+  }
+
+  .edit-trip-form {
+    grid-template-columns: 1fr;
+    gap: var(--space-lg);
+  }
+
+  .form-group label {
+    font-size: 0.9rem;
+  }
+
+  .edit-trip-form input,
+  .edit-trip-form select {
+    padding: var(--space-md) var(--space-lg);
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .edit-trip-nav {
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .edit-trip-title {
+    font-size: 1.25rem;
+  }
+
+  .edit-trip-container {
+    margin: var(--space-md);
+    padding: var(--space-md);
+    border-radius: var(--radius-lg);
+  }
+
+  .edit-trip-form {
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+  }
+
+  .form-column {
+    gap: var(--space-md);
+  }
+
+  .form-group {
+    gap: var(--space-xs);
+  }
+
+  .form-group label {
+    font-size: 0.85rem;
+  }
+
+  .edit-trip-form input,
+  .edit-trip-form select {
+    padding: var(--space-sm) var(--space-md);
+    font-size: 1rem;
+    border-radius: var(--radius-md);
+  }
+
+  .status-option {
+    font-size: 0.75rem;
+    padding: var(--space-sm) var(--space-xs);
+  }
+
+  .delete-button {
+    padding: var(--space-md) var(--space-lg);
+    font-size: 0.9rem;
+    margin: var(--space-md) 0;
+  }
 }

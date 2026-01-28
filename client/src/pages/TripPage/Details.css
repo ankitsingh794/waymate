@@ -1,167 +1,752 @@
-/* --- Base & Variables --- */
-:root {
-  --primary-color: #edafb8;
-  --secondary-color: #f7e1d7;
-  --accent-color: #b0c4b1;
-  --text-color: #4a5759;
-  --background-color: #dedbd2;
-  --card-bg-color: #ffffff;
-  --font-family: 'Poppins', sans-serif;
-}
+/* ============================================
+   TRIP DETAILS PAGE
+   ============================================ */
+
+/* ============================================
+   MAIN CONTAINER
+   ============================================ */
 
 .trip-details-page {
-  font-family: var(--font-family);
-  background-color: var(--background-color);
+  font-family: var(--font-primary);
+  background: var(--color-background);
   width: 100%;
   min-height: 100vh;
 }
-.activity-list li {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem; /* Increased gap slightly */
-  padding: 0.75rem 0; /* Increased padding */
-  border-bottom: 1px solid #e0e0e0; /* A more visible separator */
-  font-weight: 500; /* Makes text slightly bolder */
-}
+
+/* ============================================
+   HERO SECTION
+   ============================================ */
 
 .trip-hero {
   position: relative;
   width: 100%;
-  height: 50vh; 
+  height: 50vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   color: white;
   text-align: center;
+  overflow: hidden;
 }
 
 .hero-bg-image {
-  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-  object-fit: cover; filter: brightness(0.7);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.6);
 }
 
 .hero-overlay {
-  position: absolute; inset: 0;
-  background: linear-gradient(to top, rgba(0,0,0,0.6) 10%, transparent 100%);
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.5) 0%, transparent 80%);
+  z-index: 1;
 }
 
-.hero-content { position: relative; z-index: 2; }
-.trip-title { font-size: clamp(2.5rem, 8vw, 4.5rem); font-weight: 700; text-shadow: 0 4px 10px rgba(0,0,0,0.5); color: whitesmoke;}
-.trip-dates { font-size: clamp(1rem, 3vw, 1.25rem); background: rgba(0,0,0,0.3); padding: 0.5rem 1rem; border-radius: 50px; color: whitesmoke;}
-.back-to-dash, .hero-top-actions { position: absolute; top: 1.5rem; z-index: 3; }
-.back-to-dash { left: 1.5rem; color: white; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; background: rgba(0,0,0,0.3); padding: 0.5rem 1rem; border-radius: 50px; backdrop-filter: blur(5px); }
-.hero-top-actions { right: 1.5rem; display: flex; gap: 1rem; }
-.hero-edit-button, .hero-favorite-button { width: 50px; height: 50px; border-radius: 50%; border: 2px solid white; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.2); background-color: rgba(255, 255, 255, 0.2); backdrop-filter: blur(4px); padding: 0;}
-.hero-favorite-button:hover, .hero-edit-button:hover { transform: scale(1.1); }
-.hero-favorite-button.active { background-color: crimson; color: white; }
+.hero-content {
+  position: relative;
+  z-index: 2;
+  animation: slideInDown 0.6s ease-out forwards;
+}
 
-/* --- NEW: Dashboard Grid Layout --- */
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.trip-title {
+  font-size: clamp(2rem, 8vw, 4rem);
+  font-weight: 800;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+  color: white;
+  margin: 0 0 var(--space-lg) 0;
+  font-family: var(--font-secondary);
+  letter-spacing: -1px;
+}
+
+.trip-dates {
+  font-size: clamp(0.95rem, 2.5vw, 1.1rem);
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-full);
+  color: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* ============================================
+   HERO TOP ACTIONS
+   ============================================ */
+
+.back-to-dash {
+  position: absolute;
+  top: var(--space-lg);
+  left: var(--space-lg);
+  z-index: 3;
+  color: white;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all var(--transition-normal);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.back-to-dash:hover {
+  background: rgba(0, 0, 0, 0.5);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateX(-4px);
+}
+
+.hero-top-actions {
+  position: absolute;
+  top: var(--space-lg);
+  right: var(--space-lg);
+  display: flex;
+  gap: var(--space-md);
+  z-index: 3;
+}
+
+.hero-edit-button,
+.hero-favorite-button {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  padding: 0;
+  font-weight: 600;
+  font-size: 1.2rem;
+}
+
+.hero-edit-button:hover,
+.hero-favorite-button:hover {
+  transform: scale(1.1);
+  background: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.hero-favorite-button.active {
+  background: linear-gradient(135deg, var(--color-error) 0%, #d32f2f 100%);
+  border-color: var(--color-error);
+  color: white;
+}
+
+/* ============================================
+   DASHBOARD GRID
+   ============================================ */
+
 .trip-dashboard-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 1.5rem;
-  padding: 1.5rem;
-  margin-top: -60px; /* Pulls the content up over the hero */
+  gap: var(--space-xl);
+  padding: var(--space-2xl) var(--space-xl);
+  margin-top: -60px;
   position: relative;
   z-index: 5;
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .dashboard-card {
-  background-color: var(--card-bg-color); /* Enforces a white background */
-  color: var(--text-color); /* THIS IS THE FIX for invisible text */
-  border-radius: 1rem;
-  padding: 1.5rem;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  background: var(--color-surface);
+  color: var(--text-primary);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
+  box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-lg);
+  transition: all var(--transition-normal);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.1);
+  animation: cardSlideIn 0.5s ease-out forwards;
+}
+
+.dashboard-card:nth-child(1) { animation-delay: 0.1s; }
+.dashboard-card:nth-child(2) { animation-delay: 0.2s; }
+.dashboard-card:nth-child(3) { animation-delay: 0.3s; }
+.dashboard-card:nth-child(n+4) { animation-delay: 0.4s; }
+
+@keyframes cardSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dashboard-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-lg);
+  border-color: rgba(var(--color-primary-rgb), 0.2);
+}
+
+.dashboard-card.full-width {
+  grid-column: 1 / -1;
 }
 
 .ai-summary-card {
-   border-left: 4px solid var(--primary-color); /* Adds a highlight instead of a full background */
-}
-/* This makes certain cards span the full width on larger screens if needed */
-.dashboard-card.full-width {
-    grid-column: 1 / -1;
+  background: linear-gradient(135deg, 
+    rgba(var(--color-primary-rgb), 0.08) 0%, 
+    rgba(var(--color-secondary-rgb), 0.08) 100%);
+  border-left: 4px solid var(--color-primary);
 }
 
 .card-title {
   font-size: 1.2rem;
-  font-weight: 600;
+  font-weight: 700;
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  color: var(--text-color);
+  gap: var(--space-sm);
+  color: var(--text-primary);
+  font-family: var(--font-secondary);
+}
+
+.card-title svg {
+  width: 24px;
+  height: 24px;
+  color: var(--color-primary);
 }
 
 .card-action-button {
-  background-color: var(--accent-color);
-  color: var(--text-color);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  color: white;
   border: none;
-  padding: 0.75rem;
-  border-radius: 0.5rem;
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  font-weight: 600;
-  margin-top: auto; /* Pushes button to the bottom */
-  transition: opacity 0.2s;
+  font-weight: 700;
+  margin-top: auto;
+  transition: all var(--transition-normal);
+  box-shadow: var(--shadow-md);
+  font-size: 0.95rem;
 }
-.card-action-button:hover { opacity: 0.9; }
 
-/* --- AI Summary Widget Styles --- */
-.ai-summary-card { background-color: var(--secondary-color); }
-.ai-section h4 { display: flex; align-items: center; gap: 0.5rem; margin: 1rem 0 0.5rem; }
-.ai-section ul { list-style: none; padding-left: 0; margin: 0; }
-.ai-section ul li { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+.card-action-button:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
 
-/* --- Smart Schedule Widget Styles --- */
-.smart-schedule-promo { text-align: center; align-items: center; justify-content: center; }
-.promo-button { background-color: var(--primary-color); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 50px; font-weight: 600; cursor: pointer; }
-.schedule-info { font-size: 0.9rem; opacity: 0.8; }
-.train-option { border: 1px solid var(--accent-color); padding: 1rem; border-radius: 0.75rem; margin-bottom: 1rem; }
-.train-header { display: flex; justify-content: space-between; font-weight: 600; }
-.train-details { display: flex; justify-content: space-between; gap: 1rem; margin: 0.5rem 0; font-size: 0.9rem; }
-.train-classes { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
-.class-badge { background-color: var(--accent-color); font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 4px; }
-.recommendation-reason { font-size: 0.8rem; background-color: #fffbe6; border: 1px solid #ffe58f; padding: 0.5rem; border-radius: 4px; margin-top: 0.75rem; }
+.card-action-button:active {
+  transform: translateY(0);
+}
 
-/* --- Itinerary Widget Styles --- */
-.itinerary-header { display: flex; flex-direction: column; gap: 0.5rem; }
-.day-nav { display: flex; align-items: center; justify-content: space-between; background: var(--background-color); border-radius: 50px; padding: 0.25rem; }
-.day-nav button { background: white; border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; }
-.activity-list { list-style: none; padding: 0; margin: 0; }
-.activity-list li { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0; border-bottom: 1px solid var(--background-color); }
-.activity-list li:last-child { border-bottom: none; }
+/* ============================================
+   AI SUMMARY WIDGET
+   ============================================ */
 
-/* --- Recommendations Widget Styles --- */
-.reco-tabs { display: flex; gap: 0.5rem; border-bottom: 2px solid var(--background-color); margin-bottom: 1rem; }
-.reco-tabs button { background: transparent; border: none; padding: 0.75rem 1rem; cursor: pointer; font-weight: 600; opacity: 0.6; border-bottom: 2px solid transparent; }
-.reco-tabs button.active { opacity: 1; border-bottom-color: var(--primary-color); }
-.reco-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 1rem; }
-.reco-list li { display: flex; align-items: center; gap: 1rem; }
-.reco-image { width: 50px; height: 50px; border-radius: 0.5rem; object-fit: cover; }
-.reco-info strong { display: block; }
-.reco-info p { font-size: 0.85rem; opacity: 0.7; margin: 0; }
+.ai-section h4 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: var(--space-lg) 0 var(--space-md);
+  font-weight: 700;
+  color: var(--text-primary);
+}
 
-/* --- Members Widget Styles --- */
-.member-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.75rem; }
-.member-item { display: flex; align-items: center; gap: 1rem; }
-.member-item img { width: 40px; height: 40px; border-radius: 50%; }
-.member-info { flex-grow: 1; }
-.member-info strong { font-size: 0.9rem; }
-.member-info span { font-size: 0.8rem; text-transform: capitalize; background: var(--background-color); padding: 0.1rem 0.5rem; border-radius: 4px; }
+.ai-section h4:first-child {
+  margin-top: 0;
+}
 
+.ai-section ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
 
-/* --- Responsiveness --- */
-@media (max-width: 768px) {
-  .trip-hero { height: 40vh; }
+.ai-section ul li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.ai-section ul li::before {
+  content: "→";
+  flex-shrink: 0;
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+/* ============================================
+   SMART SCHEDULE WIDGET
+   ============================================ */
+
+.smart-schedule-promo {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.promo-button {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  color: white;
+  border: none;
+  padding: var(--space-md) var(--space-xl);
+  border-radius: var(--radius-full);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  box-shadow: var(--shadow-md);
+  font-size: 0.95rem;
+  margin: var(--space-md) 0;
+}
+
+.promo-button:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.schedule-info {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin: var(--space-md) 0;
+}
+
+.train-option {
+  border: 1px solid rgba(var(--color-primary-rgb), 0.2);
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-lg);
+  background: var(--color-background);
+  transition: all var(--transition-normal);
+}
+
+.train-option:hover {
+  border-color: rgba(var(--color-primary-rgb), 0.4);
+  background: rgba(var(--color-primary-rgb), 0.02);
+}
+
+.train-header {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  margin-bottom: var(--space-md);
+}
+
+.train-details {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  margin: var(--space-sm) 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.train-classes {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.class-badge {
+  background: linear-gradient(135deg, 
+    rgba(var(--color-secondary-rgb), 0.3) 0%, 
+    rgba(var(--color-secondary-rgb), 0.1) 100%);
+  border: 1px solid rgba(var(--color-secondary-rgb), 0.3);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  color: var(--color-secondary-dark);
+}
+
+.recommendation-reason {
+  font-size: 0.8rem;
+  background: rgba(var(--color-warning-rgb), 0.1);
+  border: 1px solid rgba(var(--color-warning-rgb), 0.3);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  margin-top: var(--space-md);
+  color: var(--color-warning);
+}
+
+/* ============================================
+   ITINERARY WIDGET
+   ============================================ */
+
+.itinerary-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.day-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--color-background);
+  border-radius: var(--radius-full);
+  padding: var(--space-xs);
+  gap: var(--space-sm);
+}
+
+.day-nav button {
+  background: white;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-weight: 700;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+.day-nav button:hover {
+  background: var(--color-primary);
+  color: white;
+  transform: scale(1.05);
+}
+
+.day-nav button.active {
+  background: var(--color-primary);
+  color: white;
+}
+
+.activity-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.activity-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid rgba(var(--color-primary-rgb), 0.1);
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.activity-list li:hover {
+  color: var(--text-primary);
+  padding-left: var(--space-sm);
+}
+
+.activity-list li:last-child {
+  border-bottom: none;
+}
+
+.activity-list li::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  flex-shrink: 0;
+}
+
+/* ============================================
+   RECOMMENDATIONS WIDGET
+   ============================================ */
+
+.reco-tabs {
+  display: flex;
+  gap: var(--space-sm);
+  border-bottom: 2px solid rgba(var(--color-primary-rgb), 0.1);
+  margin-bottom: var(--space-lg);
+  overflow-x: auto;
+}
+
+.reco-tabs button {
+  background: transparent;
+  border: none;
+  padding: var(--space-md) var(--space-lg);
+  cursor: pointer;
+  font-weight: 700;
+  opacity: 0.6;
+  border-bottom: 2px solid transparent;
+  transition: all var(--transition-normal);
+  white-space: nowrap;
+  color: var(--text-primary);
+}
+
+.reco-tabs button:hover {
+  opacity: 0.8;
+}
+
+.reco-tabs button.active {
+  opacity: 1;
+  border-bottom-color: var(--color-primary);
+}
+
+.reco-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.reco-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  transition: all var(--transition-fast);
+}
+
+.reco-list li:hover {
+  transform: translateX(8px);
+}
+
+.reco-image {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  box-shadow: var(--shadow-md);
+  flex-shrink: 0;
+}
+
+.reco-info {
+  flex-grow: 1;
+}
+
+.reco-info strong {
+  display: block;
+  color: var(--text-primary);
+  font-weight: 700;
+  margin-bottom: var(--space-xs);
+}
+
+.reco-info p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* ============================================
+   MEMBERS WIDGET
+   ============================================ */
+
+.member-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.member-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--color-background);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-normal);
+}
+
+.member-item:hover {
+  background: rgba(var(--color-primary-rgb), 0.08);
+}
+
+.member-item img {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+}
+
+.member-info {
+  flex-grow: 1;
+}
+
+.member-info strong {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  display: block;
+  margin-bottom: var(--space-xs);
+}
+
+.member-info span {
+  font-size: 0.8rem;
+  text-transform: capitalize;
+  background: linear-gradient(135deg, 
+    rgba(var(--color-primary-rgb), 0.15) 0%, 
+    rgba(var(--color-primary-rgb), 0.05) 100%);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.2);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+@media (max-width: 1024px) {
   .trip-dashboard-grid {
-    grid-template-columns: 1fr; /* Single column on smaller screens */
-    margin-top: -40px;
-    padding: 1rem;
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--space-lg);
+    padding: var(--space-xl);
   }
-  .trip-title { font-size: 2rem; }
-  .trip-dates { font-size: 0.9rem; }
+}
+
+@media (max-width: 768px) {
+  .trip-hero {
+    height: 40vh;
+  }
+
+  .trip-title {
+    font-size: clamp(1.5rem, 6vw, 2.5rem);
+  }
+
+  .trip-dates {
+    font-size: 0.9rem;
+  }
+
+  .back-to-dash {
+    top: var(--space-md);
+    left: var(--space-md);
+    font-size: 0.85rem;
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .hero-top-actions {
+    top: var(--space-md);
+    right: var(--space-md);
+    gap: var(--space-sm);
+  }
+
+  .hero-edit-button,
+  .hero-favorite-button {
+    width: 44px;
+    height: 44px;
+    font-size: 1rem;
+  }
+
+  .trip-dashboard-grid {
+    grid-template-columns: 1fr;
+    margin-top: -40px;
+    padding: var(--space-lg);
+    gap: var(--space-lg);
+  }
+
+  .dashboard-card {
+    padding: var(--space-lg);
+    gap: var(--space-md);
+  }
+
+  .card-title {
+    font-size: 1.1rem;
+  }
+
+  .reco-image {
+    width: 60px;
+    height: 60px;
+  }
+}
+
+@media (max-width: 480px) {
+  .trip-hero {
+    height: 35vh;
+  }
+
+  .trip-title {
+    font-size: clamp(1.25rem, 5vw, 1.75rem);
+  }
+
+  .trip-dates {
+    font-size: 0.85rem;
+    padding: var(--space-xs) var(--space-sm);
+  }
+
+  .back-to-dash {
+    display: none;
+  }
+
+  .hero-top-actions {
+    top: var(--space-sm);
+    right: var(--space-sm);
+    gap: var(--space-xs);
+  }
+
+  .hero-edit-button,
+  .hero-favorite-button {
+    width: 40px;
+    height: 40px;
+    font-size: 0.9rem;
+  }
+
+  .trip-dashboard-grid {
+    grid-template-columns: 1fr;
+    margin-top: -30px;
+    padding: var(--space-md);
+    gap: var(--space-md);
+  }
+
+  .dashboard-card {
+    padding: var(--space-md);
+  }
+
+  .card-title {
+    font-size: 1rem;
+  }
+
+  .day-nav button {
+    width: 28px;
+    height: 28px;
+    font-size: 0.8rem;
+  }
+
+  .reco-image {
+    width: 50px;
+    height: 50px;
+  }
+
+  .reco-tabs {
+    gap: var(--space-xs);
+  }
+
+  .reco-tabs button {
+    padding: var(--space-sm) var(--space-md);
+    font-size: 0.9rem;
+  }
 }
