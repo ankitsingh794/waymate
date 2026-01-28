@@ -197,19 +197,32 @@ const Recommendations = ({ attractions, food, accommodation }) => {
 
 // NEW: Members Widget
 const MembersWidget = ({ members = [] }) => {
+    if (!members || members.length === 0) {
+        return (
+            <div className="dashboard-card">
+                <h3 className="card-title"><IoPeopleSharp /> Trip Members</h3>
+                <p style={{ color: 'var(--text-secondary)' }}>No members added yet</p>
+                <button className="card-action-button"><VscAdd /> Invite Members</button>
+            </div>
+        );
+    }
+
     return (
         <div className="dashboard-card">
             <h3 className="card-title"><IoPeopleSharp /> Trip Members</h3>
             <ul className="member-list">
-                {members.map(member => (
-                    <li key={member.userId._id} className="member-item">
-                        <img src={member.userId.profileImage || `https://ui-avatars.com/api/?name=${member.userId.name}&background=b0c4b1&color=4a5759`} alt={member.userId.name} />
-                        <div className="member-info">
-                            <strong>{member.userId.name}</strong>
-                            <span>{member.role}</span>
-                        </div>
-                    </li>
-                ))}
+                {members.map(member => {
+                    if (!member || !member.userId) return null;
+                    return (
+                        <li key={member.userId._id} className="member-item">
+                            <img src={member.userId.profileImage || `https://ui-avatars.com/api/?name=${member.userId.name}&background=b0c4b1&color=4a5759`} alt={member.userId.name} />
+                            <div className="member-info">
+                                <strong>{member.userId.name}</strong>
+                                <span>{member.role}</span>
+                            </div>
+                        </li>
+                    );
+                })}
             </ul>
             <button className="card-action-button"><VscAdd /> Invite More</button>
         </div>
