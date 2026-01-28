@@ -41,12 +41,12 @@ class TripOfflineMapScreen extends StatefulWidget {
   final List<PlaceMarker> places;
 
   const TripOfflineMapScreen({
-    Key? key,
+    super.key,
     required this.latitude,
     required this.longitude,
     required this.tripName,
     this.places = const [],
-  }) : super(key: key);
+  });
 
   @override
   State<TripOfflineMapScreen> createState() => _TripOfflineMapScreenState();

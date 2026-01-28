@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/utils/logger.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile/screens/debug/storage_debug_screen.dart';
 import 'dart:io';
 
 class SplashScreen extends StatefulWidget {
@@ -11,11 +13,11 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> 
+class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
-  
+
   final AuthService _authService = AuthService();
   String _statusMessage = 'Initializing...';
   bool _isOfflineMode = false;
@@ -31,7 +33,7 @@ class _SplashScreenState extends State<SplashScreen>
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
-    
+
     _animationController.forward();
     _checkAuthStatusAndNavigate();
   }
@@ -49,19 +51,19 @@ class _SplashScreenState extends State<SplashScreen>
       // Step 1: Check network connectivity first
       setState(() => _statusMessage = 'Checking connectivity...');
       final hasInternet = await _hasInternetConnection();
-      
+
       setState(() {
         _isOfflineMode = !hasInternet;
-        _statusMessage = hasInternet 
-          ? 'Connected to internet...' 
-          : 'Offline mode detected...';
+        _statusMessage = hasInternet
+            ? 'Connected to internet...'
+            : 'Offline mode detected...';
       });
-      
+
       await Future.delayed(const Duration(milliseconds: 800));
 
       // Step 2: Check authentication with offline support
       setState(() => _statusMessage = 'Checking authentication...');
-      
+
       if (hasInternet) {
         // Online mode - use existing refresh token logic
         await _handleOnlineAuthentication();
@@ -69,14 +71,13 @@ class _SplashScreenState extends State<SplashScreen>
         // Offline mode - use offline-aware authentication
         await _handleOfflineAuthentication();
       }
-      
     } catch (e) {
       debugPrint('Splash auth check failed: $e');
       logger.e('Authentication check failed', error: e);
-      
+
       setState(() => _statusMessage = 'Authentication error occurred');
       await Future.delayed(const Duration(milliseconds: 1500));
-      
+
       if (mounted) {
         _navigateTo('/login');
       }
@@ -86,15 +87,15 @@ class _SplashScreenState extends State<SplashScreen>
   Future<void> _handleOnlineAuthentication() async {
     try {
       final refreshToken = await _authService.getRefreshToken();
-      
+
       if (refreshToken != null) {
         setState(() => _statusMessage = 'Validating session...');
-        
+
         // Add timeout to prevent hanging on network issues
         final result = await _authService
             .refreshToken()
             .timeout(const Duration(seconds: 8));
-        
+
         if (result['success']) {
           setState(() => _statusMessage = 'Welcome back!');
           await Future.delayed(const Duration(milliseconds: 800));
@@ -118,35 +119,56 @@ class _SplashScreenState extends State<SplashScreen>
 
   Future<void> _handleOfflineAuthentication() async {
     try {
-      // Check if user can access app in offline mode
-      final canAccess = await _authService.canAccessApp();
-      
-      if (canAccess) {
-        // User has valid offline session
-        final userData = await _authService.getCachedUserData();
-        final isOfflineSession = userData?['isOfflineSession'] ?? false;
-        
-        setState(() => _statusMessage = isOfflineSession 
-          ? 'Welcome back (Offline)' 
-          : 'Welcome back');
-          
-        await Future.delayed(const Duration(milliseconds: 1000));
-        _navigateTo('/home');
-      } else {
-        // Check if user is authenticated but session expired
-        final isAuth = await _authService.isAuthenticated();
-        if (isAuth) {
-          // User has token but offline session expired
-          setState(() => _statusMessage = 'Offline session expired');
-          await Future.delayed(const Duration(milliseconds: 800));
-          _showOfflineSessionExpiredDialog();
-        } else {
-          // No authentication at all in offline mode
-          setState(() => _statusMessage = 'Please connect to internet to sign in');
+      // Add debug logging to understand what's happening
+      debugPrint('[DEBUG] Starting offline authentication check...');
+
+      // Check stored tokens first
+      final accessToken = await _authService.getAccessToken();
+      final refreshToken = await _authService.getRefreshToken();
+      final lastLogin = await _authService.storage.read(key: 'lastLoginTime');
+
+      debugPrint('[DEBUG] Access token exists: ${accessToken != null}');
+      debugPrint('[DEBUG] Refresh token exists: ${refreshToken != null}');
+      debugPrint('[DEBUG] Last login exists: ${lastLogin != null}');
+
+      if (accessToken != null && refreshToken != null) {
+        debugPrint('[DEBUG] Tokens found, checking app access...');
+
+        // Check if user can access app in offline mode
+        final canAccess = await _authService.canAccessApp();
+        debugPrint('[DEBUG] Can access app: $canAccess');
+
+        if (canAccess) {
+          // User has valid offline session
+          debugPrint(
+              '[DEBUG] Valid offline session found, navigating to home...');
+          setState(() => _statusMessage = 'Welcome back (Offline)');
+
           await Future.delayed(const Duration(milliseconds: 1000));
-          _showOfflineFirstTimeDialog();
+          _navigateTo('/home');
+          return;
+        } else {
+          // Check if user is authenticated but session expired
+          final isAuth = await _authService.isAuthenticated();
+          debugPrint('[DEBUG] Is authenticated: $isAuth');
+
+          if (isAuth) {
+            // User has token but offline session expired
+            debugPrint('[DEBUG] Session expired, showing dialog...');
+            setState(() => _statusMessage = 'Offline session expired');
+            await Future.delayed(const Duration(milliseconds: 800));
+            _showOfflineSessionExpiredDialog();
+            return;
+          }
         }
       }
+
+      // No authentication at all in offline mode
+      debugPrint(
+          '[DEBUG] No valid authentication found, requiring internet login...');
+      setState(() => _statusMessage = 'Please connect to internet to sign in');
+      await Future.delayed(const Duration(milliseconds: 1000));
+      _showOfflineFirstTimeDialog();
     } catch (e) {
       debugPrint('Offline auth check failed: $e');
       setState(() => _statusMessage = 'Please connect to internet');
@@ -168,9 +190,9 @@ class _SplashScreenState extends State<SplashScreen>
 
   void _showOfflineSessionExpiredDialog() {
     if (!mounted) return;
-    
+
     setState(() => _showOfflineDialog = true);
-    
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -222,9 +244,9 @@ class _SplashScreenState extends State<SplashScreen>
 
   void _showOfflineFirstTimeDialog() {
     if (!mounted) return;
-    
+
     setState(() => _showOfflineDialog = true);
-    
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -323,12 +345,13 @@ class _SplashScreenState extends State<SplashScreen>
               children: [
                 // App Logo
                 Image.asset('assets/images/logo.png', width: 200),
-                
+
                 const SizedBox(height: 60),
-                
+
                 // Status Message with Connectivity Indicator
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(25),
@@ -369,9 +392,9 @@ class _SplashScreenState extends State<SplashScreen>
                     ],
                   ),
                 ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Loading Indicator
                 const SizedBox(
                   width: 24,
@@ -381,6 +404,27 @@ class _SplashScreenState extends State<SplashScreen>
                     valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                   ),
                 ),
+
+                // Debug button (remove in production)
+                if (kDebugMode)
+                  Positioned(
+                    bottom: 100,
+                    right: 20,
+                    child: FloatingActionButton(
+                      mini: true,
+                      backgroundColor: Colors.white.withOpacity(0.8),
+                      child: const Icon(Icons.bug_report, color: Colors.black),
+                      onPressed: () async {
+                        if (mounted) {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const StorageDebugScreen(),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ),
               ],
             ),
           ),

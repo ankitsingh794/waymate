@@ -19,10 +19,11 @@ import 'package:mobile/screens/expenses/expense_management_screen.dart';
 import 'package:mobile/widgets/place_card.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:mobile/screens/trip_details/trip_offline_map_screen.dart';
+import 'package:mobile/screens/debug/storage_debug_screen.dart';
 
 class TripDetailsScreen extends StatefulWidget {
   final String tripId;
-  const TripDetailsScreen({Key? key, required this.tripId}) : super(key: key);
+  const TripDetailsScreen({super.key, required this.tripId});
 
   @override
   State<TripDetailsScreen> createState() => _TripDetailsScreenState();

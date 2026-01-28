@@ -17,7 +17,7 @@ class HouseholdMember {
       // Handle both 'user' and 'userId' keys since server populates 'userId'
       final userData = json['user'] ?? json['userId'];
       if (userData == null) {
-        throw FormatException('Missing user data in HouseholdMember JSON');
+        throw const FormatException('Missing user data in HouseholdMember JSON');
       }
 
       return HouseholdMember(
@@ -98,7 +98,7 @@ class Household {
     try {
       // Validate required fields
       if (json['_id'] == null || json['householdName'] == null) {
-        throw FormatException('Missing required fields in Household JSON');
+        throw const FormatException('Missing required fields in Household JSON');
       }
 
       return Household(

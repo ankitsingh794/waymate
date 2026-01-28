@@ -180,7 +180,7 @@ class PassiveTrackingManager {
 
     // Monitor for a period to see if this develops into a significant trip
     _monitoringTimer?.cancel();
-    _monitoringTimer = Timer(Duration(minutes: _monitoringDurationMinutes), () {
+    _monitoringTimer = Timer(const Duration(minutes: _monitoringDurationMinutes), () {
       _evaluateIfSignificantTrip();
     });
   }
@@ -253,9 +253,9 @@ class PassiveTrackingManager {
         activity.type == ActivityType.still) {
       _stillTimer?.cancel();
       _stillTimer =
-          Timer(Duration(minutes: _stillDurationMinutes), _handleTripEnd);
+          Timer(const Duration(minutes: _stillDurationMinutes), _handleTripEnd);
       debugPrint(
-          "⏰ User became still, starting ${_stillDurationMinutes}-minute timer to end trip");
+          "⏰ User became still, starting $_stillDurationMinutes-minute timer to end trip");
     } else if (_currentState == TrackingState.inProgress &&
         activity.type != ActivityType.still) {
       // If we start moving again, cancel the end-trip timer.
@@ -268,7 +268,7 @@ class PassiveTrackingManager {
     if (_currentTripId == null) return;
 
     debugPrint(
-        "User has been still for ${_stillDurationMinutes} minutes. Ending trip $_currentTripId");
+        "User has been still for $_stillDurationMinutes minutes. Ending trip $_currentTripId");
 
     try {
       // Send any remaining buffered points and signal the end of the trip

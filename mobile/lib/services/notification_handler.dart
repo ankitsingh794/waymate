@@ -37,7 +37,7 @@ class NotificationHandler {
   Stream<Map<String, dynamic>> get onAllNotifications =>
       _allNotificationsController.stream;
 
-  List<StreamSubscription> _subscriptions = [];
+  final List<StreamSubscription> _subscriptions = [];
   bool _isInitialized = false;
 
   /// Initialize all notification listeners

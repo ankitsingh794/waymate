@@ -101,8 +101,8 @@ class _TrackingNudgeCardState extends State<TrackingNudgeCard> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   ElevatedButton.icon(
-                    icon: Icon(Icons.check, color: Colors.white),
-                    label: Text('Yes, this was a trip'),
+                    icon: const Icon(Icons.check, color: Colors.white),
+                    label: const Text('Yes, this was a trip'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                     ),
@@ -113,8 +113,8 @@ class _TrackingNudgeCardState extends State<TrackingNudgeCard> {
                   ),
                   const SizedBox(width: 16),
                   ElevatedButton.icon(
-                    icon: Icon(Icons.close, color: Colors.white),
-                    label: Text('No, delete this'),
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    label: const Text('No, delete this'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                     ),

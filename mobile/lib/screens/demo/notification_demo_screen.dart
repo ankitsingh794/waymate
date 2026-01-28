@@ -4,7 +4,7 @@ import 'package:mobile/providers.dart';
 
 /// Example screen showing how to use the comprehensive notification system
 class NotificationDemoScreen extends ConsumerStatefulWidget {
-  const NotificationDemoScreen({Key? key}) : super(key: key);
+  const NotificationDemoScreen({super.key});
 
   @override
   ConsumerState<NotificationDemoScreen> createState() =>
