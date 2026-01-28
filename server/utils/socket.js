@@ -89,15 +89,29 @@ const getSocketIO = () => {
  */
 const initSocketIO = (httpServer) => {
 
-  // --- FIX: A more robust, environment-aware CORS configuration ---
+  // --- Socket.IO CORS Configuration ---
+  // Must match credentials: true with specific origins (not wildcard *)
+  const allowedOrigins = [
+    process.env.CLIENT_URL,
+    'http://localhost:5173',
+    'https://localhost:5173',
+    'http://localhost:3000',
+  ];
+
   const corsOptions = {
-    // Allow connections from any origin. Your socket authentication 
-    // middleware will handle security.
-    origin: "*", 
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        logger.warn(`Socket.IO CORS blocked request from origin: ${origin}`);
+        callback(new Error('CORS origin not allowed'));
+      }
+    },
     methods: ['GET', 'POST'],
     credentials: true,
+    maxHttpBufferSize: 1e6, // 1MB
   };
-  logger.info('Socket.IO CORS configured to allow all origins.');
+  logger.info(`Socket.IO CORS configured for origins: ${allowedOrigins.join(', ')}`);
   
   io = new Server(httpServer, {
     cors: corsOptions,
