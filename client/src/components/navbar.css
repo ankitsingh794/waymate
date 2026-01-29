@@ -52,7 +52,7 @@
     align-items: center;
     gap: var(--space-xl);
     flex: 1;
-    justify-content: center;
+    justify-content: right;
     margin: 0 var(--space-xl);
 }
 
