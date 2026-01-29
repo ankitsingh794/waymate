@@ -2,7 +2,7 @@ import {
     VscRobot,
     VscMap,
     VscLightbulb,
-    VscFire,
+    VscBolt,
     VscLocation,
     VscCheck
 } from 'react-icons/vsc';
@@ -35,7 +35,7 @@ const cardsData = [
         description: 'Discover hidden gems and local experiences curated by AI, not just tourist traps.'
     },
     {
-        icon: VscFire,
+        icon: VscBolt,
         title: 'Real-Time Updates',
         description: 'Get instant updates on weather, events, and travel conditions for your trip.'
     },
