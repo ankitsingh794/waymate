@@ -4,7 +4,7 @@ import api from '../../utils/axiosInstance';
 import DashboardNavbar from '../../components/DashboardNavbar';
 import './ExplorePage.css';
 
-// Reusable Place Card Component
+// PlaceCard Component
 const PlaceCard = ({ place }) => {
     const mapsUrl = `https://www.google.com/maps/search/?api=1&query_place_id=$`;
     const imageUrl = place.imageUrl || 'https://via.placeholder.com/400x300.png?text=No+Image';

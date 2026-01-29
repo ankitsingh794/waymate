@@ -1,5 +1,5 @@
 /* ============================================
-   DASHBOARD PAGE - MODERN & ALIGNED DESIGN
+   DASHBOARD PAGE - MODERN ALIGNED DESIGN
    ============================================ */
 
 :root {
@@ -7,24 +7,671 @@
     --ease: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-* {
-    box-sizing: border-box;
-}
-
-html, body, #root {
-    height: 100%;
-    width: 100%;
-}
-
 .dashboard-container {
     width: 100%;
-    height: 100vh;
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
     background: #ffffff;
     font-family: var(--font-primary);
     color: var(--color-text-primary);
+    overflow-x: hidden;
+}
+
+.dashboard-navbar {
+    flex-shrink: 0;
+    height: 70px;
+    width: 100%;
+}
+
+.dashboard-body {
+    flex: 1;
+    width: 100%;
+    padding: var(--space-3xl) var(--space-xl);
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+}
+
+/* ============================================
+   MAIN CONTENT
+   ============================================ */
+
+.main-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3xl);
+}
+
+.main-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-xl);
+    margin-bottom: var(--space-xl);
+}
+
+.welcome-section h1 {
+    font-size: clamp(1.75rem, 5vw, 2.5rem);
+    font-weight: 800;
+    margin: 0 0 var(--space-sm) 0;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.welcome-section p {
+    font-size: 1rem;
+    color: var(--color-text-secondary);
+    margin: 0;
+}
+
+.search-bar {
+    display: flex;
+    align-items: center;
+    background: #f8f9fa;
+    border-radius: var(--radius-full);
+    padding: var(--space-sm) var(--space-lg);
+    border: 2px solid transparent;
+    transition: all var(--duration) var(--ease);
+    min-width: 300px;
+}
+
+.search-bar:focus-within {
+    border-color: var(--color-primary);
+    background: white;
+    box-shadow: 0 0 0 4px rgba(237, 107, 126, 0.1);
+}
+
+.search-bar svg {
+    font-size: 1.25rem;
+    color: var(--color-text-secondary);
+    margin-right: var(--space-md);
+    flex-shrink: 0;
+}
+
+.search-bar input {
+    border: none;
+    outline: none;
+    background: transparent;
+    width: 100%;
+    font-size: 1rem;
+    color: var(--color-text-primary);
+    font-family: var(--font-primary);
+}
+
+.search-bar input::placeholder {
+    color: var(--color-text-tertiary);
+}
+
+/* ============================================
+   CAROUSEL SECTION
+   ============================================ */
+
+.carousel-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+}
+
+.carousel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-lg);
+}
+
+.carousel-header > div h3 {
+    font-size: clamp(1.3rem, 4vw, 1.8rem);
+    font-weight: 800;
+    margin: 0 0 var(--space-sm) 0;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.carousel-header > div p {
+    font-size: 0.95rem;
+    color: var(--color-text-secondary);
+    margin: 0;
+}
+
+.carousel-nav {
+    display: flex;
+    gap: var(--space-sm);
+}
+
+.carousel-nav button {
+    background: white;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    width: 44px;
+    height: 44px;
+    cursor: pointer;
+    transition: all var(--duration) var(--ease);
+    color: var(--color-text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    padding: 0;
+    box-shadow: var(--shadow-sm);
+}
+
+.carousel-nav button:hover {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.carousel-container {
+    display: flex;
+    gap: var(--space-lg);
+    overflow-x: auto;
+    padding: var(--space-sm) 0 var(--space-lg);
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+}
+
+.carousel-container::-webkit-scrollbar {
+    height: 6px;
+}
+
+.carousel-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.carousel-container::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+.trip-card-link {
+    text-decoration: none;
+    color: inherit;
+    scroll-snap-align: start;
+    flex-shrink: 0;
+}
+
+.trip-card {
+    background: white;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
     overflow: hidden;
+    width: 280px;
+    box-shadow: var(--shadow-sm);
+    transition: all var(--duration) var(--ease);
+    display: flex;
+    flex-direction: column;
+}
+
+.trip-card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--color-primary);
+}
+
+.trip-image-wrapper {
+    position: relative;
+    width: 100%;
+    height: 180px;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--color-primary-light), var(--color-secondary-light));
+}
+
+.trip-image-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--duration) var(--ease);
+}
+
+.trip-card:hover .trip-image-wrapper img {
+    transform: scale(1.08);
+}
+
+.trip-info {
+    padding: var(--space-lg);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.trip-info h4 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--color-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.trip-meta {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.trip-meta p {
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    margin: 0;
+    color: var(--color-text-secondary);
+}
+
+.trip-date {
+    margin-top: auto;
+    padding-top: var(--space-xs);
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* ============================================
+   EXPLORE SECTION
+   ============================================ */
+
+.explore-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+}
+
+.explore-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.explore-header h3 {
+    font-size: clamp(1.3rem, 4vw, 1.8rem);
+    font-weight: 800;
+    margin: 0 0 var(--space-sm) 0;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.explore-header p {
+    font-size: 0.95rem;
+    color: var(--color-text-secondary);
+    margin: 0;
+}
+
+.explore-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: var(--space-lg);
+}
+
+.explore-card-link {
+    text-decoration: none;
+    color: inherit;
+}
+
+.explore-card {
+    position: relative;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    height: 340px;
+    box-shadow: var(--shadow-md);
+    transition: all var(--duration) var(--ease);
+    cursor: pointer;
+}
+
+.explore-card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-lg);
+}
+
+.explore-image {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+}
+
+.explore-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform calc(var(--duration) * 1.5) var(--ease);
+}
+
+.explore-card:hover .explore-image img {
+    transform: scale(1.1);
+}
+
+.explore-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.4) 40%, transparent 100%);
+    transition: background var(--duration) var(--ease);
+}
+
+.explore-content {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: var(--space-lg);
+    color: white;
+    z-index: 2;
+}
+
+.explore-content h4 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0 0 var(--space-sm) 0;
+    color: white;
+    line-height: 1.3;
+}
+
+.explore-content p {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.9);
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* ============================================
+   CTA SECTION
+   ============================================ */
+
+.cta-section {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+    border-radius: var(--radius-xl);
+    padding: var(--space-3xl) var(--space-2xl);
+    text-align: center;
+    color: white;
+    margin-top: var(--space-xl);
+}
+
+.cta-content h2 {
+    font-size: clamp(1.5rem, 5vw, 2.25rem);
+    font-weight: 800;
+    margin: 0 0 var(--space-md) 0;
+    color: white;
+}
+
+.cta-content p {
+    font-size: 1.1rem;
+    margin: 0 0 var(--space-xl) 0;
+    opacity: 0.95;
+    color: white;
+}
+
+.cta-button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-md);
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: var(--space-md) var(--space-2xl);
+    border: 2px solid white;
+    border-radius: var(--radius-full);
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all var(--duration) var(--ease);
+    font-family: var(--font-primary);
+    font-size: 1rem;
+}
+
+.cta-button:hover {
+    background: white;
+    color: var(--color-primary);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+/* ============================================
+   LOADING & ERROR STATES
+   ============================================ */
+
+.loading-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.95);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    gap: var(--space-lg);
+    backdrop-filter: blur(4px);
+}
+
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid var(--color-background);
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loading-screen p {
+    font-size: 1rem;
+    color: var(--color-text-secondary);
+    margin: 0;
+}
+
+.error-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.95);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    gap: var(--space-md);
+    backdrop-filter: blur(4px);
+}
+
+.error-screen p {
+    font-size: 1.1rem;
+    color: var(--color-error);
+    margin: 0;
+    text-align: center;
+    max-width: 400px;
+}
+
+/* ============================================
+   RESPONSIVE DESIGN - TABLET (1024px and below)
+   ============================================ */
+
+@media (max-width: 1024px) {
+    .dashboard-body {
+        padding: var(--space-2xl) var(--space-lg);
+    }
+
+    .main-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .search-bar {
+        width: 100%;
+        min-width: unset;
+    }
+
+    .trip-card {
+        width: 260px;
+    }
+
+    .carousel-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .explore-grid {
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: var(--space-md);
+    }
+}
+
+/* ============================================
+   RESPONSIVE DESIGN - MOBILE (768px and below)
+   ============================================ */
+
+@media (max-width: 768px) {
+    .dashboard-body {
+        padding: var(--space-xl);
+    }
+
+    .main-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .welcome-section h1 {
+        font-size: clamp(1.5rem, 5vw, 2rem);
+    }
+
+    .search-bar {
+        width: 100%;
+        min-width: unset;
+    }
+
+    .trip-card {
+        width: 240px;
+    }
+
+    .explore-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: var(--space-md);
+    }
+
+    .explore-card {
+        height: 300px;
+    }
+
+    .cta-section {
+        padding: var(--space-2xl) var(--space-lg);
+    }
+
+    .cta-content h2 {
+        font-size: clamp(1.25rem, 5vw, 1.75rem);
+    }
+
+    .cta-content p {
+        font-size: 1rem;
+    }
+}
+
+/* ============================================
+   RESPONSIVE DESIGN - SMALL MOBILE (480px and below)
+   ============================================ */
+
+@media (max-width: 480px) {
+    .dashboard-body {
+        padding: var(--space-md);
+    }
+
+    .main-content {
+        gap: var(--space-2xl);
+    }
+
+    .main-header {
+        gap: var(--space-md);
+    }
+
+    .welcome-section h1 {
+        font-size: clamp(1.25rem, 5vw, 1.5rem);
+    }
+
+    .welcome-section p {
+        font-size: 0.9rem;
+    }
+
+    .search-bar {
+        width: 100%;
+        padding: var(--space-sm) var(--space-md);
+    }
+
+    .search-bar svg {
+        font-size: 1rem;
+    }
+
+    .carousel-nav {
+        gap: var(--space-xs);
+    }
+
+    .carousel-nav button {
+        width: 36px;
+        height: 36px;
+        font-size: 1rem;
+    }
+
+    .trip-card {
+        width: 200px;
+    }
+
+    .trip-image-wrapper {
+        height: 150px;
+    }
+
+    .trip-info {
+        padding: var(--space-md);
+    }
+
+    .trip-info h4 {
+        font-size: 0.95rem;
+    }
+
+    .explore-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-md);
+    }
+
+    .explore-card {
+        height: 250px;
+    }
+
+    .cta-section {
+        padding: var(--space-xl) var(--space-md);
+    }
+
+    .cta-content h2 {
+        font-size: clamp(1rem, 5vw, 1.35rem);
+    }
+
+    .cta-content p {
+        font-size: 0.95rem;
+    }
+
+    .cta-button {
+        width: 100%;
+        justify-content: center;
+        padding: var(--space-md) var(--space-lg);
+    }
 }
 
 /* Navbar sits at top, fixed height */

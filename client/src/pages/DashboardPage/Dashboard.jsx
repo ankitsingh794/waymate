@@ -1,110 +1,102 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { VscSearch, VscChevronLeft, VscChevronRight, VscCompass, VscLocation } from "react-icons/vsc";
-import DashboardNavbar from '../../components/DashboardNavbar';
-import api from '../../utils/axiosInstance';
-import './Dashboard.css';
 import { useAuth } from '../../context/AuthContext';
+import api from '../../utils/axiosInstance';
+import { VscSearch, VscChevronLeft, VscChevronRight, VscCompass, VscLocation, VscArrowRight } from 'react-icons/vsc';
+import DashboardNavbar from '../../components/DashboardNavbar';
+import './Dashboard.css';
 
+// TripCard Component - Reusable
+const TripCard = ({ trip }) => (
+    <Link to={`/trip/${trip._id || trip.tripId}`} className="trip-card-link">
+        <div className="trip-card">
+            <div className="trip-image-wrapper">
+                <img 
+                    src={trip.coverImage || 'https://images.unsplash.com/photo-1502602898657-3e91760c0337?w=500&q=80'} 
+                    alt={trip.destination} 
+                    draggable="false" 
+                    loading="lazy" 
+                    decoding="async" 
+                />
+            </div>
+            <div className="trip-info">
+                <h4>{trip.destination}</h4>
+                <div className="trip-meta">
+                    <p className="trip-location">
+                        <VscLocation /> {trip.destination}
+                    </p>
+                    <p className="trip-date">
+                        {new Date(trip.startDate).toLocaleDateString()} - {new Date(trip.endDate).toLocaleDateString()}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </Link>
+);
+
+// TripCarousel Component
 const TripCarousel = ({ title, subtitle, trips }) => {
     const containerRef = useRef(null);
-    const [isDragging, setIsDragging] = useState(false);
-    const [startX, setStartX] = useState(0);
-    const [scrollLeft, setScrollLeft] = useState(0);
-
-    const onMouseDown = (e) => {
-        if (!containerRef.current) return;
-        setIsDragging(true);
-        setStartX(e.pageX - containerRef.current.offsetLeft);
-        setScrollLeft(containerRef.current.scrollLeft);
-        containerRef.current.classList.add('is-dragging');
-    };
-
-    const onMouseLeaveOrUp = () => {
-        if (!containerRef.current) return;
-        setIsDragging(false);
-        containerRef.current.classList.remove('is-dragging');
-    };
-
-    const onMouseMove = (e) => {
-        if (!isDragging || !containerRef.current) return;
-        e.preventDefault();
-        const x = e.pageX - containerRef.current.offsetLeft;
-        const walk = (x - startX) * 2;
-        containerRef.current.scrollLeft = scrollLeft - walk;
-    };
 
     const handleNavClick = (direction) => {
         const container = containerRef.current;
         if (container) {
-            const scrollAmount = container.clientWidth * 0.8;
-            container.scrollTo({
-                left: container.scrollLeft + (direction === 'right' ? scrollAmount : -scrollAmount),
+            const scrollAmount = 300;
+            container.scrollBy({
+                left: direction === 'right' ? scrollAmount : -scrollAmount,
                 behavior: 'smooth',
             });
         }
     };
 
-    if (!trips || trips.length === 0) {
-        return null;
-    }
+    if (!trips || trips.length === 0) return null;
 
     return (
-        <section className="trip-carousel-section">
-            <header className="carousel-header">
+        <section className="carousel-section">
+            <div className="carousel-header">
                 <div>
                     <h3>{title}</h3>
                     <p>{subtitle}</p>
                 </div>
                 <div className="carousel-nav">
-                    <button onClick={() => handleNavClick('left')} aria-label="Scroll left"><VscChevronLeft /></button>
-                    <button onClick={() => handleNavClick('right')} aria-label="Scroll right"><VscChevronRight /></button>
+                    <button onClick={() => handleNavClick('left')} aria-label="Scroll left">
+                        <VscChevronLeft />
+                    </button>
+                    <button onClick={() => handleNavClick('right')} aria-label="Scroll right">
+                        <VscChevronRight />
+                    </button>
                 </div>
-            </header>
-            <div
-                className="carousel-container"
-                ref={containerRef}
-                onMouseDown={onMouseDown}
-                onMouseLeave={onMouseLeaveOrUp}
-                onMouseUp={onMouseLeaveOrUp}
-                onMouseMove={onMouseMove}
-            >
+            </div>
+            <div className="carousel-container" ref={containerRef}>
                 {trips.map(trip => (
-                    <Link to={`/trip/${trip._id || trip.tripId}`} className="trip-card-link" key={trip._id || trip.tripId}>
-                        <div className="trip-card">
-                            <div className="trip-image-wrapper">
-                                <img src={trip.coverImage || `https://images.unsplash.com/photo-1502602898657-3e91760c0337?w=500&q=80`} alt={trip.destination} draggable="false" loading="lazy" decoding="async" />
-                            </div>
-                            <div className="trip-info">
-                                <h4>{trip.destination}</h4>
-                                <p className="trip-location"><VscLocation /> {trip.destination}</p>
-                                <p className="trip-date">{new Date(trip.startDate).toLocaleDateString()} - {new Date(trip.endDate).toLocaleDateString()}</p>
-                            </div>
-                        </div>
-                    </Link>
+                    <TripCard trip={trip} key={trip._id || trip.tripId} />
                 ))}
             </div>
         </section>
     );
 };
 
-const ExploreCard = ({ suggestion }) => {
-    return (
-        <Link to={`/explore?q=${suggestion.query}`} className="explore-card-link">
-            <div className="explore-card">
-                <div className="explore-image-wrapper">
-                    <img src={suggestion.image} alt={suggestion.title} draggable="false" loading="lazy" decoding="async" />
-                    <div className="explore-card-overlay"></div>
-                </div>
-                <div className="explore-info">
-                    <h4>{suggestion.title}</h4>
-                    <p>{suggestion.description}</p>
-                </div>
+// ExploreCard Component
+const ExploreCard = ({ suggestion }) => (
+    <Link to={`/explore?q=${suggestion.query}`} className="explore-card-link">
+        <div className="explore-card">
+            <div className="explore-image">
+                <img 
+                    src={suggestion.image} 
+                    alt={suggestion.title} 
+                    draggable="false" 
+                    loading="lazy" 
+                    decoding="async" 
+                />
+                <div className="explore-overlay"></div>
             </div>
-        </Link>
-    );
-};
+            <div className="explore-content">
+                <h4>{suggestion.title}</h4>
+                <p>{suggestion.description}</p>
+            </div>
+        </div>
+    </Link>
+);
 
 const exploreSuggestions = [
     {
@@ -207,12 +199,9 @@ const exploreSuggestions = [
 
 
 export default function Dashboard() {
-    const { t } = useTranslation('dashboard');
     const { user, upcomingTrips, setUpcomingTrips } = useAuth();
-    const [pastTrips, setPastTrips] = useState([]);
-    
-    // FIX: Added new state specifically for ongoing trips.
     const [ongoingTrips, setOngoingTrips] = useState([]);
+    const [pastTrips, setPastTrips] = useState([]);
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -265,57 +254,39 @@ export default function Dashboard() {
     return (
         <div className="dashboard-container">
             <DashboardNavbar />
-
             <div className="dashboard-body">
-                <aside className={`sidebar`}>
-                    <div className="sidebar-content">
-                        {user && (
-                            <div className="sidebar-profile">
-                                <img src={user.profileImage || `https://placehold.co/100x100/EDAFB8/4A5759?text=${user.name.charAt(0)}`} alt="User" className="profile-avatar" loading="lazy" decoding="async" />
-                                <h4>{user.name}</h4>
-                                <p>{t('sidebar.traveler')}</p>
-                            </div>
-                        )}
-                        <div className="plan-trip-card">
-                            <VscCompass className="plan-trip-icon" />
-                            <h5>{t('sidebar.planTitle')}</h5>
-                            <p>{t('sidebar.planSubtitle')}</p>
-                            <Link to="/assistant" className="plan-trip-btn">{t('sidebar.planButton')}</Link>
-                        </div>
-                    </div>
-                </aside>
                 <main className="main-content">
                     <header className="main-header">
-                        <div className="welcome-message">
-                            <h1>{t('welcome', { name: user?.name || 'Explorer' })}</h1>
-                            <p>{t('subheading')}</p>
+                        <div className="welcome-section">
+                            <h1>Welcome back, {user?.name || 'Explorer'}! 👋</h1>
+                            <p>Manage your trips and discover new adventures</p>
                         </div>
                         <div className="search-bar">
                             <VscSearch />
-                            <input type="text" placeholder={t('searchPlaceholder')} />
+                            <input type="text" placeholder="Search your trips..." />
                         </div>
                     </header>
 
                     <TripCarousel
-                        title={t('ongoingTrips', 'Ongoing Trips')}
-                        subtitle={t('ongoingSubtitle', 'Adventures currently in motion')}
+                        title="Ongoing Adventures"
+                        subtitle="Your trips in progress"
                         trips={ongoingTrips}
                     />
 
                     <TripCarousel
-                        title={t('upcomingTrips')}
-                        subtitle={t('upcomingSubtitle')}
+                        title="Upcoming Trips"
+                        subtitle="Plan ahead and get ready"
                         trips={upcomingTrips}
                     />
-                    
-                    <section className="trip-carousel-section">
-                        <header className="carousel-header">
+
+                    <section className="explore-section">
+                        <div className="explore-header">
                             <div>
-                                <h3>{t('shortventure')}</h3>
-                                <p>{t('shortventureSubtitle')}</p>
+                                <h3>Quick Explore</h3>
+                                <p>Discover amazing places near you</p>
                             </div>
-                        </header>
-                        <div className="carousel-container explore-container">
+                        </div>
+                        <div className="explore-grid">
                             {exploreSuggestions.map(suggestion => (
                                 <ExploreCard suggestion={suggestion} key={suggestion.id} />
                             ))}
@@ -323,10 +294,20 @@ export default function Dashboard() {
                     </section>
                     
                     <TripCarousel
-                        title={t('pastAdventures')}
-                        subtitle={t('pastSubtitle')}
+                        title="Past Adventures"
+                        subtitle="Your travel memories"
                         trips={pastTrips}
                     />
+
+                    <section className="cta-section">
+                        <div className="cta-content">
+                            <h2>Ready for your next adventure?</h2>
+                            <p>Let our AI assistant help you plan your perfect trip</p>
+                            <Link to="/assistant" className="cta-button">
+                                Start Planning <VscArrowRight />
+                            </Link>
+                        </div>
+                    </section>
                 </main>
             </div>
         </div>
