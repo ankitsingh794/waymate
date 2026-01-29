@@ -83,15 +83,15 @@ export default function Home() {
                 </div>
                 <div className="stats">
                     <div>
-                        <span className="stat-number">50K+</span>
+                        <span className="stat-number">10</span>
                         <span className="stat-label">Travelers</span>
                     </div>
                     <div>
-                        <span className="stat-number">10K+</span>
+                        <span className="stat-number">25</span>
                         <span className="stat-label">Trips Planned</span>
                     </div>
                     <div>
-                        <span className="stat-number">150+</span>
+                        <span className="stat-number">9</span>
                         <span className="stat-label">Destinations</span>
                     </div>
                 </div>
