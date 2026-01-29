@@ -1,42 +1,66 @@
 /* ============================================
-   DASHBOARD PAGE STYLES
+   DASHBOARD PAGE STYLES - COMPLETE REWRITE
    ============================================ */
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+}
 
 .dashboard-container {
   width: 100%;
-  min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
   background: linear-gradient(135deg, var(--color-background) 0%, #f0f1f5 100%);
   font-family: var(--font-primary);
   color: var(--color-text-primary);
-  overflow-x: hidden;
-  padding-top: 70px;
-  display: flex;
-  flex-direction: column;
+  overflow: hidden;
 }
 
+/* Navbar sits at top, fixed height */
+.dashboard-navbar {
+  flex-shrink: 0;
+  height: 70px;
+  width: 100%;
+}
+
+/* Main body: flex container that grows to fill remaining space */
 
 .dashboard-body {
   display: flex;
-  position: relative;
-  width: 100%;
-  height: calc(100vh - 70px);
   flex: 1;
-  min-height: calc(100vh - 70px);
+  width: 100%;
+  overflow: hidden;
+  position: relative;
 }
+
+/* ============================================
+   SIDEBAR STYLES
+   ============================================ */
 
 .sidebar {
   width: 280px;
   background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-surface-alt) 100%);
   border-right: 1px solid var(--color-border);
-  position: fixed;
-  top: 70px;
-  left: 0;
-  height: calc(100vh - 70px);
-  z-index: 50;
-  transform: translateX(-100%);
-  transition: transform var(--transition-normal) cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  height: 100%;
   overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 50;
   box-shadow: 1px 0 8px rgba(0, 0, 0, 0.04);
+  flex-shrink: 0;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  transform: translateX(-100%);
+  position: fixed;
+  left: 0;
+  top: 70px;
+  bottom: 0;
+  transition: transform var(--transition-normal) cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .sidebar.is-open {
@@ -50,6 +74,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2xl);
+  min-height: 100%;
 }
 
 .sidebar-profile {
@@ -90,6 +115,7 @@
   text-align: center;
   color: white;
   box-shadow: var(--shadow-lg);
+  margin-top: auto;
 }
 
 .plan-trip-icon {
@@ -134,20 +160,23 @@
   box-shadow: var(--shadow-lg);
 }
 
+/* ============================================
+   MAIN CONTENT STYLES
+   ============================================ */
+
 .main-content {
   flex: 1;
-  padding: var(--space-xl) var(--space-2xl);
-  transition: margin-left var(--transition-normal);
-  min-width: 0;
-  margin-top: 0;
-  margin-left: 280px;
-  overflow-y: auto;
-  overflow-x: hidden;
   display: flex;
   flex-direction: column;
-  width: calc(100% - 280px);
+  width: 100%;
+  height: 100%;
+  padding: var(--space-xl) var(--space-2xl);
+  overflow-y: auto;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
+  margin-left: 0;
+  margin-top: 0;
 }
 
 .main-header {
@@ -208,6 +237,10 @@
   font-family: var(--font-primary);
   color: var(--color-text-primary);
 }
+/* ============================================
+   CAROUSEL STYLES
+   ============================================ */
+
 
 .search-bar input::placeholder {
   color: var(--color-text-tertiary);
@@ -374,7 +407,9 @@
   margin-top: auto;
 }
 
-/* --- Menu Toggle Button --- */
+/* ============================================
+   EXPLORE CONTAINER STYLES
+   ============================================ */
 .menu-toggle {
   display: none;
   align-items: center;
@@ -420,7 +455,26 @@
 }
 
 .loading-screen {
+ 
+
+.error-screen {
   position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: rgba(255, 255, 255, 0.95);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  font-size: 1.2rem;
+  color: var(--color-error);
+}
+
+/* ============================================
+   RESPONSIVE DESIGN - TABLET (1024px and below)
+   ============================================ */ position: fixed;
   top: 0;
   left: 0;
   width: 100%;
@@ -509,44 +563,17 @@
   inset: 0;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.4) 40%, transparent 100%);
 }
-
-.explore-info {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: var(--space-xl);
-  color: white;
-  z-index: 2;
-}
-
-.explore-info h4 {
-  margin: 0 0 var(--space-xs) 0;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: white;
-}
-
-.explore-info p {
-  margin: 0;
-  font-size: 0.95rem;
-  opacity: 0.95;
-  color: white;
-}
-
-/* ============================================
-   RESPONSIVE DESIGN
-   ============================================ */
-
-@media (max-width: 1024px) {
-  .main-content {
-    margin-left: 0;
-    width: 100%;
-  }
-
-  .sidebar {
+sidebar {
+    position: fixed;
+    left: 0;
     top: 70px;
     height: calc(100vh - 70px);
+    width: 280px;
+  }
+
+  .main-content {
+    width: 100%;
+    margin-left: 0;
   }
 
   .menu-toggle {
@@ -556,11 +583,89 @@
   .sidebar.is-open {
     z-index: 1000;
   }
-}
 
-@media (max-width: 768px) {
-  .dashboard-container {
-    padding-top: 60px;
+  .search-bar {
+    height: auto;
+  }
+
+  .dashboard-body {
+    flex-direction: column;
+    height: auto;
+    min-height: calc(100vh - 60px);
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 60px;
+    height: calc(100vh - 60px);
+    width: 100%;
+    transform: translateX(-100%);
+    left: 0;
+  }
+
+  .sidebar.is-open {
+    transform: translateX(0);
+    width: 100%;
+    z-index: 1000;
+  }
+
+  .main-content {
+    padding: var(--space-lg);
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .main-header {
+    flex-direction: column;
+    gap: var(--space-lg);
+  }
+
+  .search-bar {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .carousel-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .carousel-nav {
+    width: 100%;
+    justify-content: space-between;
+    margin-top: var(--space-md);
+  }
+search-bar {
+    min-width: 100%;
+  }
+
+  .carousel-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .carousel-nav {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .trip-card {
+    width: 240px;
+  }
+
+  .explore-card {
+    width: 240px;
+    height: 280px;
+  }
+
+  .sidebar-content {
+    gap: var(--space-lg);
+  }
+
+  .menu-toggle {
+    width: 40px;
+    height: 40px;
+    font-size: 1.1rem
   }
 
   .dashboard-body {
