@@ -1,78 +1,63 @@
-import { motion, AnimatePresence } from "framer-motion";
+import {
+    VscRobot,
+    VscMap,
+    VscLightbulb,
+    VscFire,
+    VscLocation,
+    VscCheck
+} from 'react-icons/vsc';
 import './Cards.css';
-import Lottie from 'lottie-react';
-import { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 
-// Import all Lottie animations
-import aiService from '../../assets/ai-service.json';
-import aiDecision from '../../assets/ai-decision.json';
-import voice from '../../assets/voice-command.json';
-import calendar from '../../assets/calendar.json';
-import clock from '../../assets/clock.json';
-import weather from '../../assets/rain-cloud.json';
-import sun from '../../assets/sunrise.json';
-import thunder from '../../assets/cloud-with-lightning.json';
-import map from '../../assets/map.json';
-import globe from '../../assets/globe.json';
-import alerts from '../../assets/warning.json';
-import newspaper from '../../assets/newspaper.json';
-import tornado from '../../assets/tornado.json';
-import budget from '../../assets/wallet.json';
-import money from '../../assets/money-with-wings.json';
-import groupTravel from '../../assets/group.json';
-import chat from '../../assets/chat.json';
+// Card component for reusability
+const CardItem = ({ icon: Icon, title, description }) => (
+    <div className="card">
+        <Icon className="card-icon" />
+        <h3>{title}</h3>
+        <p>{description}</p>
+    </div>
+);
+
+// Cards data
+const cardsData = [
+    {
+        icon: VscRobot,
+        title: 'AI-Powered Recommendations',
+        description: 'Get personalized travel suggestions based on your preferences, budget, and travel style.'
+    },
+    {
+        icon: VscMap,
+        title: 'Smart Itineraries',
+        description: 'Create optimized day-by-day itineraries that maximize your time and minimize travel time.'
+    },
+    {
+        icon: VscLightbulb,
+        title: 'Local Insights',
+        description: 'Discover hidden gems and local experiences curated by AI, not just tourist traps.'
+    },
+    {
+        icon: VscFire,
+        title: 'Real-Time Updates',
+        description: 'Get instant updates on weather, events, and travel conditions for your trip.'
+    },
+    {
+        icon: VscLocation,
+        title: 'Interactive Maps',
+        description: 'Explore destinations with detailed maps and location-based recommendations.'
+    },
+    {
+        icon: VscCheck,
+        title: 'Collaborative Planning',
+        description: 'Share plans with friends and family, collect suggestions, and plan together seamlessly.'
+    }
+];
 
 export default function Cards() {
-    const { t } = useTranslation('home');
-
-    const animations = [
-        [aiService, aiDecision, voice],
-        [calendar, clock],
-        [weather, sun, thunder],
-        [map, globe],
-        [alerts, newspaper, tornado],
-        [budget, money],
-        [groupTravel, chat]
-    ];
-
-    // Dynamically get card content from translation file
-    const cardContent = t('features.cards', { returnObjects: true }) || [];
-
-    const [currentIndexes, setCurrentIndexes] = useState(Array(animations.length).fill(0));
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setCurrentIndexes(prevIndexes =>
-                prevIndexes.map((_, i) => (prevIndexes[i] + 1) % animations[i].length)
-            );
-        }, 5000);
-        return () => clearInterval(interval);
-    }, [animations]);
-
     return (
         <div className="cards-container">
-            <div className="title">{t('features.title')}</div>
-            <div className="cards">
-                {cardContent.map((content, i) => (
-                    <div className="card" key={i}>
-                        <div className="lottie-wrapper">
-                            <AnimatePresence mode="wait">
-                                <motion.div
-                                    key={currentIndexes[i]}
-                                    initial={{ x: 100, opacity: 0 }}
-                                    animate={{ x: 0, opacity: 1 }}
-                                    exit={{ x: -100, opacity: 0 }}
-                                    transition={{ duration: 0.8, ease: "easeInOut" }}
-                                    className="lottie-slide"
-                                >
-                                    <Lottie animationData={animations[i][currentIndexes[i]]} loop={true} className="card-lottie" />
-                                </motion.div>
-                            </AnimatePresence>
-                        </div>
-                        <h3>{content.title}</h3>
-                        <p>{content.description}</p>
-                    </div>
+            <div className="cards-title">Why Choose WayMate?</div>
+            <div className="cards-grid">
+                {cardsData.map((card, i) => (
+                    <CardItem key={i} {...card} />
                 ))}
             </div>
         </div>

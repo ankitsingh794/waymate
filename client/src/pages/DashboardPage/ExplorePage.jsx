@@ -4,9 +4,10 @@ import api from '../../utils/axiosInstance';
 import DashboardNavbar from '../../components/DashboardNavbar';
 import './ExplorePage.css';
 
+// Reusable Place Card Component
 const PlaceCard = ({ place }) => {
     const mapsUrl = `https://www.google.com/maps/search/?api=1&query_place_id=$`;
-    const imageUrl = place.imageUrl || 'https://via.placeholder.com/400x300.png?text=Image+Not+Available';;
+    const imageUrl = place.imageUrl || 'https://via.placeholder.com/400x300.png?text=No+Image';
 
     return (
         <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="place-card-link">
@@ -14,15 +15,16 @@ const PlaceCard = ({ place }) => {
                 <img src={imageUrl} alt={place.name} className="place-card-image" loading="lazy" decoding="async" />
                 <div className="place-card-content">
                     <h3>{place.name}</h3>
-                    <p className="place-rating">Rating: {place.rating || 'N/A'}</p>
-                    <p className="place-reason">{place.reason}</p>
-                    <p className="place-address">{place.address}</p>
+                    <div className="place-meta">
+                        <p className="place-rating">★ {place.rating || 'N/A'}</p>
+                        <p className="place-reason">{place.reason}</p>
+                    </div>
+                    <p className="place-address">📍 {place.address}</p>
                 </div>
             </div>
         </a>
     );
 };
-
 
 export default function ExplorePage() {
     const [searchParams] = useSearchParams();
@@ -30,7 +32,6 @@ export default function ExplorePage() {
     const [places, setPlaces] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-
 
     useEffect(() => {
         const fetchPlaces = async (latitude, longitude) => {
@@ -44,13 +45,7 @@ export default function ExplorePage() {
                 const response = await api.get(url);
 
                 const placesData = response.data.data;
-                if (Array.isArray(placesData)) {
-                    setPlaces(placesData);
-                } else {
-                    console.warn('API did not return an array for places, defaulting to empty.');
-                    setPlaces([]);
-                }
-
+                setPlaces(Array.isArray(placesData) ? placesData : []);
             } catch (err) {
                 console.error("Explore page fetch error:", err);
                 setError('Could not fetch results. Please try again later.');
@@ -85,7 +80,7 @@ export default function ExplorePage() {
                 <header className="explore-header">
                     <h1>Explore: <span>{query}</span></h1>
                     <p>Discover top-rated spots near you.</p>
-                    <h6>Note:- Click the card to get directions</h6>
+                    <h6>Click any card to get directions</h6>
                 </header>
 
                 {loading && <p className="loading-message">Searching for the best places...</p>}

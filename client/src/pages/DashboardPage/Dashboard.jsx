@@ -5,8 +5,6 @@ import { VscSearch, VscChevronLeft, VscChevronRight, VscCompass, VscLocation } f
 import DashboardNavbar from '../../components/DashboardNavbar';
 import api from '../../utils/axiosInstance';
 import './Dashboard.css';
-import Lottie from 'lottie-react';
-import CircleLoader from '../../assets/circle-loader.json';
 import { useAuth } from '../../context/AuthContext';
 
 const TripCarousel = ({ title, subtitle, trips }) => {
@@ -254,7 +252,8 @@ export default function Dashboard() {
     if (loading) {
         return (
             <div className="loading-screen">
-                <Lottie animationData={CircleLoader} style={{ width: 150, height: 150 }} />
+                <div className="loading-spinner"></div>
+                <p>Loading your dashboard...</p>
             </div>
         );
     }

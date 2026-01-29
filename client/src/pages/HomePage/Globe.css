@@ -1,0 +1,177 @@
+/* ============================================
+   GLOBE COMPONENT - CLEAN & MODERN
+   ============================================ */
+
+:root {
+    --ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.globe-container {
+    width: 100%;
+    background: linear-gradient(135deg, var(--color-background) 0%, #f5f7ff 100%);
+    padding: var(--space-3xl) var(--space-xl);
+}
+
+.globe-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3xl);
+    align-items: center;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: var(--space-3xl) var(--space-xl);
+}
+
+.globe-text {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+}
+
+.globe-text h2 {
+    font-size: clamp(2rem, 5vw, 2.5rem);
+    font-weight: 800;
+    margin: 0;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.2;
+}
+
+.globe-text p {
+    font-size: 1.1rem;
+    color: var(--color-text-secondary);
+    margin: 0;
+    line-height: 1.6;
+    max-width: 500px;
+}
+
+.globe-visual {
+    position: relative;
+    height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.globe-sphere {
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, var(--color-primary-light), var(--color-primary));
+    position: relative;
+    box-shadow: 0 30px 60px rgba(237, 107, 126, 0.2);
+    animation: float 6s ease-in-out infinite;
+}
+
+.globe-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotateX(70deg);
+    width: 350px;
+    height: 60px;
+    border: 2px solid rgba(107, 163, 118, 0.3);
+    border-radius: 50%;
+    animation: spin 20s linear infinite;
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-30px);
+    }
+}
+
+@keyframes spin {
+    from {
+        transform: translate(-50%, -50%) rotateX(70deg) rotateZ(0deg);
+    }
+    to {
+        transform: translate(-50%, -50%) rotateX(70deg) rotateZ(360deg);
+    }
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+@media (max-width: 1024px) {
+    .globe-content {
+        grid-template-columns: 1fr;
+        gap: var(--space-2xl);
+        padding: var(--space-2xl) var(--space-xl);
+    }
+
+    .globe-visual {
+        height: 350px;
+    }
+
+    .globe-sphere {
+        width: 250px;
+        height: 250px;
+    }
+
+    .globe-ring {
+        width: 300px;
+    }
+}
+
+@media (max-width: 768px) {
+    .globe-content {
+        gap: var(--space-2xl);
+        padding: var(--space-2xl) var(--space-lg);
+    }
+
+    .globe-text h2 {
+        font-size: 1.75rem;
+    }
+
+    .globe-text p {
+        font-size: 1rem;
+    }
+
+    .globe-visual {
+        height: 300px;
+    }
+
+    .globe-sphere {
+        width: 200px;
+        height: 200px;
+    }
+
+    .globe-ring {
+        width: 240px;
+    }
+}
+
+@media (max-width: 480px) {
+    .globe-content {
+        gap: var(--space-xl);
+        padding: var(--space-xl) var(--space-md);
+    }
+
+    .globe-text h2 {
+        font-size: 1.5rem;
+    }
+
+    .globe-text p {
+        font-size: 0.95rem;
+    }
+
+    .globe-visual {
+        height: 250px;
+    }
+
+    .globe-sphere {
+        width: 160px;
+        height: 160px;
+    }
+
+    .globe-ring {
+        width: 190px;
+    }
+}
