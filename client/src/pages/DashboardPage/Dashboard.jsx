@@ -56,7 +56,44 @@ const CONSENT_LABELS = {
 };
 
 function parseTripResponse(response) {
-  return response?.data?.data?.data?.data || [];
+  const directData = response?.data?.data?.data;
+  if (Array.isArray(directData)) return directData;
+
+  const nestedData = response?.data?.data?.data?.data;
+  if (Array.isArray(nestedData)) return nestedData;
+
+  return [];
+}
+
+function splitTripsByLifecycle(trips) {
+  const ongoing = [];
+  const upcoming = [];
+  const completed = [];
+
+  trips.forEach((trip) => {
+    const state = inferTripState(trip);
+
+    if (state === 'ongoing') {
+      ongoing.push(trip);
+      return;
+    }
+
+    if (state === 'completed' || state === 'canceled') {
+      completed.push(trip);
+      return;
+    }
+
+    upcoming.push(trip);
+  });
+
+  const byAsc = (a, b) => new Date(a?.startDate || 0) - new Date(b?.startDate || 0);
+  const byDesc = (a, b) => new Date(b?.startDate || 0) - new Date(a?.startDate || 0);
+
+  return {
+    ongoing: [...ongoing].sort(byAsc),
+    upcoming: [...upcoming].sort(byAsc),
+    completed: [...completed].sort(byDesc),
+  };
 }
 
 function formatDate(dateValue) {
@@ -363,9 +400,7 @@ export default function Dashboard() {
       try {
         const requests = {
           profile: api.get('/users/profile'),
-          ongoing: api.get('/trips?status=ongoing&limit=12'),
-          planned: api.get('/trips?status=planned&limit=12'),
-          completed: api.get('/trips?status=completed&limit=12'),
+          trips: api.get('/trips?limit=100&page=1'),
           notifications: api.get('/notifications?limit=6'),
           household: api.get('/households/my-household'),
           survey: api.get('/surveys/my-data'),
@@ -392,9 +427,7 @@ export default function Dashboard() {
         };
 
         const parsedProfile = pickValue('profile', (response) => response?.data?.data || null, null);
-        const parsedOngoing = pickValue('ongoing', parseTripResponse, []);
-        const parsedUpcoming = pickValue('planned', parseTripResponse, []);
-        const parsedCompleted = pickValue('completed', parseTripResponse, []);
+        const parsedTrips = pickValue('trips', parseTripResponse, []);
         const parsedNotifications = pickValue(
           'notifications',
           (response) => response?.data?.data?.notifications || [],
@@ -407,6 +440,11 @@ export default function Dashboard() {
           (response) => response?.data?.data?.sessions || [],
           []
         );
+
+        const categorizedTrips = splitTripsByLifecycle(parsedTrips);
+        const parsedOngoing = categorizedTrips.ongoing.slice(0, 12);
+        const parsedUpcoming = categorizedTrips.upcoming.slice(0, 12);
+        const parsedCompleted = categorizedTrips.completed.slice(0, 12);
 
         setProfileData(parsedProfile);
         setOngoingTrips(parsedOngoing);

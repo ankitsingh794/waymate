@@ -1,520 +1,721 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { VscArrowLeft, VscSparkle, VscLoading, VscCalendar, VscTag, VscError } from "react-icons/vsc";
-import { IoMdSend } from "react-icons/io";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { IoMdSend } from 'react-icons/io';
+import {
+  VscArrowLeft,
+  VscCalendar,
+  VscCheck,
+  VscError,
+  VscInfo,
+  VscLoading,
+  VscLocation,
+  VscRobot,
+  VscSparkle,
+  VscTag,
+  VscTrash,
+} from 'react-icons/vsc';
 import api from '../../utils/axiosInstance';
-import './AIAssistant.css';
-import { getSocket } from '../../utils/socketManager';
 import { useAuth } from '../../context/AuthContext';
-import ReactMarkdown from 'react-markdown';
+import { getSocket } from '../../utils/socketManager';
+import './AIAssistant.css';
 
-const COLORS = {
-    primary: '#edafb8',
-    secondary: '#f7e1d7',
-    background: '#dedbd2',
-    accent: '#b0c4b1',
-    text: '#4a5759',
-};
+const PAGE_SIZE = 30;
 
-const useGeolocation = () => {
-    const [location, setLocation] = useState(null);
-    const [error, setError] = useState(null);
+const DEFAULT_PROMPTS = [
+  'Plan a 5-day trip to Paris in spring.',
+  'Create a weekend itinerary for Bengaluru with food and culture.',
+  'Estimate budget for a 4-day family trip to Jaipur.',
+  'Find hidden gems and cafes near me.',
+  'What should I pack for a monsoon trip?',
+];
 
-    useEffect(() => {
-        if (!navigator.geolocation) {
-            setError('Geolocation is not supported by your browser.');
-            return;
-        }
-        const handleSuccess = (position) => {
-            setLocation({ lat: position.coords.latitude, lon: position.coords.longitude });
-        };
-        const handleError = (error) => {
-            setError(`Error getting location: ${error.message}`);
-        };
-        navigator.geolocation.getCurrentPosition(handleSuccess, handleError);
-    }, []);
+const QUERY_LIBRARY = [
+  'Plan a 5-day trip to ',
+  'Create a weekend getaway itinerary for ',
+  'Find budget hotels in ',
+  'What local food should I try in ',
+  'Suggest top restaurants in ',
+  'Find hidden gems in ',
+  'Get weather forecast for ',
+  'Are there any travel alerts for ',
+  'Get a packing checklist for ',
+  '/clear',
+  '/help',
+];
 
-    return { location, error };
-};
+const HELP_MESSAGE = `
+### WayMate AI Assistant
 
-const Navbar = () => {
-    const { t } = useTranslation('aiAssistant');
-    return (
-        <nav className="ai-nav" style={{ backgroundColor: COLORS.secondary }}>
-            <div className="ai-nav-content">
-                <Link to="/dashboard" className="ai-nav-back" style={{ color: COLORS.text }}>
-                    <VscArrowLeft />
-                    <span>{t('exit')}</span>
-                </Link>
-                <div className="ai-nav-title">
-                    <VscSparkle style={{ color: COLORS.primary }} />
-                    <h2>{t('title')}</h2>
-                </div>
-                <div className="ai-nav-placeholder"></div>
-            </div>
-        </nav>
-    );
-};
+Here is what I can help you with right now:
 
-const MessageBubble = ({ msg, prevMsg, nextMsg }) => {
-    const { user } = useAuth();
+- **Trip Planning**: Full multi-day itineraries with practical structure
+- **Destination Discovery**: Attractions, food spots, and local ideas
+- **Travel Advice**: Timing, packing, and destination tips
+- **Budget Estimation**: Quick travel budget approximations
 
-    if (msg.summary) {
-        return (
-            <div className="trip-card-wrapper">
-                <TripSummaryCard summary={msg.summary} />
-            </div>
-        );
-    }
+#### Commands
 
+- \`/help\` -> Show this help message
+- \`/clear\` -> Clear your AI conversation history
 
-    const isUser = msg.sender === user?._id || msg.type === 'user';
-    const senderInitial = user?.name ? user.name.charAt(0).toUpperCase() : 'U';
-    const isSameSenderAsNext = nextMsg && nextMsg.sender === msg.sender;
-    const isSameSenderAsPrev = prevMsg && prevMsg.sender === msg.sender;
-
-    const showAvatar = !isSameSenderAsNext;
-
-    let bubblePosClass = '';
-    if (isSameSenderAsPrev && isSameSenderAsNext) bubblePosClass = 'middle';
-    else if (isSameSenderAsPrev) bubblePosClass = 'last';
-    else if (isSameSenderAsNext) bubblePosClass = 'first';
-
-    const wrapperClass = isUser ? 'message-bubble-wrapper user-message' : 'message-bubble-wrapper ai-message';
-
-    return (
-        <div className={wrapperClass}>
-            <div className="avatar-container">
-                {showAvatar && (
-                    <div className={`avatar ${isUser ? 'user-avatar' : 'ai-avatar'}`}>
-                        {isUser ? senderInitial : <VscSparkle />}
-                    </div>
-                )}
-            </div>
-            <div className="message-content">
-                <div className={`message-bubble ${bubblePosClass}`}>
-                    {msg.isError ? (
-                        <span className="error-message"><VscError /> Error: {msg.text}</span>
-                    ) : (
-                        <ReactMarkdown>{msg.text}</ReactMarkdown>
-                    )}
-                </div>
-                {!isSameSenderAsNext && (
-                    <div className="message-timestamp">
-                        {new Date(msg.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-};
-
-const TripSummaryCard = ({ summary }) => {
-    const { t } = useTranslation('dashboard');
-
-    const formatDateRange = (start, end) => {
-        const startDate = new Date(start);
-        const endDate = new Date(end);
-        const startMonth = startDate.toLocaleString('default', { month: 'short' });
-        const endMonth = endDate.toLocaleString('default', { month: 'short' });
-
-        if (startMonth === endMonth) {
-            return `${startMonth} ${startDate.getDate()} - ${endDate.getDate()}, ${endDate.getFullYear()}`;
-        }
-        return `${startMonth} ${startDate.getDate()} - ${endMonth} ${endDate.getDate()}, ${endDate.getFullYear()}`;
-    };
-
-    const calculateDuration = (start, end) => {
-        const oneDay = 1000 * 60 * 60 * 24;
-        const duration = Math.round(Math.abs((new Date(end) - new Date(start)) / oneDay)) + 1;
-        return `${duration}-Day Trip`;
-    };
-
-    return (
-        <div className="trip-summary-card" style={{ backgroundImage: `url(${summary.coverImage})` }}>
-            <div className="trip-summary-overlay-content">
-                <div className="trip-summary-header">
-                    <h4 className="trip-summary-title">{summary.destinationName}</h4>
-                    <p className="trip-summary-duration">{calculateDuration(summary.dates.start, summary.dates.end)}</p>
-                </div>
-
-                <div className="trip-summary-details">
-                    <p><VscCalendar /> {formatDateRange(summary.dates.start, summary.dates.end)}</p>
-                </div>
-
-                {summary.highlights && summary.highlights.length > 0 && (
-                    <div className="trip-summary-highlights">
-                        <VscTag />
-                        <span>{summary.highlights.slice(0, 2).join(' • ')}</span>
-                    </div>
-                )}
-
-                <Link to={`/trip/${summary._id}`} className="view-trip-button">{t('viewTrip')}</Link>
-            </div>
-        </div>
-    );
-};
-
-const StatusBar = ({ text }) => (
-    <div className="status-update-bar">
-        <VscLoading className="spinner" />
-        <span>{text}</span>
-    </div>
-);
-
-const ChatWindow = ({ userLocation }) => {
-    const { t } = useTranslation('aiAssistant');
-    const [sessionId, setSessionId] = useState(null);
-    const [messages, setMessages] = useState([]);
-    const [inputValue, setInputValue] = useState('');
-    const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
-    const [isLoadingHistory, setIsLoadingHistory] = useState(true);
-    const messagesEndRef = useRef(null);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [hasMoreHistory, setHasMoreHistory] = useState(true);
-    const [isLoadingMore, setIsLoadingMore] = useState(false);
-    const [statusUpdate, setStatusUpdate] = useState(null);
-    const messagesContainerRef = useRef(null);
-    const inputRef = useRef(null);
-
-    const [suggestions, setSuggestions] = useState([]);
-    const [allQueries] = useState([
-        "Plan a 5-day trip to ",
-        "Create a weekend getaway itinerary for ",
-        "Find budget hotels in ",
-        "What local food should I try in ",
-        "Suggest top restaurants in ",
-        "Find hidden gems in ",
-        "Get weather forecast for ",
-        "Are there any travel alerts for ",
-        "Get a packing checklist for ",
-        "/clear",
-        "/help",
-    ]);
-
-    const handleInputChange = (e) => {
-        const value = e.target.value;
-        setInputValue(value);
-
-        if (value.length > 0) {
-            const filtered = allQueries.filter(q =>
-                q.toLowerCase().includes(value.toLowerCase())
-            );
-            setSuggestions(filtered);
-        } else {
-            setSuggestions([]);
-        }
-    };
-
-    const handleSuggestionClick = (suggestion) => {
-        setInputValue(suggestion);
-        setSuggestions([]);
-    };
-
-    const scrollToBottom = (behavior = "smooth") => {
-        messagesEndRef.current?.scrollIntoView({ behavior });
-    };
-
-    const fetchHistory = useCallback(async (currentSessionId, pageToFetch = 1) => {
-        if (!currentSessionId) return;
-
-        if (pageToFetch > 1) {
-            setIsLoadingMore(true);
-        } else {
-            setIsLoadingHistory(true);
-        }
-
-        try {
-            const response = await api.get(`/messages/session/${currentSessionId}?page=${pageToFetch}&limit=30`);
-            const { messages: fetchedMessages, currentPage, totalPages } = response.data.data;
-
-            if (fetchedMessages.length > 0) {
-                const previousScrollHeight = messagesContainerRef.current?.scrollHeight || 0;
-
-                if (pageToFetch > 1) {
-                    setMessages(prev => [...fetchedMessages, ...prev]);
-                    requestAnimationFrame(() => {
-                        if (messagesContainerRef.current) {
-                            messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight - previousScrollHeight;
-                        }
-                    });
-                } else {
-                    setMessages(fetchedMessages);
-                }
-            } else if (pageToFetch === 1) {
-                setMessages([{ id: crypto.randomUUID(), sender: 'ai', text: t('initialMessage') }]);
-            }
-
-            setHasMoreHistory(currentPage < totalPages);
-
-        } catch (error) {
-            console.error("Failed to fetch chat history:", error);
-            setMessages([{ id: crypto.randomUUID(), text: t('historyError'), sender: 'ai', isError: true }]);
-        } finally {
-            setIsLoadingHistory(false);
-            setIsLoadingMore(false);
-        }
-    }, [t]);
-
-    const HELP_MESSAGE = `
-Hello! I'm your Waymate AI Assistant. Here's a quick guide to what I can do for you.
-
-### Core Features
-* **Plan a Trip:** Start planning a multi-day trip from scratch. Just tell me where and when you want to go!
-    > _"Plan a 5-day adventure trip to Rishikesh next month"_
-* **Find a Place:** Look for local spots, activities, or restaurants.
-    > _"Find a romantic cafe near me for a date"_
-* **Get Travel Advice:** Ask general travel questions before you plan.
-    > _"What is the best time of year to visit Kerala?"_
-* **Estimate a Budget:** Get a quick cost estimate for a potential trip.
-    > _"How much would a 3-day luxury trip to Udaipur cost?"_
-
-### Available Commands
-* \`/help\` - Shows this help message.
-* \`/clear\` - Clears your conversation history. **Use this when your previous chat isn't needed for new plans to help keep things fast and efficient.**
-
-### Important Tips
-* **Be Specific!** The more details you provide in your first message (like budget, vibe, and interests), the faster I can create your personalized plan.
-* **Use Your Location:** The "Find a Place" feature uses your device's current location for searches like "near me".
-* **Editing Trips:** To make changes to a trip I've already created, please use the dedicated group chat for that trip.
+Tip: If you include destination, duration, budget, and vibe in your first prompt, I can produce much better plans quickly.
 `;
 
-    // --- Effect 1: Get the session ID on initial mount ---
-    useEffect(() => {
-        const getAiSession = async () => {
-            try {
-                const response = await api.post('/chat/sessions/ai');
-                const newSessionId = response.data.data.sessionId;
-                setSessionId(newSessionId);
-            } catch (error) {
-                console.error("Could not get AI chat session:", error);
-                setMessages([{ id: crypto.randomUUID(), text: t('errorMessage'), sender: 'ai', isError: true }]);
-                setIsLoadingHistory(false);
-            }
-        };
-        getAiSession();
-    }, []);
+function createTempId() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
 
-    useEffect(() => {
-        if (!isLoadingHistory && inputRef.current) {
-            inputRef.current.focus();
-        }
-    }, [isLoadingHistory]);
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
 
-    useEffect(() => {
-        if (sessionId) {
-            fetchHistory(sessionId);
-        }
-    }, [sessionId, fetchHistory]);
+function useGeolocation() {
+  const [location, setLocation] = useState(null);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
 
-    // --- Effect 2: React to the session ID once it's available ---
-    useEffect(() => {
-        if (sessionId) {
-            const socket = getSocket();
-            if (socket) {
-                socket.emit('joinSession', sessionId);
-
-                const handleNewMessage = (message) => {
-                    if (message.chatSession === sessionId) {
-                        setIsWaitingForResponse(false);
-                        setMessages(prev => {
-                            if (prev.some(msg => msg._id === message._id)) return prev;
-                            return [...prev, message];
-                        });
-                    }
-                };
-
-                const handleTripCreated = (data) => {
-                    setStatusUpdate(null);
-                    const tripCreatedMessage = {
-                        id: crypto.randomUUID(),
-                        sender: 'ai', type: 'system',
-                        summary: data.summary
-                    };
-                    setMessages(prev => [...prev, tripCreatedMessage]);
-                };
-
-                const handleStatusUpdate = (data) => {
-                    setStatusUpdate(data.text);
-                };
-
-                const handleTripCreationError = (data) => {
-                    setStatusUpdate(null);
-                    const errorMessage = {
-                        id: crypto.randomUUID(),
-                        text: data.reply,
-                        sender: 'ai',
-                        type: 'system',
-                        isError: true
-                    };
-                    setMessages(prev => [...prev, errorMessage]);
-                };
-
-                socket.on('newMessage', handleNewMessage);
-                socket.on('statusUpdate', handleStatusUpdate);
-                socket.on('tripCreated', handleTripCreated);
-                socket.on('tripCreationError', handleTripCreationError);
-
-                return () => {
-                    socket.emit('leaveSession', sessionId);
-                    socket.off('newMessage', handleNewMessage);
-                    socket.off('statusUpdate', handleStatusUpdate);
-                    socket.off('tripCreated', handleTripCreated);
-                    socket.off('tripCreationError', handleTripCreationError);
-                };
-            }
-        }
-    }, [sessionId]);
-
-    useEffect(() => {
-        if (!isLoadingMore) {
-            scrollToBottom();
-        }
-    }, [messages, isLoadingMore]);
-
-    const handleScroll = async () => {
-        const container = messagesContainerRef.current;
-        if (!container) return;
-
-        if (container.scrollTop === 0 && hasMoreHistory && !isLoadingMore) {
-            const nextPage = currentPage + 1;
-            setCurrentPage(nextPage);
-            await fetchHistory(sessionId, nextPage);
-        }
-    };
-
-
-    const handleSendMessage = async (e) => {
-        e.preventDefault();
-        const trimmedInput = inputValue.trim();
-
-        if (trimmedInput === '' || isWaitingForResponse) return;
-
-        setSuggestions([]);
-
-        if (trimmedInput === '/help') {
-            const helpMessage = {
-                id: crypto.randomUUID(),
-                sender: 'ai',
-                type: 'system',
-                text: HELP_MESSAGE,
-            };
-            setMessages(prev => [...prev, helpMessage]);
-            setInputValue('');
-            return;
-        }
-
-
-        if (trimmedInput === '/clear') {
-            try {
-                setIsLoadingHistory(true);
-                await api.post('/chat/sessions/ai/clear');
-                setMessages([{ id: crypto.randomUUID(), sender: 'ai', text: t('initialMessage') }]);
-            } catch (error) {
-                console.error("Failed to clear chat history:", error);
-                setMessages(prev => [...prev, { id: crypto.randomUUID(), text: 'Error: Could not clear history.', sender: 'ai', isError: true }]);
-            } finally {
-                setInputValue('');
-                setIsLoadingHistory(false);
-            }
-            return;
-        }
-        const currentInput = inputValue;
-        setInputValue('');
-        setIsWaitingForResponse(true);
-        try {
-            await api.post('/chat/message/ai', {
-                message: currentInput,
-                sessionId,
-                origin: userLocation
-            });
-        } catch (error) {
-            console.error("Error sending message to AI:", error);
-            const errorResponse = { id: crypto.randomUUID(), text: t('errorMessage'), sender: 'ai', isError: true };
-            setMessages(prev => [...prev, errorResponse]);
-            setIsWaitingForResponse(false);
-        }
-    };
-
-    return (
-        <div className="chat-window">
-            <div className="messages-container" ref={messagesContainerRef} onScroll={handleScroll}>
-                {isLoadingHistory ? (
-                    <div className="history-loader">Loading chat...</div>
-                ) : (
-                    <>
-                        {isLoadingMore && <div className="history-loader">Loading more...</div>}
-
-                        {messages.map((msg, index) => (
-                            <MessageBubble
-                                msg={msg}
-                                key={msg._id || msg.id}
-                                prevMsg={messages[index - 1]}
-                                nextMsg={messages[index + 1]}
-                            />
-                        ))}
-                    </>
-                )}
-                <div ref={messagesEndRef} />
-            </div>
-            {statusUpdate && <StatusBar text={statusUpdate} />}
-            <form className="chat-input-form" onSubmit={handleSendMessage}>
-                {suggestions.length > 0 && (
-                    <div className="suggestions-box">
-                        {suggestions.slice(0, 8).map((suggestion, index) => (
-                            <div
-                                key={index}
-                                className="suggestion-item"
-                                onClick={() => handleSuggestionClick(suggestion)}
-                            >
-                                {suggestion}
-                            </div>
-                        ))}
-                    </div>
-                )}
-                <input
-                    ref={inputRef}
-                    type="text"
-                    className="chat-input"
-                    spellCheck="true"
-                    placeholder={t('inputPlaceholder')}
-                    value={inputValue}
-                    onChange={handleInputChange}
-                    disabled={isLoadingHistory || isWaitingForResponse}
-                    autoComplete="off"
-                />
-
-
-                <button
-                    type="submit"
-                    className="send-button"
-                    style={{ backgroundColor: COLORS.text }}
-                    disabled={isLoadingHistory || isWaitingForResponse || inputValue.trim() === ''}
-                >
-                    <IoMdSend />
-                </button>
-            </form>
-        </div>
-    );
-};
-
-export default function AIAssistantPage() {
-    const { location, error: geoError } = useGeolocation();
-    const { loading: authLoading } = useAuth();
-
-    useEffect(() => {
-        if (geoError) console.warn("Geolocation Error:", geoError);
-    }, [geoError]);
-
-    if (authLoading) {
-        return <div style={{ display: 'grid', placeItems: 'center', height: '100vh' }}>Loading session...</div>;
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setError('Geolocation not supported in this browser.');
+      setLoading(false);
+      return;
     }
 
-    return (
-        <div className="ai-assistant-page" style={{ backgroundColor: COLORS.background }}>
-            <Navbar />
-            <ChatWindow userLocation={location} />
-        </div>
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocation({
+          lat: position.coords.latitude,
+          lon: position.coords.longitude,
+        });
+        setLoading(false);
+      },
+      (geoError) => {
+        setError(geoError.message || 'Could not fetch location.');
+        setLoading(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 120000,
+      }
     );
+  }, []);
+
+  return { location, error, loading };
+}
+
+function AssistantHeader() {
+  const { t } = useTranslation('aiAssistant');
+
+  return (
+    <header className="ai-assistant-header">
+      <div className="ai-header-shell">
+        <Link to="/dashboard" className="ai-back-link">
+          <VscArrowLeft />
+          <span>{t('exit')}</span>
+        </Link>
+
+        <div className="ai-header-title">
+          <VscSparkle />
+          <div>
+            <h1>{t('title')}</h1>
+            <p>Plan faster with real-time AI trip assistance</p>
+          </div>
+        </div>
+
+        <span className="ai-header-status">Live</span>
+      </div>
+    </header>
+  );
+}
+
+function TripSummaryCard({ summary }) {
+  const formatDateRange = (start, end) => {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return 'Date unavailable';
+
+    return `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`;
+  };
+
+  const calculateDuration = (start, end) => {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return 'Trip';
+
+    const oneDay = 1000 * 60 * 60 * 24;
+    const duration = Math.max(1, Math.round((endDate - startDate) / oneDay) + 1);
+    return `${duration}-day trip`;
+  };
+
+  return (
+    <article className="ai-trip-summary-card" style={{ backgroundImage: `url(${summary.coverImage})` }}>
+      <div className="ai-trip-summary-overlay">
+        <div className="ai-trip-summary-head">
+          <h3>{summary.destinationName || 'New trip'}</h3>
+          <span>{calculateDuration(summary.dates?.start, summary.dates?.end)}</span>
+        </div>
+
+        <p>
+          <VscCalendar /> {formatDateRange(summary.dates?.start, summary.dates?.end)}
+        </p>
+
+        {summary.highlights?.length > 0 && (
+          <div className="ai-trip-summary-tags">
+            <VscTag />
+            <span>{summary.highlights.slice(0, 2).join(' • ')}</span>
+          </div>
+        )}
+
+        <Link to={`/trip/${summary._id}`} className="ai-trip-summary-link">
+          View trip
+        </Link>
+      </div>
+    </article>
+  );
+}
+
+function MessageBubble({ message, prevMessage, nextMessage, currentUserId }) {
+  if (message.summary) {
+    return (
+      <div className="ai-system-row">
+        <TripSummaryCard summary={message.summary} />
+      </div>
+    );
+  }
+
+  const senderId = typeof message.sender === 'string' ? message.sender : message.sender?._id;
+  const currentSenderKey = senderId || message.type || 'system';
+  const prevSenderId = typeof prevMessage?.sender === 'string' ? prevMessage?.sender : prevMessage?.sender?._id;
+  const nextSenderId = typeof nextMessage?.sender === 'string' ? nextMessage?.sender : nextMessage?.sender?._id;
+  const prevSenderKey = prevSenderId || prevMessage?.type || 'system';
+  const nextSenderKey = nextSenderId || nextMessage?.type || 'system';
+
+  const isUser = message.type === 'user' || senderId === currentUserId;
+  const isFirstInGroup = !prevMessage || prevSenderKey !== currentSenderKey;
+  const isLastInGroup = !nextMessage || nextSenderKey !== currentSenderKey;
+
+  const timeLabel = new Date(message.createdAt || Date.now()).toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  return (
+    <div className={`ai-message-row ${isUser ? 'is-user' : 'is-assistant'}`}>
+      <div className="ai-avatar-slot">
+        {isLastInGroup && (
+          <span className={`ai-avatar ${isUser ? 'is-user' : 'is-assistant'}`}>
+            {isUser ? 'U' : <VscSparkle />}
+          </span>
+        )}
+      </div>
+
+      <div className="ai-message-stack">
+        <article
+          className={`ai-message-bubble ${
+            isFirstInGroup && isLastInGroup ? 'is-single' : isFirstInGroup ? 'is-first' : isLastInGroup ? 'is-last' : 'is-middle'
+          } ${message.isError ? 'is-error' : ''}`}
+        >
+          {message.isError ? (
+            <p className="ai-error-line">
+              <VscError /> {message.text}
+            </p>
+          ) : (
+            <ReactMarkdown>{message.text || ''}</ReactMarkdown>
+          )}
+        </article>
+
+        {isLastInGroup && <span className="ai-message-time">{timeLabel}</span>}
+      </div>
+    </div>
+  );
+}
+
+function StatusBar({ text }) {
+  return (
+    <div className="ai-status-bar">
+      <VscLoading className="ai-spin" />
+      <span>{text}</span>
+    </div>
+  );
+}
+
+function ChatWorkspace({ userLocation, geoError, geoLoading }) {
+  const { t } = useTranslation('aiAssistant');
+  const { user } = useAuth();
+
+  const [sessionId, setSessionId] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [inputValue, setInputValue] = useState('');
+
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
+
+  const [statusUpdate, setStatusUpdate] = useState('');
+  const [historyPage, setHistoryPage] = useState(1);
+  const [hasMoreHistory, setHasMoreHistory] = useState(true);
+
+  const [inlineNotice, setInlineNotice] = useState('');
+
+  const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
+  const inputRef = useRef(null);
+
+  const promptSuggestions = useMemo(() => {
+    const query = inputValue.trim().toLowerCase();
+    if (!query) return [];
+
+    return QUERY_LIBRARY.filter((item) => item.toLowerCase().includes(query)).slice(0, 8);
+  }, [inputValue]);
+
+  const pushLocalMessage = useCallback((payload) => {
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: createTempId(),
+        createdAt: new Date().toISOString(),
+        ...payload,
+      },
+    ]);
+  }, []);
+
+  const scrollToBottom = useCallback((behavior = 'smooth') => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
+  }, []);
+
+  const fetchHistory = useCallback(
+    async (targetSessionId, page = 1) => {
+      if (!targetSessionId) return;
+
+      if (page > 1) {
+        setIsLoadingMore(true);
+      } else {
+        setIsLoadingHistory(true);
+      }
+
+      try {
+        const response = await api.get(`/messages/session/${targetSessionId}?page=${page}&limit=${PAGE_SIZE}`);
+        const payload = response?.data?.data || {};
+
+        const fetchedMessages = Array.isArray(payload.messages) ? payload.messages : [];
+        const currentPage = Number(payload.currentPage) || page;
+        const totalPages = Number(payload.totalPages) || currentPage;
+
+        if (fetchedMessages.length === 0 && page === 1) {
+          setMessages([
+            {
+              id: createTempId(),
+              sender: 'ai',
+              type: 'ai',
+              text: t('initialMessage'),
+              createdAt: new Date().toISOString(),
+            },
+          ]);
+          setHasMoreHistory(false);
+          setHistoryPage(1);
+          return;
+        }
+
+        if (page > 1) {
+          const previousHeight = messagesContainerRef.current?.scrollHeight || 0;
+          setMessages((prev) => [...fetchedMessages, ...prev]);
+
+          requestAnimationFrame(() => {
+            if (!messagesContainerRef.current) return;
+            const nextHeight = messagesContainerRef.current.scrollHeight;
+            messagesContainerRef.current.scrollTop = nextHeight - previousHeight;
+          });
+        } else {
+          setMessages(fetchedMessages);
+          requestAnimationFrame(() => scrollToBottom('auto'));
+        }
+
+        setHistoryPage(currentPage);
+        setHasMoreHistory(currentPage < totalPages);
+      } catch {
+        setMessages([
+          {
+            id: createTempId(),
+            sender: 'ai',
+            type: 'ai',
+            text: t('historyError', { defaultValue: 'Could not load message history.' }),
+            isError: true,
+            createdAt: new Date().toISOString(),
+          },
+        ]);
+        setHasMoreHistory(false);
+      } finally {
+        setIsLoadingHistory(false);
+        setIsLoadingMore(false);
+      }
+    },
+    [scrollToBottom, t]
+  );
+
+  const sendCommand = useCallback(
+    async (command) => {
+      if (command === '/help') {
+        pushLocalMessage({ sender: 'ai', type: 'system', text: HELP_MESSAGE });
+        return;
+      }
+
+      if (command === '/clear') {
+        try {
+          setIsLoadingHistory(true);
+          await api.post('/chat/sessions/ai/clear');
+          setMessages([
+            {
+              id: createTempId(),
+              sender: 'ai',
+              type: 'ai',
+              text: t('initialMessage'),
+              createdAt: new Date().toISOString(),
+            },
+          ]);
+          setInlineNotice('Conversation cleared.');
+        } catch {
+          pushLocalMessage({
+            sender: 'ai',
+            type: 'system',
+            text: t('errorMessage', { defaultValue: 'Something went wrong.' }),
+            isError: true,
+          });
+        } finally {
+          setIsLoadingHistory(false);
+        }
+      }
+    },
+    [pushLocalMessage, t]
+  );
+
+  const submitPrompt = useCallback(
+    async (rawText) => {
+      const text = rawText.trim();
+      const isCommand = text === '/help' || text === '/clear';
+      if (!text || isWaitingForResponse) return;
+      if (!sessionId && !isCommand) return;
+
+      setInputValue('');
+      setInlineNotice('');
+
+      if (isCommand) {
+        await sendCommand(text);
+        return;
+      }
+
+      try {
+        setIsWaitingForResponse(true);
+        await api.post(`/chat/message/ai/${sessionId}`, {
+          message: text,
+          origin: userLocation || undefined,
+        });
+      } catch {
+        pushLocalMessage({
+          sender: 'ai',
+          type: 'system',
+          text: t('errorMessage', { defaultValue: 'Failed to send your message.' }),
+          isError: true,
+        });
+        setIsWaitingForResponse(false);
+      }
+    },
+    [isWaitingForResponse, pushLocalMessage, sendCommand, sessionId, t, userLocation]
+  );
+
+  useEffect(() => {
+    let mounted = true;
+
+    const initializeSession = async () => {
+      try {
+        const response = await api.post('/chat/sessions/ai');
+        const id = response?.data?.data?.sessionId;
+        if (mounted) {
+          setSessionId(id || null);
+        }
+      } catch {
+        if (mounted) {
+          setMessages([
+            {
+              id: createTempId(),
+              sender: 'ai',
+              type: 'system',
+              text: t('errorMessage', { defaultValue: 'Could not initialize assistant session.' }),
+              isError: true,
+              createdAt: new Date().toISOString(),
+            },
+          ]);
+          setIsLoadingHistory(false);
+        }
+      }
+    };
+
+    initializeSession();
+
+    return () => {
+      mounted = false;
+    };
+  }, [t]);
+
+  useEffect(() => {
+    if (!sessionId) return;
+    setHistoryPage(1);
+    setHasMoreHistory(true);
+    fetchHistory(sessionId, 1);
+  }, [fetchHistory, sessionId]);
+
+  useEffect(() => {
+    if (isLoadingHistory || !inputRef.current) return;
+    inputRef.current.focus();
+  }, [isLoadingHistory]);
+
+  useEffect(() => {
+    if (!sessionId) return;
+
+    const socket = getSocket();
+    if (!socket) return;
+
+    socket.emit('joinSession', sessionId);
+
+    const handleNewMessage = (message) => {
+      const incomingSession = String(message?.chatSession || '');
+      if (incomingSession && incomingSession !== String(sessionId)) return;
+
+      setMessages((prev) => {
+        if (prev.some((item) => item._id && item._id === message._id)) return prev;
+        return [...prev, message];
+      });
+
+      setIsWaitingForResponse(false);
+    };
+
+    const handleStatusUpdate = (payload) => {
+      setStatusUpdate(payload?.text || 'Processing your request...');
+    };
+
+    const handleTripCreated = (payload) => {
+      setStatusUpdate('');
+      pushLocalMessage({ sender: 'ai', type: 'system', summary: payload?.summary });
+      setIsWaitingForResponse(false);
+    };
+
+    const handleTripCreationError = (payload) => {
+      setStatusUpdate('');
+      pushLocalMessage({
+        sender: 'ai',
+        type: 'system',
+        text: payload?.reply || 'Trip creation failed. Please try again.',
+        isError: true,
+      });
+      setIsWaitingForResponse(false);
+    };
+
+    socket.on('newMessage', handleNewMessage);
+    socket.on('statusUpdate', handleStatusUpdate);
+    socket.on('tripCreated', handleTripCreated);
+    socket.on('tripCreationError', handleTripCreationError);
+
+    return () => {
+      socket.emit('leaveSession', sessionId);
+      socket.off('newMessage', handleNewMessage);
+      socket.off('statusUpdate', handleStatusUpdate);
+      socket.off('tripCreated', handleTripCreated);
+      socket.off('tripCreationError', handleTripCreationError);
+    };
+  }, [pushLocalMessage, sessionId]);
+
+  useEffect(() => {
+    if (isLoadingMore) return;
+    scrollToBottom();
+  }, [isLoadingMore, messages, scrollToBottom]);
+
+  const handleScroll = async () => {
+    const container = messagesContainerRef.current;
+    if (!container || !hasMoreHistory || isLoadingMore || isLoadingHistory) return;
+
+    if (container.scrollTop <= 80) {
+      const nextPage = historyPage + 1;
+      await fetchHistory(sessionId, nextPage);
+    }
+  };
+
+  const locationText = useMemo(() => {
+    if (geoLoading) return 'Detecting your location...';
+    if (geoError) return `Location unavailable: ${geoError}`;
+    if (!userLocation) return 'Location not set';
+
+    return `Lat ${userLocation.lat.toFixed(3)}, Lon ${userLocation.lon.toFixed(3)}`;
+  }, [geoError, geoLoading, userLocation]);
+
+  return (
+    <div className="ai-assistant-layout">
+      <section className="ai-main-panel">
+        <div className="ai-messages-container" ref={messagesContainerRef} onScroll={handleScroll}>
+          {isLoadingHistory ? (
+            <div className="ai-history-loader">
+              <VscLoading className="ai-spin" />
+              Loading chat history...
+            </div>
+          ) : (
+            <>
+              {isLoadingMore && (
+                <div className="ai-history-loader">
+                  <VscLoading className="ai-spin" />
+                  Loading more...
+                </div>
+              )}
+
+              {messages.map((message, index) => (
+                <MessageBubble
+                  key={message._id || message.id}
+                  message={message}
+                  prevMessage={messages[index - 1]}
+                  nextMessage={messages[index + 1]}
+                  currentUserId={user?._id}
+                />
+              ))}
+
+              {isWaitingForResponse && (
+                <div className="ai-thinking-row">
+                  <VscLoading className="ai-spin" />
+                  Assistant is thinking...
+                </div>
+              )}
+            </>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+
+        {statusUpdate && <StatusBar text={statusUpdate} />}
+
+        {inlineNotice && (
+          <div className="ai-inline-notice">
+            <VscCheck />
+            <span>{inlineNotice}</span>
+          </div>
+        )}
+
+        <form
+          className="ai-input-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            submitPrompt(inputValue);
+          }}
+        >
+          {promptSuggestions.length > 0 && (
+            <div className="ai-suggestion-box">
+              {promptSuggestions.map((prompt) => (
+                <button
+                  key={prompt}
+                  type="button"
+                  className="ai-suggestion-item"
+                  onClick={() => {
+                    setInputValue(prompt);
+                    inputRef.current?.focus();
+                  }}
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="ai-input-row">
+            <input
+              ref={inputRef}
+              className="ai-chat-input"
+              type="text"
+              spellCheck="true"
+              autoComplete="off"
+              placeholder={t('inputPlaceholder')}
+              value={inputValue}
+              onChange={(event) => setInputValue(event.target.value)}
+              disabled={isLoadingHistory || isWaitingForResponse}
+            />
+
+            <button
+              type="submit"
+              className="ai-send-button"
+              disabled={isLoadingHistory || isWaitingForResponse || inputValue.trim() === ''}
+              aria-label="Send message"
+            >
+              <IoMdSend />
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <aside className="ai-side-panel">
+        <article className="ai-side-card">
+          <header>
+            <h3>
+              <VscRobot /> Quick prompts
+            </h3>
+          </header>
+          <div className="ai-prompt-list">
+            {DEFAULT_PROMPTS.map((prompt) => (
+              <button
+                key={prompt}
+                type="button"
+                onClick={() => {
+                  setInputValue(prompt);
+                  inputRef.current?.focus();
+                }}
+              >
+                {prompt}
+              </button>
+            ))}
+          </div>
+        </article>
+
+        <article className="ai-side-card">
+          <header>
+            <h3>
+              <VscInfo /> Session tools
+            </h3>
+          </header>
+          <div className="ai-tool-grid">
+            <button type="button" onClick={() => submitPrompt('/help')}>
+              /help
+            </button>
+            <button type="button" onClick={() => submitPrompt('/clear')}>
+              <VscTrash /> /clear
+            </button>
+          </div>
+        </article>
+
+        <article className="ai-side-card">
+          <header>
+            <h3>
+              <VscLocation /> Location context
+            </h3>
+          </header>
+          <p className={`ai-location-chip ${geoError ? 'is-error' : userLocation ? 'is-ok' : ''}`}>{locationText}</p>
+        </article>
+      </aside>
+    </div>
+  );
+}
+
+export default function AIAssistantPage() {
+  const { loading: authLoading } = useAuth();
+  const { location, error: geoError, loading: geoLoading } = useGeolocation();
+
+  if (authLoading) {
+    return (
+      <div className="ai-page-loader">
+        <VscLoading className="ai-spin" />
+        <span>Loading session...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="ai-assistant-page">
+      <AssistantHeader />
+      <ChatWorkspace userLocation={location} geoError={geoError} geoLoading={geoLoading} />
+    </div>
+  );
 }
