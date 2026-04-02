@@ -36,7 +36,7 @@ export default function HouseholdsPage() {
   const fetchHousehold = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/api/v1/households/my-household');
+      const response = await api.get('/households/my-household');
       setHousehold(response.data.household);
     } catch (err) {
       if (err.response?.status !== 404) {
@@ -54,7 +54,7 @@ export default function HouseholdsPage() {
     }
 
     try {
-      const response = await api.post('/api/v1/households', {
+      const response = await api.post('/households', {
         householdName: householdName.trim(),
       });
       setHousehold(response.data.household);
@@ -68,7 +68,7 @@ export default function HouseholdsPage() {
 
   const generateInvite = async () => {
     try {
-      const response = await api.post(`/api/v1/households/${household._id}/generate-invite`);
+      const response = await api.post(`/households/${household._id}/generate-invite`);
       setInviteLink(response.data.inviteLink);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to generate invite link');
@@ -88,7 +88,7 @@ export default function HouseholdsPage() {
     if (!window.confirm('Are you sure you want to remove this member?')) return;
 
     try {
-      await api.delete(`/api/v1/households/${household._id}/members/${memberId}`);
+      await api.delete(`/households/${household._id}/members/${memberId}`);
       setHousehold(prev => ({
         ...prev,
         members: prev.members.filter(m => m.userId._id !== memberId),
@@ -102,7 +102,7 @@ export default function HouseholdsPage() {
     if (!window.confirm('Are you sure you want to leave this household?')) return;
 
     try {
-      await api.post(`/api/v1/households/${household._id}/leave`);
+      await api.post(`/households/${household._id}/leave`);
       setHousehold(null);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to leave household');

@@ -31,7 +31,7 @@ export default function SurveysPage() {
   const fetchSurveyData = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/api/v1/surveys/my-data');
+      const response = await api.get('/surveys/my-data');
       setSurveyData(response.data.survey);
       if (response.data.survey) {
         setFormData({
@@ -52,7 +52,7 @@ export default function SurveysPage() {
   const saveSurveyData = async () => {
     try {
       setSaving(true);
-      const response = await api.post('/api/v1/surveys/my-data', formData);
+      const response = await api.post('/surveys/my-data', formData);
       setSurveyData(response.data.survey);
       setEditing(false);
       setError(null);

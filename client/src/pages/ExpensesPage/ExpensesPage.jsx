@@ -42,7 +42,7 @@ export default function ExpensesPage() {
     try {
       setLoading(true);
       if (tripId) {
-        const response = await api.get(`/api/v1/trips/${tripId}/expenses`);
+        const response = await api.get(`/trips/${tripId}/expenses`);
         setExpenses(response.data.expenses || []);
         setBudget(response.data.budget);
       }
@@ -61,8 +61,8 @@ export default function ExpensesPage() {
 
     try {
       const endpoint = tripId
-        ? `/api/v1/trips/${tripId}/expenses`
-        : '/api/v1/expenses';
+        ? `/trips/${tripId}/expenses`
+        : '/expenses';
 
       const response = await api.post(endpoint, formData);
       setExpenses([...expenses, response.data.expense]);
@@ -85,8 +85,8 @@ export default function ExpensesPage() {
 
     try {
       const endpoint = tripId
-        ? `/api/v1/trips/${tripId}/expenses/${expenseId}`
-        : `/api/v1/expenses/${expenseId}`;
+        ? `/trips/${tripId}/expenses/${expenseId}`
+        : `/expenses/${expenseId}`;
 
       await api.delete(endpoint);
       setExpenses(expenses.filter(e => e._id !== expenseId));

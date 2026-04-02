@@ -24,7 +24,7 @@ export default function NotificationsPage() {
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/api/v1/notifications');
+      const response = await api.get('/notifications');
       setNotifications(response.data.notifications || []);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load notifications');
@@ -36,7 +36,7 @@ export default function NotificationsPage() {
 
   const markAllRead = async () => {
     try {
-      await api.post('/api/v1/notifications/mark-all-read');
+      await api.post('/notifications/mark-all-read');
       setNotifications(prev =>
         prev.map(n => ({
           ...n,
