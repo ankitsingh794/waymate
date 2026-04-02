@@ -123,6 +123,70 @@
   font-size: 0.8rem;
 }
 
+.dashboard-quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.dashboard-quick-action-card {
+  border: 1px solid rgba(14, 59, 76, 0.13);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.88);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.65rem;
+  text-decoration: none;
+  padding: 0.72rem 0.78rem;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+.dashboard-quick-action-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(14, 59, 76, 0.25);
+  box-shadow: var(--shadow-md);
+  text-decoration: none;
+}
+
+.dashboard-quick-action-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.7rem;
+  display: grid;
+  place-items: center;
+  color: var(--color-primary);
+  background: linear-gradient(135deg, rgba(14, 59, 76, 0.14), rgba(87, 184, 203, 0.2));
+}
+
+.dashboard-quick-action-icon svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.dashboard-quick-action-card h3 {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+
+.dashboard-quick-action-card p {
+  margin: 0.15rem 0 0;
+  color: var(--color-text-secondary);
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.dashboard-quick-action-badge {
+  border-radius: 999px;
+  padding: 0.16rem 0.45rem;
+  background: rgba(14, 59, 76, 0.12);
+  color: var(--color-primary);
+  font-size: 0.7rem;
+  font-weight: var(--font-weight-semibold);
+}
+
 .dashboard-layout-grid {
   display: grid;
   grid-template-columns: 1.5fr 0.95fr;
@@ -602,6 +666,10 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  .dashboard-quick-actions-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .dashboard-layout-grid {
     grid-template-columns: 1fr;
   }
@@ -640,6 +708,10 @@
 
   .dashboard-kpi-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-quick-actions-grid {
+    grid-template-columns: 1fr;
   }
 
   .dashboard-trip-card {

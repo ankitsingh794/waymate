@@ -310,6 +310,46 @@ export default function Dashboard() {
     ];
   }, [ongoingTrips.length, upcomingTripsLocal.length, unreadNotifications, groupSessions.length, household, surveyData]);
 
+  const quickActions = useMemo(
+    () => [
+      {
+        id: 'assistant',
+        title: 'AI planner',
+        description: 'Generate plans and adjust routes quickly.',
+        path: '/assistant',
+        icon: VscRobot,
+        badge: 'Smart',
+      },
+      {
+        id: 'alerts',
+        title: 'Notifications',
+        description: unreadNotifications ? `${unreadNotifications} unread updates` : 'All caught up',
+        path: '/notifications',
+        icon: VscBell,
+        badge: unreadNotifications ? `${unreadNotifications > 9 ? '9+' : unreadNotifications}` : '0',
+      },
+      {
+        id: 'household',
+        title: 'Household hub',
+        description: household?.householdName
+          ? `${household.householdName} (${household.members?.length || 0} members)`
+          : 'Create and manage your group',
+        path: '/households',
+        icon: VscHome,
+        badge: household ? 'Live' : 'Setup',
+      },
+      {
+        id: 'survey',
+        title: 'Survey + settings',
+        description: surveyData ? 'Data submitted and available' : 'Complete your socio-economic form',
+        path: '/surveys',
+        icon: VscGraph,
+        badge: surveyData ? 'Done' : 'Pending',
+      },
+    ],
+    [household, surveyData, unreadNotifications]
+  );
+
   const fetchDashboardData = useCallback(
     async ({ isRefresh = false } = {}) => {
       if (isRefresh) {
@@ -321,35 +361,52 @@ export default function Dashboard() {
       setError('');
 
       try {
-        const [
-          profileRes,
-          ongoingRes,
-          upcomingRes,
-          completedRes,
-          notificationsRes,
-          householdRes,
-          surveyRes,
-          groupSessionsRes,
-        ] = await Promise.all([
-          api.get('/users/profile'),
-          api.get('/trips?status=ongoing&limit=12'),
-          api.get('/trips?status=planned&limit=12'),
-          api.get('/trips?status=completed&limit=12'),
-          api.get('/notifications?limit=6'),
-          api.get('/households/my-household'),
-          api.get('/surveys/my-data'),
-          api.get('/chat/sessions/group'),
-        ]);
+        const requests = {
+          profile: api.get('/users/profile'),
+          ongoing: api.get('/trips?status=ongoing&limit=12'),
+          planned: api.get('/trips?status=planned&limit=12'),
+          completed: api.get('/trips?status=completed&limit=12'),
+          notifications: api.get('/notifications?limit=6'),
+          household: api.get('/households/my-household'),
+          survey: api.get('/surveys/my-data'),
+          groups: api.get('/chat/sessions/group'),
+        };
 
-        const parsedOngoing = parseTripResponse(ongoingRes);
-        const parsedUpcoming = parseTripResponse(upcomingRes);
-        const parsedCompleted = parseTripResponse(completedRes);
+        const requestKeys = Object.keys(requests);
+        const settled = await Promise.allSettled(Object.values(requests));
+        const resultMap = {};
 
-        const parsedProfile = profileRes?.data?.data || null;
-        const parsedNotifications = notificationsRes?.data?.data?.notifications || [];
-        const parsedHousehold = householdRes?.data?.data?.household || null;
-        const parsedSurvey = surveyRes?.data?.data?.data || null;
-        const parsedGroupSessions = groupSessionsRes?.data?.data?.sessions || [];
+        settled.forEach((result, index) => {
+          resultMap[requestKeys[index]] = result;
+        });
+
+        const failedSections = [];
+        const pickValue = (key, parser, fallback) => {
+          const item = resultMap[key];
+          if (item?.status === 'fulfilled') {
+            return parser(item.value);
+          }
+
+          failedSections.push(key);
+          return fallback;
+        };
+
+        const parsedProfile = pickValue('profile', (response) => response?.data?.data || null, null);
+        const parsedOngoing = pickValue('ongoing', parseTripResponse, []);
+        const parsedUpcoming = pickValue('planned', parseTripResponse, []);
+        const parsedCompleted = pickValue('completed', parseTripResponse, []);
+        const parsedNotifications = pickValue(
+          'notifications',
+          (response) => response?.data?.data?.notifications || [],
+          []
+        );
+        const parsedHousehold = pickValue('household', (response) => response?.data?.data?.household || null, null);
+        const parsedSurvey = pickValue('survey', (response) => response?.data?.data?.data || null, null);
+        const parsedGroupSessions = pickValue(
+          'groups',
+          (response) => response?.data?.data?.sessions || [],
+          []
+        );
 
         setProfileData(parsedProfile);
         setOngoingTrips(parsedOngoing);
@@ -363,17 +420,31 @@ export default function Dashboard() {
         setGroupSessions(parsedGroupSessions);
 
         const selectedFocusTrip = parsedOngoing[0] || parsedUpcoming[0] || parsedCompleted[0] || null;
+        const selectedFocusTripId = selectedFocusTrip?._id || selectedFocusTrip?.tripId;
         setFocusTrip(selectedFocusTrip);
 
-        if (selectedFocusTrip?._id) {
+        if (selectedFocusTripId) {
           try {
-            const expenseRes = await api.get(`/trips/${selectedFocusTrip._id}/expenses?limit=1`);
+            const expenseRes = await api.get(`/trips/${selectedFocusTripId}/expenses?limit=1`);
             setFocusTripExpenseSummary(expenseRes?.data?.data?.summary || null);
           } catch {
             setFocusTripExpenseSummary(null);
           }
         } else {
           setFocusTripExpenseSummary(null);
+        }
+
+        if (failedSections.length === requestKeys.length) {
+          throw new Error('All dashboard sections failed to load.');
+        }
+
+        if (failedSections.length) {
+          setBanner({
+            type: 'warning',
+            text: `Some sections could not refresh: ${failedSections.join(', ')}.`,
+          });
+        } else {
+          setBanner((previous) => (previous?.type === 'warning' ? null : previous));
         }
       } catch (err) {
         setError(err.response?.data?.message || 'Could not load dashboard data right now. Please try again.');
@@ -453,6 +524,8 @@ export default function Dashboard() {
     runPlaceSearch(query);
   };
 
+  const focusTripId = focusTrip?._id || focusTrip?.tripId;
+
   if (loading) {
     return (
       <div className="dashboard-loading-screen">
@@ -525,6 +598,21 @@ export default function Dashboard() {
           ))}
         </section>
 
+        <section className="dashboard-quick-actions-grid">
+          {quickActions.map((action) => (
+            <Link key={action.id} to={action.path} className="dashboard-quick-action-card">
+              <span className="dashboard-quick-action-icon">
+                <action.icon />
+              </span>
+              <div>
+                <h3>{action.title}</h3>
+                <p>{action.description}</p>
+              </div>
+              <span className="dashboard-quick-action-badge">{action.badge}</span>
+            </Link>
+          ))}
+        </section>
+
         <div className="dashboard-layout-grid">
           <main className="dashboard-main-column">
             <Card className="dashboard-focus-card" padding="lg">
@@ -562,13 +650,13 @@ export default function Dashboard() {
                         </p>
 
                         <div className="dashboard-focus-actions">
-                          <Link to={`/trip/${focusTrip._id}`} className="dashboard-inline-link">
+                          <Link to={`/trip/${focusTripId}`} className="dashboard-inline-link">
                             View trip details <VscArrowRight />
                           </Link>
-                          <Link to={`/trip/${focusTrip._id}/edit`} className="dashboard-inline-link">
+                          <Link to={`/trip/${focusTripId}/edit`} className="dashboard-inline-link">
                             Edit trip
                           </Link>
-                          <Link to={`/trip/${focusTrip._id}/expenses`} className="dashboard-inline-link">
+                          <Link to={`/trip/${focusTripId}/expenses`} className="dashboard-inline-link">
                             Open expenses
                           </Link>
                         </div>
