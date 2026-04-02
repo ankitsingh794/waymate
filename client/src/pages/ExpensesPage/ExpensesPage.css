@@ -1,0 +1,243 @@
+/**
+ * Expenses Page Styles
+ */
+
+.expenses-page {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-background);
+  font-family: var(--font-primary);
+  color: var(--color-text-primary);
+}
+
+.expenses-body {
+  flex: 1;
+  width: 100%;
+  padding: var(--space-3xl) var(--space-xl);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.page-header {
+  text-align: center;
+  margin-bottom: var(--space-3xl);
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.page-header h1 {
+  font-size: var(--font-size-4xl);
+  margin: 0 0 var(--space-md) 0;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.page-header p {
+  font-size: var(--font-size-lg);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.expenses-container {
+  max-width: var(--max-content-width);
+  margin: 0 auto;
+  display: grid;
+  gap: var(--space-2xl);
+}
+
+.budget-card {
+  border-top: 4px solid var(--color-primary);
+}
+
+.budget-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-2xl);
+  margin-bottom: var(--space-2xl);
+}
+
+.budget-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.budget-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.budget-amount {
+  font-size: var(--font-size-2xl);
+  color: var(--color-primary);
+}
+
+.budget-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.budget-progress {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+  transition: width var(--transition-base);
+  border-radius: var(--radius-full);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-lg);
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.section-header h2 {
+  font-size: var(--font-size-2xl);
+  margin: 0;
+  flex: 1;
+  color: var(--color-text-primary);
+}
+
+.expenses-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.expense-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.expense-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+.expense-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex: 1;
+}
+
+.expense-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.expense-details strong {
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+}
+
+.expense-date {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.expense-amount {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  min-width: 100px;
+  text-align: right;
+}
+
+.expense-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.expense-split {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--color-background-tertiary);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.split-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--space-lg);
+}
+
+.empty-state {
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-lg);
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  color: var(--color-primary);
+}
+
+.empty-state h3 {
+  margin: 0;
+  color: var(--color-text-primary);
+}
+
+.empty-state p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+  .expenses-body {
+    padding: var(--space-xl);
+  }
+
+  .expense-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .expense-amount {
+    width: 100%;
+    text-align: left;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -16,6 +16,10 @@ import Settings from './pages/SettingsPage/Settings';
 import EditTrip from './pages/TripPage/EditTrip';
 import ExplorePage from './pages/DashboardPage/ExplorePage';
 import ResetPassword from './pages/LoginPage/ResetPassword';
+import NotificationsPage from './pages/NotificationsPage/NotificationsPage';
+import HouseholdsPage from './pages/HouseholdsPage/HouseholdsPage';
+import ExpensesPage from './pages/ExpensesPage/ExpensesPage';
+import SurveysPage from './pages/SurveysPage/SurveysPage';
 
 function App() {
   useLocationTracker();
@@ -28,14 +32,19 @@ function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password/:token" element={<ResetPassword />} />
 
-
       {/* Protected Routes */}
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/trip/:id" element={<ProtectedRoute><TripDetails /></ProtectedRoute>} />
+      <Route path="/trip/:id/edit" element={<ProtectedRoute><EditTrip /></ProtectedRoute>} />
+      <Route path="/trip/:tripId/expenses" element={<ProtectedRoute><ExpensesPage /></ProtectedRoute>} />
+      
       <Route path="/assistant" element={<ProtectedRoute><AIAssistant /></ProtectedRoute>} />
+      <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+      <Route path="/households" element={<ProtectedRoute><HouseholdsPage /></ProtectedRoute>} />
+      <Route path="/surveys" element={<ProtectedRoute><SurveysPage /></ProtectedRoute>} />
+      
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-      <Route path="/trip/:id/edit" element={<ProtectedRoute><EditTrip /></ProtectedRoute>} />
       <Route path="/explore" element={<ProtectedRoute><ExplorePage /></ProtectedRoute>} />
     </Routes>
   );
