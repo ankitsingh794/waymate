@@ -6,12 +6,7 @@ import Feedback from './Feedback.jsx';
 import Globe from './Globe.jsx';
 import {
     VscRobot,
-    VscMap,
-    VscLightbulb,
-    VscFire,
-    VscArrowRight,
-    VscCheck,
-    VscLocation
+    VscArrowRight
 } from 'react-icons/vsc';
 import './Home.css';
 

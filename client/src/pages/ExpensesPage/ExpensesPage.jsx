@@ -11,7 +11,7 @@ import {
   VscAdd,
   VscTrash,
   VscEdit,
-  VscDollar,
+  VscCreditCard,
   VscSplitHorizontal,
 } from 'react-icons/vsc';
 import { Card, CardHeader, CardBody, CardFooter, Button, Input, Alert, Badge } from '../../components/UI';
@@ -161,7 +161,7 @@ export default function ExpensesPage() {
               </Card>
             ) : expenses.length === 0 ? (
               <Card padding="lg" className="empty-state">
-                <VscDollar className="empty-icon" />
+                <VscCreditCard className="empty-icon" />
                 <h3>No Expenses Yet</h3>
                 <p>Add expenses to track your spending</p>
               </Card>
