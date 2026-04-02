@@ -42,6 +42,11 @@ const STATUS_OPTIONS = [
 const AGE_GROUP_OPTIONS = ['<18', '18-35', '36-60', '>60'];
 const GENDER_OPTIONS = ['male', 'female', 'other', 'prefer_not_to_say'];
 const TRACKING_MODE_OPTIONS = ['walking', 'running', 'cycling', 'driving', 'public_transport', 'still', 'unknown'];
+const RECOMMENDATION_FALLBACK_IMAGES = {
+  attractions: 'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=640&q=80',
+  food: 'https://images.unsplash.com/photo-1482049016688-2d3e1b311543?auto=format&fit=crop&w=640&q=80',
+  stays: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=640&q=80',
+};
 
 function getErrorMessage(error, fallback) {
   return error?.response?.data?.message || fallback;
@@ -99,6 +104,48 @@ function formatDuration(milliseconds) {
   if (hours === 0) return `${minutes}m`;
   if (minutes === 0) return `${hours}h`;
   return `${hours}h ${minutes}m`;
+}
+
+function getRecommendationName(place, fallback) {
+  if (typeof place === 'string' && place.trim()) return place.trim();
+  if (place && typeof place === 'object') {
+    const name = place.name || place.title || place.placeName;
+    if (typeof name === 'string' && name.trim()) return name.trim();
+  }
+  return fallback;
+}
+
+function getRecommendationImage(place) {
+  if (!place || typeof place === 'string') return '';
+
+  const candidates = [place.image, place.imageUrl, place.photoUrl, place.photo, place.thumbnail, place.coverImage];
+  if (Array.isArray(place.images) && place.images.length > 0) {
+    const firstImage = place.images[0];
+    if (typeof firstImage === 'string') candidates.push(firstImage);
+    if (firstImage && typeof firstImage === 'object') {
+      candidates.push(firstImage.url, firstImage.secure_url);
+    }
+  }
+
+  return candidates.find((value) => typeof value === 'string' && /^https?:\/\//i.test(value)) || '';
+}
+
+function getRecommendationMeta(place) {
+  if (!place || typeof place !== 'object') return '';
+
+  const numericRating = Number(place.rating);
+  const hasRating = Number.isFinite(numericRating) && numericRating > 0;
+  const locationText = place.vicinity || place.address || place.reason || '';
+
+  if (hasRating && locationText) {
+    return `★ ${numericRating.toFixed(1)} • ${locationText}`;
+  }
+
+  if (hasRating) {
+    return `★ ${numericRating.toFixed(1)}`;
+  }
+
+  return typeof locationText === 'string' ? locationText : '';
 }
 
 function toCoordinate(point) {
@@ -997,7 +1044,6 @@ export default function TripDetails() {
               <h2>
                 <VscMilestone /> Itinerary
               </h2>
-              <span className="trip-muted">Route: PATCH /trips/:id/itinerary/:day</span>
             </div>
 
             {itineraryDays.length > 0 ? (
@@ -1164,10 +1210,22 @@ export default function TripDetails() {
                     <h4>
                       <GiTicket /> Attractions
                     </h4>
-                    <ul>
-                      {trip.attractions.slice(0, 5).map((place, index) => (
-                        <li key={`${place.name}-${index}`}>{place.name}</li>
-                      ))}
+                    <ul className="trip-recommendation-list">
+                      {trip.attractions.slice(0, 5).map((place, index) => {
+                        const name = getRecommendationName(place, `Attraction ${index + 1}`);
+                        const image = getRecommendationImage(place) || RECOMMENDATION_FALLBACK_IMAGES.attractions;
+                        const meta = getRecommendationMeta(place);
+
+                        return (
+                          <li key={`${name}-${index}`} className="trip-recommendation-item">
+                            <img src={image} alt={name} loading="lazy" decoding="async" />
+                            <div>
+                              <strong>{name}</strong>
+                              {meta ? <small>{meta}</small> : null}
+                            </div>
+                          </li>
+                        );
+                      })}
                     </ul>
                   </section>
                 )}
@@ -1177,10 +1235,22 @@ export default function TripDetails() {
                     <h4>
                       <GiForkKnifeSpoon /> Food
                     </h4>
-                    <ul>
-                      {trip.foodRecommendations.slice(0, 5).map((place, index) => (
-                        <li key={`${place.name}-${index}`}>{place.name}</li>
-                      ))}
+                    <ul className="trip-recommendation-list">
+                      {trip.foodRecommendations.slice(0, 5).map((place, index) => {
+                        const name = getRecommendationName(place, `Food spot ${index + 1}`);
+                        const image = getRecommendationImage(place) || RECOMMENDATION_FALLBACK_IMAGES.food;
+                        const meta = getRecommendationMeta(place);
+
+                        return (
+                          <li key={`${name}-${index}`} className="trip-recommendation-item">
+                            <img src={image} alt={name} loading="lazy" decoding="async" />
+                            <div>
+                              <strong>{name}</strong>
+                              {meta ? <small>{meta}</small> : null}
+                            </div>
+                          </li>
+                        );
+                      })}
                     </ul>
                   </section>
                 )}
@@ -1190,10 +1260,22 @@ export default function TripDetails() {
                     <h4>
                       <VscOrganization /> Stays
                     </h4>
-                    <ul>
-                      {trip.accommodationSuggestions.slice(0, 5).map((place, index) => (
-                        <li key={`${place.name}-${index}`}>{place.name}</li>
-                      ))}
+                    <ul className="trip-recommendation-list">
+                      {trip.accommodationSuggestions.slice(0, 5).map((place, index) => {
+                        const name = getRecommendationName(place, `Stay ${index + 1}`);
+                        const image = getRecommendationImage(place) || RECOMMENDATION_FALLBACK_IMAGES.stays;
+                        const meta = getRecommendationMeta(place);
+
+                        return (
+                          <li key={`${name}-${index}`} className="trip-recommendation-item">
+                            <img src={image} alt={name} loading="lazy" decoding="async" />
+                            <div>
+                              <strong>{name}</strong>
+                              {meta ? <small>{meta}</small> : null}
+                            </div>
+                          </li>
+                        );
+                      })}
                     </ul>
                   </section>
                 )}
@@ -1208,7 +1290,6 @@ export default function TripDetails() {
               <h2>
                 <GiTakeMyMoney /> Budget
               </h2>
-              <span className="trip-muted">Route: GET /trips/:tripId/expenses/budget</span>
             </div>
 
             {budget ? (
@@ -1261,7 +1342,6 @@ export default function TripDetails() {
               <h2>
                 <VscInfo /> Expense Analytics
               </h2>
-              <span className="trip-muted">Route: GET /trips/:tripId/expenses/analytics</span>
             </div>
 
             {analytics ? (
@@ -1305,7 +1385,6 @@ export default function TripDetails() {
               <h2>
                 <IoPeopleSharp /> Trip Members
               </h2>
-              <span className="trip-muted">Routes: members/me, role update, remove</span>
             </div>
 
             {members.length > 0 ? (
@@ -1428,54 +1507,6 @@ export default function TripDetails() {
             </div>
           </article>
 
-          <article className="trip-card">
-            <div className="trip-card-head">
-              <h2>
-                <VscInfo /> Backend Feature Alignment
-              </h2>
-            </div>
-            <ul className="trip-feature-list">
-              <li>
-                <VscCheck /> GET /trips/:id
-              </li>
-              <li>
-                <VscCheck /> PATCH /trips/:id/favorite
-              </li>
-              <li>
-                <VscCheck /> PATCH /trips/:id/status
-              </li>
-              <li>
-                <VscCheck /> GET /trips/:id/download
-              </li>
-              <li>
-                <VscCheck /> POST /trips/:id/generate-invite
-              </li>
-              <li>
-                <VscCheck /> POST /trips/:id/smart-schedule
-              </li>
-              <li>
-                <VscCheck /> PATCH /trips/:id/itinerary/:day
-              </li>
-              <li>
-                <VscCheck /> PATCH /trips/:tripId/members/me
-              </li>
-              <li>
-                <VscCheck /> PATCH /trips/:tripId/members/:memberId/role
-              </li>
-              <li>
-                <VscCheck /> DELETE /trips/:tripId/members/:memberId
-              </li>
-              <li>
-                <VscCheck /> GET /trips/:tripId/expenses/budget
-              </li>
-              <li>
-                <VscCheck /> GET /trips/:tripId/expenses/analytics
-              </li>
-              <li>
-                <VscCheck /> POST /tracking/trips/:tripId/confirm + tracking visualization UI
-              </li>
-            </ul>
-          </article>
         </aside>
       </main>
 
