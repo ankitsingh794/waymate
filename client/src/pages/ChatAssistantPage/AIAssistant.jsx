@@ -249,6 +249,7 @@ function ChatWorkspace({ userLocation, geoError, geoLoading }) {
   const [sessionId, setSessionId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
+  const [isMobileToolsOpen, setIsMobileToolsOpen] = useState(false);
 
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -400,6 +401,7 @@ function ChatWorkspace({ userLocation, geoError, geoLoading }) {
 
       setInputValue('');
       setInlineNotice('');
+      setIsMobileToolsOpen(false);
 
       if (isCommand) {
         await sendCommand(text);
@@ -470,6 +472,44 @@ function ChatWorkspace({ userLocation, geoError, geoLoading }) {
     if (isLoadingHistory || !inputRef.current) return;
     inputRef.current.focus();
   }, [isLoadingHistory]);
+
+  useEffect(() => {
+    const input = inputRef.current;
+    if (!input) return;
+
+    input.style.height = '0px';
+    input.style.height = `${Math.min(input.scrollHeight, 136)}px`;
+  }, [inputValue]);
+
+  useEffect(() => {
+    if (!isMobileToolsOpen) return;
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setIsMobileToolsOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape);
+
+    return () => {
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, [isMobileToolsOpen]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 760) {
+        setIsMobileToolsOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   useEffect(() => {
     if (!sessionId) return;
@@ -623,15 +663,21 @@ function ChatWorkspace({ userLocation, geoError, geoLoading }) {
           )}
 
           <div className="ai-input-row">
-            <input
+            <textarea
               ref={inputRef}
               className="ai-chat-input"
-              type="text"
+              rows={1}
               spellCheck="true"
               autoComplete="off"
               placeholder={t('inputPlaceholder')}
               value={inputValue}
               onChange={(event) => setInputValue(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                  event.preventDefault();
+                  submitPrompt(inputValue);
+                }
+              }}
               disabled={isLoadingHistory || isWaitingForResponse}
             />
 
@@ -647,7 +693,26 @@ function ChatWorkspace({ userLocation, geoError, geoLoading }) {
         </form>
       </section>
 
-      <aside className="ai-side-panel">
+      <button
+        type="button"
+        className="ai-mobile-tools-toggle"
+        onClick={() => setIsMobileToolsOpen((prev) => !prev)}
+        aria-expanded={isMobileToolsOpen}
+        aria-controls="ai-side-panel"
+      >
+        <VscInfo />
+        <span>{isMobileToolsOpen ? 'Close tools' : 'Open tools'}</span>
+      </button>
+
+      <button
+        type="button"
+        className={`ai-mobile-tools-backdrop ${isMobileToolsOpen ? 'is-open' : ''}`}
+        onClick={() => setIsMobileToolsOpen(false)}
+        aria-label="Close assistant tools panel"
+        tabIndex={isMobileToolsOpen ? 0 : -1}
+      />
+
+      <aside id="ai-side-panel" className={`ai-side-panel ${isMobileToolsOpen ? 'is-open' : ''}`}>
         <article className="ai-side-card">
           <header>
             <h3>
@@ -662,6 +727,7 @@ function ChatWorkspace({ userLocation, geoError, geoLoading }) {
                 onClick={() => {
                   setInputValue(prompt);
                   inputRef.current?.focus();
+                  setIsMobileToolsOpen(false);
                 }}
               >
                 {prompt}
@@ -677,10 +743,22 @@ function ChatWorkspace({ userLocation, geoError, geoLoading }) {
             </h3>
           </header>
           <div className="ai-tool-grid">
-            <button type="button" onClick={() => submitPrompt('/help')}>
+            <button
+              type="button"
+              onClick={() => {
+                setIsMobileToolsOpen(false);
+                submitPrompt('/help');
+              }}
+            >
               /help
             </button>
-            <button type="button" onClick={() => submitPrompt('/clear')}>
+            <button
+              type="button"
+              onClick={() => {
+                setIsMobileToolsOpen(false);
+                submitPrompt('/clear');
+              }}
+            >
               <VscTrash /> /clear
             </button>
           </div>
@@ -702,6 +780,14 @@ function ChatWorkspace({ userLocation, geoError, geoLoading }) {
 export default function AIAssistantPage() {
   const { loading: authLoading } = useAuth();
   const { location, error: geoError, loading: geoLoading } = useGeolocation();
+
+  useEffect(() => {
+    document.body.classList.add('ai-scroll-locked');
+
+    return () => {
+      document.body.classList.remove('ai-scroll-locked');
+    };
+  }, []);
 
   if (authLoading) {
     return (
