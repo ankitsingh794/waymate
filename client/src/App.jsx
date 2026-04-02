@@ -11,6 +11,7 @@ import Login from './pages/LoginPage/Login';
 import TripDetails from './pages/TripPage/Details';
 import Profile from './pages/UserProfilePage/Profile';
 import AIAssistant from './pages/ChatAssistantPage/AIAssistant';
+import GroupMessenger from './pages/ChatAssistantPage/GroupMessenger';
 import Dashboard from './pages/DashboardPage/Dashboard';
 import Settings from './pages/SettingsPage/Settings';
 import EditTrip from './pages/TripPage/EditTrip';
@@ -36,6 +37,7 @@ function App() {
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/trip/:id" element={<ProtectedRoute><TripDetails /></ProtectedRoute>} />
       <Route path="/trip/:id/edit" element={<ProtectedRoute><EditTrip /></ProtectedRoute>} />
+      <Route path="/trip/:id/chat" element={<ProtectedRoute><GroupMessenger /></ProtectedRoute>} />
       <Route path="/trip/:tripId/expenses" element={<ProtectedRoute><ExpensesPage /></ProtectedRoute>} />
       
       <Route path="/assistant" element={<ProtectedRoute><AIAssistant /></ProtectedRoute>} />

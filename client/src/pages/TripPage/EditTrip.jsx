@@ -873,6 +873,10 @@ export default function EditTrip() {
         )}
 
         <section className="edit-trip-chat-actions">
+          <Link to={`/trip/${id}/chat`} className="edit-btn ghost is-link">
+            <VscOrganization /> User Group Chat
+          </Link>
+
           <button
             type="button"
             className="edit-btn ghost"
@@ -892,7 +896,7 @@ export default function EditTrip() {
           </button>
 
           <p>
-            Group Chat opens the trip session for members. AI Group Chat opens the assistant with trip context for planning support.
+            User Group Chat opens a messaging-style room. Group Chat opens the shared session in assistant mode, and AI Group Chat opens planning support with trip context.
           </p>
         </section>
 

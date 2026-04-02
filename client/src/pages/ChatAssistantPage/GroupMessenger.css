@@ -1,0 +1,300 @@
+.group-chat-page {
+  min-height: 100vh;
+  padding: 0.9rem;
+  background:
+    radial-gradient(circle at 8% 2%, rgba(87, 184, 203, 0.18), transparent 28%),
+    radial-gradient(circle at 95% 12%, rgba(14, 59, 76, 0.12), transparent 35%),
+    linear-gradient(180deg, #f8fcfe 0%, #eef5f8 100%);
+}
+
+.group-chat-header {
+  width: min(1120px, 100%);
+  margin: 0 auto 0.75rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(14, 59, 76, 0.14);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 12px 30px rgba(10, 33, 45, 0.12);
+  backdrop-filter: blur(8px);
+  padding: 0.72rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.72rem;
+  align-items: center;
+}
+
+.group-back-link,
+.group-assistant-link {
+  border-radius: 999px;
+  border: 1px solid rgba(14, 59, 76, 0.18);
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--color-primary, #0e3b4c);
+  text-decoration: none;
+  font-size: 0.76rem;
+  font-weight: 700;
+  min-height: 2.3rem;
+  padding: 0.3rem 0.65rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+}
+
+.group-back-link:hover,
+.group-assistant-link:hover {
+  background: rgba(14, 59, 76, 0.08);
+}
+
+.group-chat-title-wrap h1 {
+  margin: 0;
+  font-size: clamp(1rem, 2.5vw, 1.45rem);
+  color: var(--color-primary, #0e3b4c);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+}
+
+.group-chat-title-wrap p {
+  margin: 0.18rem 0 0;
+  color: var(--color-text-secondary, #4f6672);
+  font-size: 0.74rem;
+}
+
+.group-chat-shell {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+  border-radius: 1rem;
+  border: 1px solid rgba(14, 59, 76, 0.15);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 16px 34px rgba(10, 33, 45, 0.13);
+  min-height: calc(100vh - 9.25rem);
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  overflow: hidden;
+}
+
+.group-chat-stream {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.9rem;
+  display: grid;
+  gap: 0.44rem;
+}
+
+.group-chat-stream::-webkit-scrollbar {
+  width: 8px;
+}
+
+.group-chat-stream::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(14, 59, 76, 0.25);
+}
+
+.group-msg-row {
+  max-width: 78%;
+  display: grid;
+  gap: 0.14rem;
+}
+
+.group-msg-row.is-other {
+  justify-self: start;
+}
+
+.group-msg-row.is-mine {
+  justify-self: end;
+}
+
+.group-msg-sender {
+  margin: 0;
+  color: var(--color-text-tertiary, #5f7784);
+  font-size: 0.66rem;
+  padding-left: 0.1rem;
+}
+
+.group-msg-bubble {
+  border-radius: 1rem;
+  border: 1px solid rgba(14, 59, 76, 0.13);
+  padding: 0.52rem 0.72rem;
+}
+
+.group-msg-bubble p {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+.group-msg-bubble.is-other {
+  background: rgba(14, 59, 76, 0.05);
+  color: var(--color-text-primary, #102a34);
+}
+
+.group-msg-bubble.is-mine {
+  background: linear-gradient(150deg, var(--color-primary, #0e3b4c), var(--color-primary-light, #1a5a6e));
+  border-color: transparent;
+  color: #fff;
+}
+
+.group-msg-row time {
+  color: var(--color-text-tertiary, #5f7784);
+  font-size: 0.64rem;
+}
+
+.group-msg-row.is-mine time {
+  text-align: right;
+}
+
+.group-chat-empty {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: var(--color-text-secondary, #4f6672);
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.group-chat-notice {
+  margin: 0;
+  border-top: 1px solid rgba(185, 28, 28, 0.2);
+  background: rgba(254, 242, 242, 0.8);
+  color: #9f1d1d;
+  font-size: 0.76rem;
+  padding: 0.52rem 0.78rem;
+}
+
+.group-chat-composer {
+  border-top: 1px solid rgba(14, 59, 76, 0.12);
+  padding: 0.68rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+  align-items: end;
+  background: rgba(249, 252, 253, 0.9);
+}
+
+.group-chat-composer textarea {
+  width: 100%;
+  min-height: 2.5rem;
+  max-height: 8rem;
+  resize: vertical;
+  border-radius: 0.8rem;
+  border: 1px solid rgba(14, 59, 76, 0.2);
+  padding: 0.6rem 0.7rem;
+  font-size: 0.84rem;
+  color: var(--color-text-primary, #102a34);
+  background: #fff;
+  outline: none;
+}
+
+.group-chat-composer textarea:focus {
+  border-color: rgba(14, 59, 76, 0.45);
+  box-shadow: 0 0 0 3px rgba(14, 59, 76, 0.1);
+}
+
+.group-chat-composer button {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  border: none;
+  background: linear-gradient(140deg, var(--color-secondary, #57b8cb), var(--color-primary, #0e3b4c));
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.group-chat-composer button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.group-chat-loading,
+.group-chat-error {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  gap: 0.45rem;
+  background: linear-gradient(180deg, #f8fcfe, #eef5f8);
+}
+
+.group-chat-loading {
+  color: var(--color-primary, #0e3b4c);
+  font-weight: 600;
+}
+
+.group-chat-error h2 {
+  margin: 0;
+  font-size: 1rem;
+  color: #8f2d2d;
+}
+
+.group-chat-error div {
+  display: inline-flex;
+  gap: 0.42rem;
+}
+
+.group-chat-error button {
+  border-radius: 0.62rem;
+  border: 1px solid rgba(14, 59, 76, 0.2);
+  min-height: 2.2rem;
+  padding: 0.34rem 0.7rem;
+  background: #fff;
+  color: var(--color-primary, #0e3b4c);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.spin {
+  animation: group-spin 0.85s linear infinite;
+}
+
+@keyframes group-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 860px) {
+  .group-chat-header {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
+  .group-assistant-link {
+    justify-self: stretch;
+  }
+
+  .group-chat-shell {
+    min-height: calc(100vh - 12.6rem);
+  }
+
+  .group-msg-row {
+    max-width: 88%;
+  }
+}
+
+@media (max-width: 560px) {
+  .group-chat-page {
+    padding: 0.45rem;
+  }
+
+  .group-chat-header,
+  .group-chat-shell {
+    border-radius: 0.82rem;
+  }
+
+  .group-chat-stream {
+    padding: 0.65rem;
+  }
+
+  .group-chat-composer {
+    padding: 0.55rem;
+  }
+
+  .group-chat-error div {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}
