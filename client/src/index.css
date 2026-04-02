@@ -273,8 +273,7 @@ input, textarea, select {
   font-family: inherit;
   font-size: inherit;
 }
-  background-color: var(--primary-hover);
-}
+
 button:focus,
 button:focus-visible {
   outline-offset: 2px;
