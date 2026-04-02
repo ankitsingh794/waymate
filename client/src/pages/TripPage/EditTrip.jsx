@@ -16,6 +16,7 @@ import {
   VscSave,
   VscShare,
   VscTrash,
+  VscWarning,
 } from 'react-icons/vsc';
 import { FaTrainSubway } from 'react-icons/fa6';
 import { IoPeopleSharp } from 'react-icons/io5';
@@ -86,6 +87,15 @@ function formatDateTime(value) {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+function formatDateOrFallback(value) {
+  if (!value) return 'Not set';
+  return formatDate(value);
+}
+
+function formatTextOrFallback(value) {
+  return value ? titleCase(value) : 'Not set';
 }
 
 function getMemberUserId(member) {
@@ -242,6 +252,7 @@ export default function EditTrip() {
     gender: '',
     relation: '',
   });
+  const [baselineDraft, setBaselineDraft] = useState(null);
 
   const [editingDay, setEditingDay] = useState(null);
   const [editingDayText, setEditingDayText] = useState('');
@@ -284,28 +295,180 @@ export default function EditTrip() {
     return Array.from(unique);
   }, [trip?.status]);
 
+  const currentDraft = useMemo(
+    () => ({
+      startDate: formData.startDate || '',
+      endDate: formData.endDate || '',
+      travelers: Math.max(1, Number(formData.travelers) || 1),
+      accommodationType: formData.accommodationType || 'standard',
+      transportMode: formData.transportMode || 'any',
+      purpose: formData.purpose || 'leisure',
+      status: statusDraft || 'planning',
+      ageGroup: memberForm.ageGroup || '',
+      gender: memberForm.gender || '',
+      relation: memberForm.relation.trim(),
+    }),
+    [formData, memberForm.ageGroup, memberForm.gender, memberForm.relation, statusDraft]
+  );
+
+  const draftChanges = useMemo(() => {
+    if (!baselineDraft) return [];
+
+    const fieldConfig = [
+      { key: 'startDate', label: 'Start Date', format: formatDateOrFallback, emphasis: 'high' },
+      { key: 'endDate', label: 'End Date', format: formatDateOrFallback, emphasis: 'high' },
+      { key: 'travelers', label: 'Travelers', format: (value) => `${value}`, emphasis: 'high' },
+      { key: 'accommodationType', label: 'Accommodation', format: formatTextOrFallback, emphasis: 'normal' },
+      { key: 'transportMode', label: 'Transport Preference', format: formatTextOrFallback, emphasis: 'normal' },
+      { key: 'purpose', label: 'Purpose', format: formatTextOrFallback, emphasis: 'normal' },
+      { key: 'status', label: 'Status', format: formatTextOrFallback, emphasis: 'high' },
+      { key: 'ageGroup', label: 'My Age Group', format: formatTextOrFallback, emphasis: 'normal' },
+      { key: 'gender', label: 'My Gender', format: formatTextOrFallback, emphasis: 'normal' },
+      {
+        key: 'relation',
+        label: 'My Relation',
+        format: (value) => (value && value.trim() ? value.trim() : 'Not set'),
+        emphasis: 'normal',
+      },
+    ];
+
+    return fieldConfig
+      .filter(({ key }) => String(baselineDraft[key] ?? '') !== String(currentDraft[key] ?? ''))
+      .map(({ key, label, format, emphasis }) => ({
+        key,
+        label,
+        from: format(baselineDraft[key]),
+        to: format(currentDraft[key]),
+        emphasis,
+      }));
+  }, [baselineDraft, currentDraft]);
+
+  const hasUnsavedChanges = draftChanges.length > 0;
+
+  const hasCoreDetailsChanges = useMemo(() => {
+    if (!baselineDraft) return false;
+    return [
+      'startDate',
+      'endDate',
+      'travelers',
+      'accommodationType',
+      'transportMode',
+      'purpose',
+    ].some((key) => String(currentDraft[key] ?? '') !== String(baselineDraft[key] ?? ''));
+  }, [baselineDraft, currentDraft]);
+
+  const hasStatusChange = useMemo(() => {
+    if (!baselineDraft) return false;
+    return String(currentDraft.status ?? '') !== String(baselineDraft.status ?? '');
+  }, [baselineDraft, currentDraft.status]);
+
+  const hasMemberDetailsChanges = useMemo(() => {
+    if (!baselineDraft) return false;
+    return ['ageGroup', 'gender', 'relation'].some(
+      (key) => String(currentDraft[key] ?? '') !== String(baselineDraft[key] ?? '')
+    );
+  }, [baselineDraft, currentDraft]);
+
+  const attentionChecks = useMemo(() => {
+    const checks = [];
+    const start = currentDraft.startDate ? new Date(currentDraft.startDate) : null;
+    const end = currentDraft.endDate ? new Date(currentDraft.endDate) : null;
+    const now = new Date();
+
+    if (!start || Number.isNaN(start.getTime()) || !end || Number.isNaN(end.getTime())) {
+      checks.push({
+        id: 'date-invalid',
+        severity: 'critical',
+        message: 'Start and end dates must both be valid before saving core trip changes.',
+      });
+      return checks;
+    }
+
+    if (end < start) {
+      checks.push({
+        id: 'date-order',
+        severity: 'critical',
+        message: 'End date is currently earlier than start date.',
+      });
+    }
+
+    if (currentDraft.travelers < members.length) {
+      checks.push({
+        id: 'traveler-count',
+        severity: 'warning',
+        message: `Traveler count (${currentDraft.travelers}) is lower than current member count (${members.length}).`,
+      });
+    }
+
+    if (currentDraft.status === 'completed' && end > now) {
+      checks.push({
+        id: 'future-completed',
+        severity: 'warning',
+        message: 'Status is set to Completed, but the trip end date is still in the future.',
+      });
+    }
+
+    if (currentDraft.status === 'active' && start > now) {
+      checks.push({
+        id: 'future-active',
+        severity: 'warning',
+        message: 'Status is Active, but the trip start date is in the future.',
+      });
+    }
+
+    if (checks.length === 0) {
+      checks.push({
+        id: 'all-good',
+        severity: 'info',
+        message: 'No critical blockers detected. This draft is ready for safe updates.',
+      });
+    }
+
+    return checks;
+  }, [currentDraft.endDate, currentDraft.startDate, currentDraft.status, currentDraft.travelers, members.length]);
+
+  const hasCriticalAttention = attentionChecks.some((item) => item.severity === 'critical');
+
   const hydrateFromTrip = useCallback(
     (nextTrip) => {
       setTrip(nextTrip);
       setIsFavorite(Boolean(nextTrip?.favorite));
-      setStatusDraft(nextTrip?.status || 'planning');
-      setFormData({
-        destination: nextTrip?.destination || '',
+      const nextDraft = {
         startDate: formatDateInput(nextTrip?.startDate),
         endDate: formatDateInput(nextTrip?.endDate),
         travelers: Number(nextTrip?.travelers) || 1,
         accommodationType: nextTrip?.preferences?.accommodationType || 'standard',
         transportMode: nextTrip?.preferences?.transportMode || 'any',
         purpose: nextTrip?.purpose || 'leisure',
+        status: nextTrip?.status || 'planning',
+        ageGroup: '',
+        gender: '',
+        relation: '',
+      };
+
+      setStatusDraft(nextDraft.status);
+      setFormData({
+        destination: nextTrip?.destination || '',
+        startDate: nextDraft.startDate,
+        endDate: nextDraft.endDate,
+        travelers: nextDraft.travelers,
+        accommodationType: nextDraft.accommodationType,
+        transportMode: nextDraft.transportMode,
+        purpose: nextDraft.purpose,
       });
 
       const nextMembers = Array.isArray(nextTrip?.group?.members) ? nextTrip.group.members : [];
       const myMember = nextMembers.find((member) => String(getMemberUserId(member)) === String(user?._id || ''));
+      nextDraft.ageGroup = myMember?.ageGroup || '';
+      nextDraft.gender = myMember?.gender || '';
+      nextDraft.relation = myMember?.relation || '';
+
       setMemberForm({
-        ageGroup: myMember?.ageGroup || '',
-        gender: myMember?.gender || '',
-        relation: myMember?.relation || '',
+        ageGroup: nextDraft.ageGroup,
+        gender: nextDraft.gender,
+        relation: nextDraft.relation,
       });
+      setBaselineDraft(nextDraft);
 
       if (Array.isArray(nextTrip?.inviteTokens) && nextTrip.inviteTokens.length > 0) {
         const now = Date.now();
@@ -372,6 +535,18 @@ export default function EditTrip() {
     return () => window.clearTimeout(timeoutId);
   }, [feedback.text]);
 
+  useEffect(() => {
+    if (!hasUnsavedChanges) return undefined;
+
+    const handleBeforeUnload = (event) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
   const handleFormChange = (event) => {
     const { name, value } = event.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -382,9 +557,36 @@ export default function EditTrip() {
     setMemberForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleResetDraft = () => {
+    if (!baselineDraft) return;
+
+    setFormData((prev) => ({
+      ...prev,
+      startDate: baselineDraft.startDate,
+      endDate: baselineDraft.endDate,
+      travelers: baselineDraft.travelers,
+      accommodationType: baselineDraft.accommodationType,
+      transportMode: baselineDraft.transportMode,
+      purpose: baselineDraft.purpose,
+    }));
+    setStatusDraft(baselineDraft.status);
+    setMemberForm({
+      ageGroup: baselineDraft.ageGroup,
+      gender: baselineDraft.gender,
+      relation: baselineDraft.relation,
+    });
+
+    setFeedback({ type: 'info', text: 'Draft reset to the last saved trip values.' });
+  };
+
   const handleSaveDetails = async () => {
     if (!canEditTrip) {
       setFeedback({ type: 'error', text: 'Only owners or editors can update trip details.' });
+      return;
+    }
+
+    if (hasCriticalAttention) {
+      setFeedback({ type: 'error', text: 'Resolve critical attention items before saving core changes.' });
       return;
     }
 
@@ -456,6 +658,7 @@ export default function EditTrip() {
       } else {
         setTrip((prev) => (prev ? { ...prev, status: endpointStatus } : prev));
         setStatusDraft(endpointStatus);
+        setBaselineDraft((prev) => (prev ? { ...prev, status: endpointStatus } : prev));
       }
 
       setFeedback({ type: 'success', text: 'Trip status updated successfully.' });
@@ -601,6 +804,16 @@ export default function EditTrip() {
           });
 
           return { ...prev, group: { ...prev.group, members: nextMembers } };
+        });
+
+        setBaselineDraft((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            ageGroup: memberForm.ageGroup || '',
+            gender: memberForm.gender || '',
+            relation: memberForm.relation.trim(),
+          };
         });
       }
 
@@ -822,6 +1035,9 @@ export default function EditTrip() {
                 <span>
                   <VscInfo /> Status: {titleCase(trip.status)}
                 </span>
+                {hasUnsavedChanges && (
+                  <span className="edit-draft-pill">{draftChanges.length} unsaved change{draftChanges.length > 1 ? 's' : ''}</span>
+                )}
               </div>
             </div>
           </div>
@@ -833,12 +1049,44 @@ export default function EditTrip() {
           onClose={() => setFeedback((prev) => ({ ...prev, text: '' }))}
         />
 
+        {hasUnsavedChanges && (
+          <section className="edit-draft-banner">
+            <div className="edit-draft-main">
+              <strong>Draft editing in progress</strong>
+              <small>{draftChanges.length} field{draftChanges.length > 1 ? 's are' : ' is'} different from saved data.</small>
+            </div>
+            <div className="edit-draft-actions">
+              <button type="button" className="edit-btn ghost" onClick={handleResetDraft}>
+                <VscRefresh /> Reset Draft
+              </button>
+              <button
+                type="button"
+                className="edit-btn primary"
+                onClick={handleSaveDetails}
+                disabled={!canEditTrip || actionState.savingDetails || !hasCoreDetailsChanges || hasCriticalAttention}
+              >
+                {actionState.savingDetails ? <VscLoading className="spin" /> : <VscSave />} Save Core Changes
+              </button>
+            </div>
+          </section>
+        )}
+
         <section className="edit-trip-quick-actions">
-          <button type="button" className="edit-btn primary" onClick={handleSaveDetails} disabled={!canEditTrip || actionState.savingDetails}>
+          <button
+            type="button"
+            className="edit-btn primary"
+            onClick={handleSaveDetails}
+            disabled={!canEditTrip || actionState.savingDetails || !hasCoreDetailsChanges || hasCriticalAttention}
+          >
             {actionState.savingDetails ? <VscLoading className="spin" /> : <VscSave />} Save Details
           </button>
 
-          <button type="button" className="edit-btn ghost" onClick={handleSaveStatus} disabled={!canEditTrip || actionState.savingStatus}>
+          <button
+            type="button"
+            className="edit-btn ghost"
+            onClick={handleSaveStatus}
+            disabled={!canEditTrip || actionState.savingStatus || !hasStatusChange}
+          >
             {actionState.savingStatus ? <VscLoading className="spin" /> : <VscCheck />} Save Status
           </button>
 
@@ -964,7 +1212,12 @@ export default function EditTrip() {
               </div>
 
               <div className="edit-card-actions">
-                <button type="button" className="edit-btn primary" onClick={handleSaveDetails} disabled={!canEditTrip || actionState.savingDetails}>
+                <button
+                  type="button"
+                  className="edit-btn primary"
+                  onClick={handleSaveDetails}
+                  disabled={!canEditTrip || actionState.savingDetails || !hasCoreDetailsChanges || hasCriticalAttention}
+                >
                   {actionState.savingDetails ? <VscLoading className="spin" /> : <VscSave />} Save Details
                 </button>
               </div>
@@ -987,7 +1240,12 @@ export default function EditTrip() {
                   ))}
                 </select>
 
-                <button type="button" className="edit-btn primary" onClick={handleSaveStatus} disabled={!canEditTrip || actionState.savingStatus}>
+                <button
+                  type="button"
+                  className="edit-btn primary"
+                  onClick={handleSaveStatus}
+                  disabled={!canEditTrip || actionState.savingStatus || !hasStatusChange}
+                >
                   {actionState.savingStatus ? <VscLoading className="spin" /> : <VscCheck />} Save Status
                 </button>
               </div>
@@ -1064,12 +1322,61 @@ export default function EditTrip() {
           </section>
 
           <aside className="edit-side-column">
+            <article className="edit-card edit-attention-card">
+              <div className="edit-card-head">
+                <h2>
+                  <VscWarning /> Special Attention Center
+                </h2>
+                <p>Edit-only checks that help prevent high-impact mistakes before saving.</p>
+              </div>
+
+              <ul className="edit-attention-list">
+                {attentionChecks.map((item) => (
+                  <li key={item.id} className={`edit-attention-item is-${item.severity}`}>
+                    <span className={`edit-attention-badge is-${item.severity}`}>{titleCase(item.severity)}</span>
+                    <p>{item.message}</p>
+                  </li>
+                ))}
+              </ul>
+            </article>
+
+            <article className="edit-card">
+              <div className="edit-card-head">
+                <h2>
+                  <VscInfo /> Draft Change Review
+                </h2>
+                <p>Exclusive to edit mode: compare current draft values against the last saved trip snapshot.</p>
+              </div>
+
+              {hasUnsavedChanges ? (
+                <ul className="edit-change-list">
+                  {draftChanges.map((change) => (
+                    <li key={change.key} className={`edit-change-item is-${change.emphasis}`}>
+                      <strong>{change.label}</strong>
+                      <small>
+                        {change.from} to {change.to}
+                      </small>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="edit-muted">No draft differences detected right now.</p>
+              )}
+
+              <div className="edit-card-actions">
+                <button type="button" className="edit-btn ghost" onClick={handleResetDraft} disabled={!hasUnsavedChanges}>
+                  <VscRefresh /> Reset Draft
+                </button>
+              </div>
+            </article>
+
             <article className="edit-card">
               <div className="edit-card-head">
                 <h2>
                   <IoPeopleSharp /> Trip Members
                 </h2>
                 <p>Manage roles and remove members when needed.</p>
+                {!isOwner && <p className="edit-muted">Only the trip owner can update roles or remove members.</p>}
               </div>
 
               {members.length > 0 ? (
@@ -1179,7 +1486,7 @@ export default function EditTrip() {
                   type="button"
                   className="edit-btn primary"
                   onClick={handleSaveMyMemberDetails}
-                  disabled={actionState.savingMemberDetails}
+                  disabled={actionState.savingMemberDetails || !hasMemberDetailsChanges}
                 >
                   {actionState.savingMemberDetails ? <VscLoading className="spin" /> : <VscSave />} Save My Details
                 </button>
