@@ -1,197 +1,1224 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import {
+  VscArrowLeft,
+  VscCalendar,
+  VscCheck,
+  VscCloudDownload,
+  VscCopy,
+  VscEdit,
+  VscError,
+  VscHeart,
+  VscInfo,
+  VscLoading,
+  VscOrganization,
+  VscRefresh,
+  VscSave,
+  VscShare,
+  VscTrash,
+} from 'react-icons/vsc';
+import { FaTrainSubway } from 'react-icons/fa6';
+import { IoPeopleSharp } from 'react-icons/io5';
 import api from '../../utils/axiosInstance';
-import { VscArrowLeft, VscSave } from "react-icons/vsc";
-import { VscLoading,VscTrash } from "react-icons/vsc";
-import './EditTrip.css'; // We will create this CSS file next
+import { useAuth } from '../../context/AuthContext';
+import { Toast } from '../../components/UI';
+import './EditTrip.css';
 
-const COLORS = {
-    primary: '#edafb8',
-    secondary: '#f7e1d7',
-    background: '#dedbd2',
-    text: '#4a5759',
+const STATUS_OPTIONS = [
+  'planning',
+  'upcoming',
+  'active',
+  'completed',
+  'canceled',
+  'planned',
+  'ongoing',
+  'in_progress',
+  'pending_confirmation',
+  'unconfirmed',
+];
+
+const STATUS_API_MAP = {
+  planned: 'planning',
+  ongoing: 'active',
+  in_progress: 'active',
+  pending_confirmation: 'active',
+  unconfirmed: 'active',
 };
 
-const StatusSelector = ({ currentStatus, onChange }) => {
-    const statuses = ['planned', 'ongoing', 'completed', 'canceled'];
-    return (
-        <div className="status-selector">
-            {statuses.map(status => (
-                <button
-                    key={status}
-                    type="button"
-                    className={`status-option ${currentStatus === status ? 'active' : ''}`}
-                    onClick={() => onChange(status)}
-                >
-                    {status.charAt(0).toUpperCase() + status.slice(1)}
-                </button>
-            ))}
+const ACCOMMODATION_OPTIONS = ['budget', 'standard', 'luxury'];
+const TRANSPORT_OPTIONS = ['any', 'flight', 'train', 'bus', 'car'];
+const PURPOSE_OPTIONS = ['work', 'education', 'shopping', 'leisure', 'personal_business', 'other'];
+const AGE_GROUP_OPTIONS = ['<18', '18-35', '36-60', '>60'];
+const GENDER_OPTIONS = ['male', 'female', 'other', 'prefer_not_to_say'];
+
+function getErrorMessage(error, fallback) {
+  return error?.response?.data?.message || fallback;
+}
+
+function titleCase(value) {
+  if (!value) return 'Unknown';
+  return String(value)
+    .replace(/_/g, ' ')
+    .split(' ')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function formatDateInput(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toISOString().split('T')[0];
+}
+
+function formatDate(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Unknown';
+  return date.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function formatDateTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Unknown';
+  return date.toLocaleString(undefined, {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function getMemberUserId(member) {
+  if (!member) return '';
+  return typeof member.userId === 'string' ? member.userId : member.userId?._id || '';
+}
+
+function normalizeStatusForEndpoint(status) {
+  if (!status) return 'planning';
+  return STATUS_API_MAP[status] || status;
+}
+
+function normalizeItinerary(itinerary, startDate) {
+  if (!Array.isArray(itinerary) || itinerary.length === 0) return [];
+
+  const hasDayShape = itinerary.some((item) => typeof item?.day === 'number' || Array.isArray(item?.activities));
+  if (hasDayShape) {
+    return itinerary
+      .map((item, index) => {
+        const activities = Array.isArray(item?.activities) ? item.activities.filter(Boolean) : [];
+        const dayNumber = Number(item?.day) || index + 1;
+        return {
+          day: dayNumber,
+          title: item?.title || `Day ${dayNumber}`,
+          activities: activities.length > 0 ? activities : ['No activities added yet.'],
+          editable: typeof item?.day === 'number',
+        };
+      })
+      .sort((a, b) => a.day - b.day);
+  }
+
+  const start = startDate ? new Date(startDate) : null;
+  const groupedByDay = new Map();
+
+  itinerary.forEach((item, index) => {
+    let day = 1;
+    const startTime = item?.startTime ? new Date(item.startTime) : null;
+
+    if (start && startTime && !Number.isNaN(start.getTime()) && !Number.isNaN(startTime.getTime())) {
+      const diffDays = Math.floor((startTime.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+      day = Math.max(1, diffDays + 1);
+    } else if (typeof item?.sequence === 'number') {
+      day = Math.max(1, item.sequence + 1);
+    }
+
+    const parts = [];
+    if (item?.description) parts.push(item.description);
+    if (item?.type) parts.push(titleCase(item.type));
+    if (item?.mode) parts.push(`via ${titleCase(item.mode)}`);
+
+    const label = parts.join(' - ') || `Activity ${index + 1}`;
+    if (!groupedByDay.has(day)) groupedByDay.set(day, []);
+    groupedByDay.get(day).push(label);
+  });
+
+  return Array.from(groupedByDay.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([day, activities]) => ({
+      day,
+      title: `Day ${day}`,
+      activities,
+      editable: false,
+    }));
+}
+
+function getFilenameFromDisposition(dispositionHeader, fallbackName) {
+  if (!dispositionHeader || typeof dispositionHeader !== 'string') return fallbackName;
+  const match = dispositionHeader.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
+  const rawName = match?.[1] || match?.[2];
+  if (!rawName) return fallbackName;
+  try {
+    return decodeURIComponent(rawName);
+  } catch {
+    return rawName;
+  }
+}
+
+function EditTripLoadingScreen() {
+  return (
+    <div className="edit-trip-loading">
+      <div className="edit-loading-hero" />
+      <div className="edit-loading-grid">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <div key={index} className="edit-loading-card" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DayPlanModal({ day, value, onChange, onClose, onSave, saving }) {
+  if (!day) return null;
+
+  return (
+    <div className="edit-modal-backdrop" onClick={onClose} role="presentation">
+      <div className="edit-modal" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+        <div className="edit-modal-head">
+          <h3>Edit {day.title}</h3>
+          <button type="button" className="edit-btn ghost" onClick={onClose}>
+            Close
+          </button>
         </div>
-    );
-};
+
+        <p className="edit-muted">Add one activity per line and save to update this day.</p>
+
+        <textarea
+          className="edit-textarea"
+          rows={8}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder="Morning walk&#10;Lunch stop&#10;Museum visit"
+        />
+
+        <div className="edit-modal-actions">
+          <button type="button" className="edit-btn ghost" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="button" className="edit-btn primary" onClick={onSave} disabled={saving}>
+            {saving ? <VscLoading className="spin" /> : <VscSave />} Save Day
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function EditTrip() {
-    const { id } = useParams();
-    const navigate = useNavigate();
-    const { t } = useTranslation('tripDetails');
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
-    const [trip, setTrip] = useState(null);
-    const [formData, setFormData] = useState({
-        destination: '',
-        startDate: '',
-        endDate: '',
-        travelers: 1,
-        accommodationType: '',
-        status: ''
-    });
-    const [isLoading, setIsLoading] = useState(true);
-    const [isSaving, setIsSaving] = useState(false);
-    const [message, setMessage] = useState('');
-    const [isDeleting, setIsDeleting] = useState(false);
+  const [trip, setTrip] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [pageError, setPageError] = useState('');
+  const [feedback, setFeedback] = useState({ type: 'info', text: '' });
 
-    const handleDeleteTrip = async () => {
-        if (window.confirm("Are you sure you want to permanently delete this trip? This action cannot be undone.")) {
-            setIsDeleting(true);
-            setMessage('');
-            try {
-                await api.delete(`/trips/${id}`);
-                setMessage('✅ Trip deleted successfully. Redirecting...');
-                setTimeout(() => navigate('/dashboard'), 1500);
-            } catch (error) {
-                setMessage(error.response?.data?.message || 'Failed to delete trip.');
-                setIsDeleting(false);
-            }
+  const [formData, setFormData] = useState({
+    destination: '',
+    startDate: '',
+    endDate: '',
+    travelers: 1,
+    accommodationType: 'standard',
+    transportMode: 'any',
+    purpose: 'leisure',
+  });
+  const [statusDraft, setStatusDraft] = useState('planning');
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  const [inviteToken, setInviteToken] = useState('');
+  const [inviteExpiry, setInviteExpiry] = useState('');
+
+  const [memberForm, setMemberForm] = useState({
+    ageGroup: '',
+    gender: '',
+    relation: '',
+  });
+
+  const [editingDay, setEditingDay] = useState(null);
+  const [editingDayText, setEditingDayText] = useState('');
+
+  const [actionState, setActionState] = useState({
+    refreshing: false,
+    savingDetails: false,
+    savingStatus: false,
+    togglingFavorite: false,
+    generatingInvite: false,
+    copyingInvite: false,
+    downloadingPdf: false,
+    upgradingSchedule: false,
+    savingMemberDetails: false,
+    savingItinerary: false,
+    deletingTrip: false,
+    memberActionKey: '',
+  });
+
+  const members = useMemo(() => trip?.group?.members || [], [trip?.group?.members]);
+
+  const itineraryDays = useMemo(() => normalizeItinerary(trip?.itinerary, trip?.startDate), [trip?.itinerary, trip?.startDate]);
+
+  const supportsDayEdits = useMemo(
+    () => Array.isArray(trip?.itinerary) && trip.itinerary.some((item) => typeof item?.day === 'number'),
+    [trip?.itinerary]
+  );
+
+  const currentMember = useMemo(() => {
+    if (!user?._id || members.length === 0) return null;
+    return members.find((member) => String(getMemberUserId(member)) === String(user._id));
+  }, [members, user?._id]);
+
+  const isOwner = currentMember?.role === 'owner';
+  const canEditTrip = currentMember?.role === 'owner' || currentMember?.role === 'editor';
+
+  const statusOptions = useMemo(() => {
+    const unique = new Set(STATUS_OPTIONS);
+    if (trip?.status) unique.add(trip.status);
+    return Array.from(unique);
+  }, [trip?.status]);
+
+  const hydrateFromTrip = useCallback(
+    (nextTrip) => {
+      setTrip(nextTrip);
+      setIsFavorite(Boolean(nextTrip?.favorite));
+      setStatusDraft(nextTrip?.status || 'planning');
+      setFormData({
+        destination: nextTrip?.destination || '',
+        startDate: formatDateInput(nextTrip?.startDate),
+        endDate: formatDateInput(nextTrip?.endDate),
+        travelers: Number(nextTrip?.travelers) || 1,
+        accommodationType: nextTrip?.preferences?.accommodationType || 'standard',
+        transportMode: nextTrip?.preferences?.transportMode || 'any',
+        purpose: nextTrip?.purpose || 'leisure',
+      });
+
+      const nextMembers = Array.isArray(nextTrip?.group?.members) ? nextTrip.group.members : [];
+      const myMember = nextMembers.find((member) => String(getMemberUserId(member)) === String(user?._id || ''));
+      setMemberForm({
+        ageGroup: myMember?.ageGroup || '',
+        gender: myMember?.gender || '',
+        relation: myMember?.relation || '',
+      });
+
+      if (Array.isArray(nextTrip?.inviteTokens) && nextTrip.inviteTokens.length > 0) {
+        const now = Date.now();
+        const activeTokens = nextTrip.inviteTokens
+          .filter((token) => token?.token && new Date(token.expires).getTime() > now)
+          .sort((a, b) => new Date(b.expires).getTime() - new Date(a.expires).getTime());
+
+        setInviteToken(activeTokens[0]?.token || '');
+        setInviteExpiry(activeTokens[0]?.expires || '');
+      } else {
+        setInviteToken('');
+        setInviteExpiry('');
+      }
+    },
+    [user?._id]
+  );
+
+  const loadTripData = useCallback(
+    async (showInitialLoader = true) => {
+      if (showInitialLoader) {
+        setLoading(true);
+        setPageError('');
+      } else {
+        setActionState((prev) => ({ ...prev, refreshing: true }));
+      }
+
+      try {
+        const { data } = await api.get(`/trips/${id}`);
+        const nextTrip = data?.data?.trip || data?.trip || null;
+
+        if (!nextTrip) {
+          throw new Error('Trip data was not returned by the server.');
         }
-    };
 
-
-
-    const fetchTripData = useCallback(async () => {
-        try {
-            const response = await api.get(`/trips/${id}`);
-            const tripData = response.data.data.trip;
-            setTrip(tripData);
-            setFormData({
-                destination: tripData.destination,
-                startDate: new Date(tripData.startDate).toISOString().split('T')[0],
-                endDate: new Date(tripData.endDate).toISOString().split('T')[0],
-                travelers: tripData.travelers,
-                accommodationType: tripData.preferences.accommodationType || 'standard'
-            });
-        } catch (error) {
-            setMessage('Failed to load trip data.');
-        } finally {
-            setIsLoading(false);
+        hydrateFromTrip(nextTrip);
+      } catch (loadError) {
+        const message = getErrorMessage(loadError, 'Failed to load trip data.');
+        if (showInitialLoader) {
+          setPageError(message);
+        } else {
+          setFeedback({ type: 'error', text: message });
         }
-    }, [id]);
+      } finally {
+        if (showInitialLoader) {
+          setLoading(false);
+        }
+        setActionState((prev) => ({ ...prev, refreshing: false }));
+      }
+    },
+    [hydrateFromTrip, id]
+  );
 
-    useEffect(() => {
-        fetchTripData();
-    }, [fetchTripData]);
+  useEffect(() => {
+    loadTripData(true);
+  }, [loadTripData]);
 
-    const handleChange = (e) => {
-        setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-    };
+  useEffect(() => {
+    if (!feedback.text) return undefined;
 
-    const handleStatusChange = (newStatus) => {
-        setFormData(prev => ({ ...prev, status: newStatus }));
-    };
+    const timeoutId = window.setTimeout(() => {
+      setFeedback((prev) => ({ ...prev, text: '' }));
+    }, 4200);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setIsSaving(true);
-        setMessage('');
-        try {
-            const payload = {
-                destination: formData.destination,
-                startDate: formData.startDate,
-                endDate: formData.endDate,
-                travelers: Number(formData.travelers),
-                status: formData.status, // Include status in the payload
-                preferences: {
-                    ...trip.preferences,
-                    accommodationType: formData.accommodationType
-                }
+    return () => window.clearTimeout(timeoutId);
+  }, [feedback.text]);
+
+  const handleFormChange = (event) => {
+    const { name, value } = event.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleMemberFormChange = (event) => {
+    const { name, value } = event.target;
+    setMemberForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveDetails = async () => {
+    if (!canEditTrip) {
+      setFeedback({ type: 'error', text: 'Only owners or editors can update trip details.' });
+      return;
+    }
+
+    const startDate = new Date(formData.startDate);
+    const endDate = new Date(formData.endDate);
+
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      setFeedback({ type: 'error', text: 'Please provide valid start and end dates.' });
+      return;
+    }
+
+    if (endDate < startDate) {
+      setFeedback({ type: 'error', text: 'End date cannot be before the start date.' });
+      return;
+    }
+
+    setActionState((prev) => ({ ...prev, savingDetails: true }));
+    try {
+      const payload = {
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        travelers: Math.max(1, Number(formData.travelers) || 1),
+        purpose: formData.purpose,
+        preferences: {
+          ...(trip?.preferences || {}),
+          accommodationType: formData.accommodationType,
+          transportMode: formData.transportMode,
+        },
+      };
+
+      const { data } = await api.patch(`/trips/${id}/details`, payload);
+      const updatedTrip = data?.data?.trip || null;
+      if (updatedTrip) {
+        hydrateFromTrip(updatedTrip);
+      } else {
+        await loadTripData(false);
+      }
+      setFeedback({ type: 'success', text: 'Trip details updated successfully.' });
+    } catch (saveError) {
+      setFeedback({ type: 'error', text: getErrorMessage(saveError, 'Failed to update trip details.') });
+    } finally {
+      setActionState((prev) => ({ ...prev, savingDetails: false }));
+    }
+  };
+
+  const handleSaveStatus = async () => {
+    if (!canEditTrip) {
+      setFeedback({ type: 'error', text: 'Only owners or editors can update trip status.' });
+      return;
+    }
+
+    if (!statusDraft || statusDraft === trip?.status) return;
+
+    setActionState((prev) => ({ ...prev, savingStatus: true }));
+    try {
+      const endpointStatus = normalizeStatusForEndpoint(statusDraft);
+      let updatedTrip = null;
+
+      try {
+        const { data } = await api.patch(`/trips/${id}/status`, { status: endpointStatus });
+        updatedTrip = data?.data?.trip || null;
+      } catch {
+        const { data } = await api.patch(`/trips/${id}/details`, { status: statusDraft });
+        updatedTrip = data?.data?.trip || null;
+      }
+
+      if (updatedTrip) {
+        hydrateFromTrip(updatedTrip);
+      } else {
+        setTrip((prev) => (prev ? { ...prev, status: endpointStatus } : prev));
+        setStatusDraft(endpointStatus);
+      }
+
+      setFeedback({ type: 'success', text: 'Trip status updated successfully.' });
+    } catch (statusError) {
+      setFeedback({ type: 'error', text: getErrorMessage(statusError, 'Failed to update trip status.') });
+    } finally {
+      setActionState((prev) => ({ ...prev, savingStatus: false }));
+    }
+  };
+
+  const handleToggleFavorite = async () => {
+    setActionState((prev) => ({ ...prev, togglingFavorite: true }));
+    const previous = isFavorite;
+    setIsFavorite((prev) => !prev);
+
+    try {
+      const { data } = await api.patch(`/trips/${id}/favorite`);
+      const nextFavorite = data?.data?.favorite;
+      if (typeof nextFavorite === 'boolean') {
+        setIsFavorite(nextFavorite);
+      }
+      setFeedback({ type: 'success', text: 'Favorite status updated.' });
+    } catch (favoriteError) {
+      setIsFavorite(previous);
+      setFeedback({ type: 'error', text: getErrorMessage(favoriteError, 'Failed to update favorite status.') });
+    } finally {
+      setActionState((prev) => ({ ...prev, togglingFavorite: false }));
+    }
+  };
+
+  const handleGenerateInvite = async () => {
+    setActionState((prev) => ({ ...prev, generatingInvite: true }));
+    try {
+      const { data } = await api.post(`/trips/${id}/generate-invite`);
+      const token = data?.data?.inviteToken || '';
+      const expiresAt = data?.data?.expiresAt || '';
+      setInviteToken(token);
+      setInviteExpiry(expiresAt);
+      setFeedback({ type: 'success', text: token ? 'Invite token generated successfully.' : 'Invite token request completed.' });
+    } catch (inviteError) {
+      setFeedback({ type: 'error', text: getErrorMessage(inviteError, 'Failed to generate invite token.') });
+    } finally {
+      setActionState((prev) => ({ ...prev, generatingInvite: false }));
+    }
+  };
+
+  const handleCopyInviteToken = async () => {
+    if (!inviteToken) return;
+
+    setActionState((prev) => ({ ...prev, copyingInvite: true }));
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(inviteToken);
+      } else {
+        const helper = document.createElement('textarea');
+        helper.value = inviteToken;
+        helper.setAttribute('readonly', '');
+        helper.style.position = 'absolute';
+        helper.style.left = '-9999px';
+        document.body.appendChild(helper);
+        helper.select();
+        document.execCommand('copy');
+        helper.remove();
+      }
+
+      setFeedback({ type: 'success', text: 'Invite token copied to clipboard.' });
+    } catch {
+      setFeedback({ type: 'error', text: 'Could not copy invite token.' });
+    } finally {
+      setActionState((prev) => ({ ...prev, copyingInvite: false }));
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    setActionState((prev) => ({ ...prev, downloadingPdf: true }));
+    try {
+      const response = await api.get(`/trips/${id}/download`, { responseType: 'blob' });
+      const blobUrl = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+
+      const fallbackFileName = `waymate-${(trip?.destination || 'trip').replace(/\s+/g, '-').toLowerCase()}.pdf`;
+      const disposition = response?.headers?.['content-disposition'] || response?.headers?.['Content-Disposition'];
+      const fileName = getFilenameFromDisposition(disposition, fallbackFileName);
+
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(blobUrl);
+
+      setFeedback({ type: 'success', text: 'Trip PDF downloaded.' });
+    } catch (downloadError) {
+      setFeedback({ type: 'error', text: getErrorMessage(downloadError, 'Failed to download trip PDF.') });
+    } finally {
+      setActionState((prev) => ({ ...prev, downloadingPdf: false }));
+    }
+  };
+
+  const handleUpgradeSmartSchedule = async () => {
+    setActionState((prev) => ({ ...prev, upgradingSchedule: true }));
+    try {
+      const { data } = await api.post(`/trips/${id}/smart-schedule`);
+      const schedule = data?.data?.schedule;
+      if (schedule) {
+        setTrip((prev) => (prev ? { ...prev, smartSchedule: schedule } : prev));
+      } else {
+        await loadTripData(false);
+      }
+      setFeedback({ type: 'success', text: 'Smart schedule generated successfully.' });
+    } catch (scheduleError) {
+      setFeedback({ type: 'error', text: getErrorMessage(scheduleError, 'Failed to generate smart schedule.') });
+    } finally {
+      setActionState((prev) => ({ ...prev, upgradingSchedule: false }));
+    }
+  };
+
+  const handleSaveMyMemberDetails = async () => {
+    setActionState((prev) => ({ ...prev, savingMemberDetails: true }));
+
+    try {
+      const payload = {
+        ageGroup: memberForm.ageGroup || undefined,
+        gender: memberForm.gender || undefined,
+        relation: memberForm.relation.trim() || undefined,
+      };
+
+      const { data } = await api.patch(`/trips/${id}/members/me`, payload);
+      const updatedMember = data?.data?.member;
+
+      if (updatedMember && user?._id) {
+        setTrip((prev) => {
+          if (!prev?.group?.members) return prev;
+
+          const nextMembers = prev.group.members.map((member) => {
+            if (String(getMemberUserId(member)) !== String(user._id)) return member;
+            return {
+              ...member,
+              ageGroup: updatedMember.ageGroup,
+              gender: updatedMember.gender,
+              relation: updatedMember.relation,
             };
-            await api.patch(`/trips/${id}/details`, payload);
-            setMessage('✅ Trip updated successfully!');
-            setTimeout(() => navigate(`/trip/${id}`), 1500);
-        } catch (error) {
-            setMessage(error.response?.data?.message || 'Failed to update trip.');
-        } finally {
-            setIsSaving(false);
-        }
-    };
+          });
 
-    if (isLoading) return <div className="loading-screen">Loading editor...</div>;
+          return { ...prev, group: { ...prev.group, members: nextMembers } };
+        });
+      }
 
+      setFeedback({ type: 'success', text: 'Your trip member details were updated.' });
+    } catch (memberError) {
+      setFeedback({ type: 'error', text: getErrorMessage(memberError, 'Failed to update your member details.') });
+    } finally {
+      setActionState((prev) => ({ ...prev, savingMemberDetails: false }));
+    }
+  };
+
+  const handleMemberRoleChange = async (memberId, role) => {
+    if (!memberId) return;
+
+    const actionKey = `${memberId}:role`;
+    setActionState((prev) => ({ ...prev, memberActionKey: actionKey }));
+
+    try {
+      const { data } = await api.patch(`/trips/${id}/members/${memberId}/role`, { role });
+      const nextMembers = data?.data?.members;
+
+      if (Array.isArray(nextMembers)) {
+        setTrip((prev) => (prev ? { ...prev, group: { ...prev.group, members: nextMembers } } : prev));
+      } else {
+        setTrip((prev) => {
+          if (!prev?.group?.members) return prev;
+
+          const updatedMembers = prev.group.members.map((member) => {
+            if (String(getMemberUserId(member)) !== String(memberId)) return member;
+            return { ...member, role };
+          });
+
+          return { ...prev, group: { ...prev.group, members: updatedMembers } };
+        });
+      }
+
+      setFeedback({ type: 'success', text: 'Member role updated successfully.' });
+    } catch (roleError) {
+      setFeedback({ type: 'error', text: getErrorMessage(roleError, 'Failed to update member role.') });
+    } finally {
+      setActionState((prev) => ({ ...prev, memberActionKey: '' }));
+    }
+  };
+
+  const handleRemoveMember = async (memberId, memberName) => {
+    if (!memberId) return;
+
+    const confirmed = window.confirm(`Remove ${memberName || 'this member'} from the trip?`);
+    if (!confirmed) return;
+
+    const actionKey = `${memberId}:remove`;
+    setActionState((prev) => ({ ...prev, memberActionKey: actionKey }));
+
+    try {
+      const { data } = await api.delete(`/trips/${id}/members/${memberId}`);
+      const nextMembers = data?.data?.members;
+
+      if (Array.isArray(nextMembers)) {
+        setTrip((prev) => (prev ? { ...prev, group: { ...prev.group, members: nextMembers } } : prev));
+      } else {
+        setTrip((prev) => {
+          if (!prev?.group?.members) return prev;
+          const updatedMembers = prev.group.members.filter((member) => String(getMemberUserId(member)) !== String(memberId));
+          return { ...prev, group: { ...prev.group, members: updatedMembers } };
+        });
+      }
+
+      setFeedback({ type: 'success', text: 'Member removed from trip.' });
+    } catch (removeError) {
+      setFeedback({ type: 'error', text: getErrorMessage(removeError, 'Failed to remove member.') });
+    } finally {
+      setActionState((prev) => ({ ...prev, memberActionKey: '' }));
+    }
+  };
+
+  const openDayEditor = (day) => {
+    if (!day?.editable || !supportsDayEdits || !canEditTrip) return;
+    setEditingDay(day);
+    setEditingDayText(day.activities.join('\n'));
+  };
+
+  const handleSaveDayPlan = async () => {
+    if (!editingDay?.day) return;
+
+    const activities = editingDayText
+      .split('\n')
+      .map((activity) => activity.trim())
+      .filter(Boolean);
+
+    if (activities.length === 0) {
+      setFeedback({ type: 'error', text: 'Please add at least one activity for this day.' });
+      return;
+    }
+
+    setActionState((prev) => ({ ...prev, savingItinerary: true }));
+
+    try {
+      const { data } = await api.patch(`/trips/${id}/itinerary/${editingDay.day}`, { activities });
+      const updatedDay = data?.data?.day;
+
+      setTrip((prev) => {
+        if (!prev?.itinerary) return prev;
+
+        const nextItinerary = prev.itinerary.map((item) => {
+          if (Number(item?.day) !== Number(editingDay.day)) return item;
+          return {
+            ...item,
+            ...(updatedDay || {}),
+            activities,
+          };
+        });
+
+        return { ...prev, itinerary: nextItinerary };
+      });
+
+      setFeedback({ type: 'success', text: `Updated itinerary for Day ${editingDay.day}.` });
+      setEditingDay(null);
+      setEditingDayText('');
+    } catch (itineraryError) {
+      setFeedback({ type: 'error', text: getErrorMessage(itineraryError, 'Failed to update itinerary day.') });
+    } finally {
+      setActionState((prev) => ({ ...prev, savingItinerary: false }));
+    }
+  };
+
+  const handleDeleteTrip = async () => {
+    if (!isOwner) {
+      setFeedback({ type: 'error', text: 'Only the trip owner can delete this trip.' });
+      return;
+    }
+
+    const confirmed = window.confirm('Delete this trip permanently? This action cannot be undone.');
+    if (!confirmed) return;
+
+    setActionState((prev) => ({ ...prev, deletingTrip: true }));
+    try {
+      await api.delete(`/trips/${id}`);
+      setFeedback({ type: 'success', text: 'Trip deleted successfully. Redirecting...' });
+      window.setTimeout(() => navigate('/dashboard'), 900);
+    } catch (deleteError) {
+      setFeedback({ type: 'error', text: getErrorMessage(deleteError, 'Failed to delete this trip.') });
+      setActionState((prev) => ({ ...prev, deletingTrip: false }));
+    }
+  };
+
+  if (loading) {
+    return <EditTripLoadingScreen />;
+  }
+
+  if (pageError || !trip) {
     return (
-        <div className="edit-trip-page">
-            <nav className="edit-trip-nav">
-                <Link to={`/trip/${id}`} className="nav-back-button">
-                    <VscArrowLeft /> Back to Trip
-                </Link>
-                <h1 className="edit-trip-title">Edit Trip to {trip?.destination}</h1>
-                <button form="edit-trip-form" type="submit" className="save-button-nav" disabled={isSaving}>
-                    {isSaving ? <VscLoading className="spinner" /> : <VscSave />}
-                    <span>{isSaving ? 'Saving...' : 'Save Changes'}</span>
-                </button>
-            </nav>
-            <div className="edit-trip-container">
-                <form id="edit-trip-form" onSubmit={handleSubmit} className="edit-trip-form">
-                    <div className="form-column">
-                        <div className="form-group">
-                            <label htmlFor="destination">Destination</label>
-                            <input type="text" id="destination" name="destination" value={formData.destination} onChange={handleChange} required disabled />
-                        </div>
-                        <div className="form-group">
-                            <label htmlFor="startDate">Start Date</label>
-                            <input type="date" id="startDate" name="startDate" value={formData.startDate} onChange={handleChange} required />
-                        </div>
-                        <div className="form-group">
-                            <label htmlFor="endDate">End Date</label>
-                            <input type="date" id="endDate" name="endDate" value={formData.endDate} onChange={handleChange} required />
-                        </div>
-                    </div>
-                    <div className="form-column">
-                        <div className="form-group">
-                            <label>Trip Status</label>
-                            <StatusSelector currentStatus={formData.status} onChange={handleStatusChange} />
-                        </div>
-                        <div className="form-group">
-                            <label htmlFor="travelers">Travelers</label>
-                            <input type="number" id="travelers" name="travelers" value={formData.travelers} onChange={handleChange} min="1" required />
-                        </div>
-                        <div className="form-group">
-                            <label htmlFor="accommodationType">Accommodation Style</label>
-                            <select id="accommodationType" name="accommodationType" value={formData.accommodationType} onChange={handleChange}>
-                                <option value="budget">Budget</option>
-                                <option value="standard">Standard</option>
-                                <option value="luxury">Luxury</option>
-                            </select>
-                        </div>
-                    </div>
-                </form>
-                {message && <p className="form-message-footer">{message}</p>}
-                <h6>
-                    Please note: While core trip details can be modified, the AI-generated itinerary will not be updated automatically. To ensure efficient data management, completed trips are archived one week after their end date.
-                </h6>
-                <div className="danger-zone">
-                    <div className="danger-zone-header">
-                        <h4>Danger Zone</h4>
-                        <p>These actions are permanent and cannot be undone.</p>
-                    </div>
-                    <button
-                        type="button"
-                        className="delete-button"
-                        onClick={handleDeleteTrip}
-                        disabled={isDeleting}
-                    >
-                        <VscTrash /> {isDeleting ? 'Deleting...' : 'Delete This Trip'}
-                    </button>
-                </div>
-            </div>
+      <div className="edit-trip-error">
+        <VscError />
+        <h2>{pageError || 'Trip editor data is unavailable.'}</h2>
+        <div className="edit-error-actions">
+          <button type="button" className="edit-btn primary" onClick={() => loadTripData(true)}>
+            <VscRefresh /> Retry
+          </button>
+          <button type="button" className="edit-btn ghost" onClick={() => navigate('/dashboard')}>
+            Back to dashboard
+          </button>
         </div>
+      </div>
     );
+  }
+
+  const tripDateRange = `${formatDate(trip.startDate)} - ${formatDate(trip.endDate)}`;
+
+  return (
+    <div className="edit-trip-page">
+      <div className="edit-trip-shell">
+        <header className="edit-trip-hero">
+          <img
+            src={trip.coverImage || 'https://images.unsplash.com/photo-1503220317375-aaad61436b1b?auto=format&fit=crop&w=1600&q=80'}
+            alt={trip.destination || 'Trip'}
+            loading="eager"
+            decoding="async"
+          />
+
+          <div className="edit-trip-hero-overlay">
+            <div className="edit-trip-hero-top">
+              <Link to={`/trip/${id}`} className="edit-back-link">
+                <VscArrowLeft /> Back to Trip
+              </Link>
+
+              <div className="edit-trip-hero-actions">
+                <button
+                  type="button"
+                  className="edit-icon-btn"
+                  onClick={() => loadTripData(false)}
+                  disabled={actionState.refreshing}
+                  aria-label="Refresh trip data"
+                >
+                  {actionState.refreshing ? <VscLoading className="spin" /> : <VscRefresh />}
+                </button>
+
+                <button
+                  type="button"
+                  className={`edit-icon-btn ${isFavorite ? 'is-favorite' : ''}`}
+                  onClick={handleToggleFavorite}
+                  disabled={actionState.togglingFavorite}
+                  aria-label="Toggle favorite"
+                >
+                  {actionState.togglingFavorite ? <VscLoading className="spin" /> : <VscHeart />}
+                </button>
+              </div>
+            </div>
+
+            <div className="edit-trip-hero-copy">
+              <p className="edit-overline">Trip Workspace</p>
+              <h1>Edit {trip.destination}</h1>
+              <div className="edit-trip-meta">
+                <span>
+                  <VscCalendar /> {tripDateRange}
+                </span>
+                <span>
+                  <IoPeopleSharp /> {trip.travelers || 1} Traveler{Number(trip.travelers || 1) > 1 ? 's' : ''}
+                </span>
+                <span>
+                  <VscInfo /> Status: {titleCase(trip.status)}
+                </span>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <Toast
+          variant={feedback.type}
+          message={feedback.text}
+          onClose={() => setFeedback((prev) => ({ ...prev, text: '' }))}
+        />
+
+        <section className="edit-trip-quick-actions">
+          <button type="button" className="edit-btn primary" onClick={handleSaveDetails} disabled={!canEditTrip || actionState.savingDetails}>
+            {actionState.savingDetails ? <VscLoading className="spin" /> : <VscSave />} Save Details
+          </button>
+
+          <button type="button" className="edit-btn ghost" onClick={handleSaveStatus} disabled={!canEditTrip || actionState.savingStatus}>
+            {actionState.savingStatus ? <VscLoading className="spin" /> : <VscCheck />} Save Status
+          </button>
+
+          <button
+            type="button"
+            className="edit-btn ghost"
+            onClick={handleGenerateInvite}
+            disabled={actionState.generatingInvite}
+          >
+            {actionState.generatingInvite ? <VscLoading className="spin" /> : <VscShare />} Generate Invite
+          </button>
+
+          <button
+            type="button"
+            className="edit-btn ghost"
+            onClick={handleUpgradeSmartSchedule}
+            disabled={actionState.upgradingSchedule}
+          >
+            {actionState.upgradingSchedule ? <VscLoading className="spin" /> : <FaTrainSubway />} Smart Schedule
+          </button>
+
+          <button
+            type="button"
+            className="edit-btn ghost"
+            onClick={handleDownloadPdf}
+            disabled={actionState.downloadingPdf}
+          >
+            {actionState.downloadingPdf ? <VscLoading className="spin" /> : <VscCloudDownload />} Download PDF
+          </button>
+
+          <Link to={`/trip/${id}/expenses`} className="edit-btn ghost is-link">
+            <VscOrganization /> Open Expenses
+          </Link>
+        </section>
+
+        {inviteToken && (
+          <section className="edit-invite-banner">
+            <div>
+              <h3>Invite Token</h3>
+              <code>{inviteToken}</code>
+              <small>Expires: {formatDateTime(inviteExpiry)}</small>
+            </div>
+            <button
+              type="button"
+              className="edit-btn ghost"
+              onClick={handleCopyInviteToken}
+              disabled={actionState.copyingInvite}
+            >
+              {actionState.copyingInvite ? <VscLoading className="spin" /> : <VscCopy />} Copy
+            </button>
+          </section>
+        )}
+
+        <main className="edit-trip-layout">
+          <section className="edit-main-column">
+            <article className="edit-card">
+              <div className="edit-card-head">
+                <h2>
+                  <VscEdit /> Core Details
+                </h2>
+                <p>Update dates, traveler count, comfort level, mode preference, and purpose.</p>
+              </div>
+
+              <div className="edit-form-grid">
+                <label>
+                  Destination
+                  <input name="destination" value={formData.destination} onChange={handleFormChange} disabled />
+                </label>
+
+                <label>
+                  Start Date
+                  <input type="date" name="startDate" value={formData.startDate} onChange={handleFormChange} />
+                </label>
+
+                <label>
+                  End Date
+                  <input type="date" name="endDate" value={formData.endDate} onChange={handleFormChange} />
+                </label>
+
+                <label>
+                  Travelers
+                  <input
+                    type="number"
+                    min="1"
+                    name="travelers"
+                    value={formData.travelers}
+                    onChange={handleFormChange}
+                  />
+                </label>
+
+                <label>
+                  Accommodation
+                  <select name="accommodationType" value={formData.accommodationType} onChange={handleFormChange}>
+                    {ACCOMMODATION_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {titleCase(option)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label>
+                  Transport Preference
+                  <select name="transportMode" value={formData.transportMode} onChange={handleFormChange}>
+                    {TRANSPORT_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {titleCase(option)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label>
+                  Purpose
+                  <select name="purpose" value={formData.purpose} onChange={handleFormChange}>
+                    {PURPOSE_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {titleCase(option)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <div className="edit-card-actions">
+                <button type="button" className="edit-btn primary" onClick={handleSaveDetails} disabled={!canEditTrip || actionState.savingDetails}>
+                  {actionState.savingDetails ? <VscLoading className="spin" /> : <VscSave />} Save Details
+                </button>
+              </div>
+            </article>
+
+            <article className="edit-card">
+              <div className="edit-card-head">
+                <h2>
+                  <VscInfo /> Status Management
+                </h2>
+                <p>Save status updates independently without changing other details.</p>
+              </div>
+
+              <div className="edit-status-row">
+                <select value={statusDraft} onChange={(event) => setStatusDraft(event.target.value)}>
+                  {statusOptions.map((status) => (
+                    <option key={status} value={status}>
+                      {titleCase(status)}
+                    </option>
+                  ))}
+                </select>
+
+                <button type="button" className="edit-btn primary" onClick={handleSaveStatus} disabled={!canEditTrip || actionState.savingStatus}>
+                  {actionState.savingStatus ? <VscLoading className="spin" /> : <VscCheck />} Save Status
+                </button>
+              </div>
+            </article>
+
+            <article className="edit-card">
+              <div className="edit-card-head">
+                <h2>
+                  <VscCalendar /> Itinerary Editor
+                </h2>
+                <p>Fine-tune day plans and keep itinerary updates synchronized.</p>
+              </div>
+
+              {itineraryDays.length > 0 ? (
+                <div className="edit-itinerary-list">
+                  {itineraryDays.map((day) => (
+                    <section key={day.day} className="edit-itinerary-day">
+                      <div className="edit-itinerary-head">
+                        <div>
+                          <h4>{day.title}</h4>
+                          <small>Day {day.day}</small>
+                        </div>
+
+                        {canEditTrip && day.editable && supportsDayEdits && (
+                          <button type="button" className="edit-btn ghost" onClick={() => openDayEditor(day)}>
+                            <VscEdit /> Edit Day
+                          </button>
+                        )}
+                      </div>
+
+                      <ul>
+                        {day.activities.map((activity, index) => (
+                          <li key={`${activity}-${index}`}>
+                            <VscCheck />
+                            <span>{activity}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  ))}
+                </div>
+              ) : (
+                <p className="edit-muted">No itinerary entries available yet.</p>
+              )}
+            </article>
+
+            <article className="edit-card">
+              <div className="edit-card-head">
+                <h2>
+                  <FaTrainSubway /> Smart Schedule
+                </h2>
+                <p>Generate and review train recommendations for this trip.</p>
+              </div>
+
+              {trip.smartSchedule?.options?.length > 0 ? (
+                <div className="edit-schedule-list">
+                  {trip.smartSchedule.options.slice(0, 4).map((option, index) => (
+                    <div key={`${option.trainNumber}-${index}`} className="edit-schedule-item">
+                      <strong>
+                        {option.trainName} ({option.trainNumber})
+                      </strong>
+                      <p>
+                        {option.departureTime} to {option.arrivalTime} • {option.duration}
+                      </p>
+                      {option.availableClasses?.length > 0 && <small>{option.availableClasses.join(' | ')}</small>}
+                      {option.recommendationReason && <em>{option.recommendationReason}</em>}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="edit-muted">No smart schedule generated yet. Use the action button above to create one.</p>
+              )}
+            </article>
+          </section>
+
+          <aside className="edit-side-column">
+            <article className="edit-card">
+              <div className="edit-card-head">
+                <h2>
+                  <IoPeopleSharp /> Trip Members
+                </h2>
+                <p>Manage roles and remove members when needed.</p>
+              </div>
+
+              {members.length > 0 ? (
+                <ul className="edit-members-list">
+                  {members.map((member) => {
+                    const memberUserId = getMemberUserId(member);
+                    const memberName =
+                      typeof member?.userId === 'string' ? 'Member' : member?.userId?.name || member?.userId?.email || 'Member';
+                    const profileImage =
+                      typeof member?.userId === 'string'
+                        ? null
+                        : member?.userId?.profileImage ||
+                          `https://ui-avatars.com/api/?name=${encodeURIComponent(memberName)}&background=0E3B4C&color=ffffff`;
+                    const isCurrentUser = String(memberUserId) === String(user?._id || '');
+                    const roleActionKey = `${memberUserId}:role`;
+                    const removeActionKey = `${memberUserId}:remove`;
+
+                    return (
+                      <li key={memberUserId || memberName} className="edit-member-item">
+                        {profileImage ? <img src={profileImage} alt={memberName} loading="lazy" decoding="async" /> : <div className="edit-avatar-fallback" />}
+
+                        <div className="edit-member-main">
+                          <strong>{memberName}</strong>
+                          <small>{isCurrentUser ? 'You' : member?.userId?.email || 'Trip member'}</small>
+                        </div>
+
+                        <div className="edit-member-controls">
+                          {isOwner && !isCurrentUser && member.role !== 'owner' ? (
+                            <select
+                              value={member.role}
+                              onChange={(event) => handleMemberRoleChange(memberUserId, event.target.value)}
+                              disabled={actionState.memberActionKey === roleActionKey}
+                            >
+                              <option value="viewer">Viewer</option>
+                              <option value="editor">Editor</option>
+                            </select>
+                          ) : (
+                            <span className="edit-role-pill">{titleCase(member.role)}</span>
+                          )}
+
+                          {isOwner && !isCurrentUser && member.role !== 'owner' && (
+                            <button
+                              type="button"
+                              className="edit-icon-btn danger"
+                              onClick={() => handleRemoveMember(memberUserId, memberName)}
+                              disabled={actionState.memberActionKey === removeActionKey}
+                              aria-label={`Remove ${memberName}`}
+                            >
+                              {actionState.memberActionKey === removeActionKey ? <VscLoading className="spin" /> : <VscTrash />}
+                            </button>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="edit-muted">No members found for this trip.</p>
+              )}
+            </article>
+
+            <article className="edit-card">
+              <div className="edit-card-head">
+                <h2>
+                  <VscOrganization /> My Member Details
+                </h2>
+                <p>Update your demographic details used for planning and analytics.</p>
+              </div>
+
+              <div className="edit-member-form">
+                <label>
+                  Age Group
+                  <select name="ageGroup" value={memberForm.ageGroup} onChange={handleMemberFormChange}>
+                    <option value="">Not set</option>
+                    {AGE_GROUP_OPTIONS.map((ageGroup) => (
+                      <option key={ageGroup} value={ageGroup}>
+                        {ageGroup}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label>
+                  Gender
+                  <select name="gender" value={memberForm.gender} onChange={handleMemberFormChange}>
+                    <option value="">Not set</option>
+                    {GENDER_OPTIONS.map((gender) => (
+                      <option key={gender} value={gender}>
+                        {titleCase(gender)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label>
+                  Relation
+                  <input
+                    type="text"
+                    name="relation"
+                    value={memberForm.relation}
+                    onChange={handleMemberFormChange}
+                    placeholder="Friend, sibling, colleague"
+                  />
+                </label>
+
+                <button
+                  type="button"
+                  className="edit-btn primary"
+                  onClick={handleSaveMyMemberDetails}
+                  disabled={actionState.savingMemberDetails}
+                >
+                  {actionState.savingMemberDetails ? <VscLoading className="spin" /> : <VscSave />} Save My Details
+                </button>
+              </div>
+            </article>
+
+            <article className="edit-card danger-zone-card">
+              <div className="edit-card-head">
+                <h2>
+                  <VscTrash /> Danger Zone
+                </h2>
+                <p>This permanently removes the trip and associated group chat.</p>
+              </div>
+
+              <button
+                type="button"
+                className="edit-btn danger"
+                onClick={handleDeleteTrip}
+                disabled={actionState.deletingTrip || !isOwner}
+                title={isOwner ? 'Delete trip' : 'Only trip owner can delete'}
+              >
+                {actionState.deletingTrip ? <VscLoading className="spin" /> : <VscTrash />} Delete Trip
+              </button>
+            </article>
+          </aside>
+        </main>
+
+        <DayPlanModal
+          day={editingDay}
+          value={editingDayText}
+          onChange={setEditingDayText}
+          onClose={() => {
+            setEditingDay(null);
+            setEditingDayText('');
+          }}
+          onSave={handleSaveDayPlan}
+          saving={actionState.savingItinerary}
+        />
+      </div>
+    </div>
+  );
 }

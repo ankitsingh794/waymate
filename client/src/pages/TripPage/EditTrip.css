@@ -1,379 +1,756 @@
-/* ============================================
-   EDIT TRIP PAGE
-   ============================================ */
-
 .edit-trip-page {
   min-height: 100vh;
-  font-family: var(--font-primary);
-  background: var(--color-background);
-  color: var(--text-primary);
+  padding: 0.75rem 0 1.1rem;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(87, 184, 203, 0.16), transparent 34%),
+    radial-gradient(circle at 95% 8%, rgba(14, 59, 76, 0.08), transparent 30%),
+    linear-gradient(180deg, #f9fcfd 0%, #f3f8fb 55%, #eef4f7 100%);
 }
 
-/* ============================================
-   NAVIGATION BAR
-   ============================================ */
+.edit-trip-shell {
+  width: min(1280px, calc(100% - 1rem));
+  margin: 0 auto;
+  display: grid;
+  gap: 0.72rem;
+}
 
-.edit-trip-nav {
+.edit-trip-loading {
+  width: min(1280px, calc(100% - 1rem));
+  margin: 0.75rem auto;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.edit-loading-hero,
+.edit-loading-card {
+  border-radius: 1rem;
+  border: 1px solid rgba(14, 59, 76, 0.13);
+  background: linear-gradient(100deg, rgba(255, 255, 255, 0.94), rgba(241, 248, 251, 0.94));
+  position: relative;
+  overflow: hidden;
+}
+
+.edit-loading-hero {
+  min-height: 230px;
+}
+
+.edit-loading-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.edit-loading-card {
+  min-height: 180px;
+}
+
+.edit-loading-hero::after,
+.edit-loading-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  animation: edit-shimmer 1.35s ease-in-out infinite;
+}
+
+@keyframes edit-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.edit-trip-error {
+  width: min(760px, calc(100% - 1rem));
+  margin: 1.35rem auto;
+  border-radius: 1rem;
+  border: 1px solid rgba(195, 57, 57, 0.28);
+  background: #fff;
+  box-shadow: 0 16px 34px rgba(9, 28, 39, 0.13);
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 0.7rem;
+  padding: 1rem;
+  color: #8f2d2d;
+}
+
+.edit-trip-error svg {
+  font-size: 1.6rem;
+}
+
+.edit-trip-error h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.edit-error-actions {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.edit-trip-hero {
+  position: relative;
+  border-radius: 1rem;
+  border: 1px solid rgba(14, 59, 76, 0.16);
+  overflow: hidden;
+  min-height: 245px;
+  box-shadow: 0 18px 42px rgba(7, 27, 37, 0.24);
+}
+
+.edit-trip-hero > img {
+  width: 100%;
+  height: 100%;
+  min-height: 245px;
+  object-fit: cover;
+  display: block;
+}
+
+.edit-trip-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(160deg, rgba(2, 27, 38, 0.78), rgba(2, 27, 38, 0.5)),
+    linear-gradient(320deg, rgba(13, 110, 130, 0.28), transparent 45%);
+  color: #fff;
+  padding: 0.92rem;
+  display: grid;
+  align-content: space-between;
+}
+
+.edit-trip-hero-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-md) var(--space-xl);
-  background: var(--color-surface);
-  border-bottom: 1px solid rgba(var(--color-primary-rgb), 0.1);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  box-shadow: var(--shadow-sm);
-  backdrop-filter: blur(8px);
+  gap: 0.7rem;
 }
 
-.edit-trip-title {
-  margin: 0;
-  font-size: clamp(1.5rem, 4vw, 2.5rem);
-  font-weight: 700;
-  font-family: var(--font-secondary);
-  flex: 1;
-  text-align: center;
-}
-
-.nav-back-button,
-.save-button-nav {
-  flex: 1;
-  display: flex;
+.edit-back-link {
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 999px;
+  padding: 0.35rem 0.6rem;
+  display: inline-flex;
   align-items: center;
-  gap: var(--space-sm);
-  font-weight: 600;
-}
-
-.nav-back-button {
+  gap: 0.3rem;
+  color: #fff;
   text-decoration: none;
-  color: var(--text-primary);
-  justify-content: flex-start;
-  transition: color var(--transition-fast);
-  cursor: pointer;
-}
-
-.nav-back-button:hover {
-  color: var(--color-primary);
-}
-
-.save-button-nav {
-  padding: var(--space-sm) var(--space-lg);
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-  color: white;
-  border: none;
-  border-radius: var(--radius-full);
-  font-size: 0.9rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all var(--transition-normal);
-  justify-content: flex-end;
-  box-shadow: var(--shadow-md);
-}
-
-.save-button-nav:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
-}
-
-.save-button-nav:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* ============================================
-   FORM CONTAINER
-   ============================================ */
-
-.edit-trip-container {
-  max-width: 900px;
-  margin: var(--space-2xl) auto;
-  padding: var(--space-2xl) var(--space-3xl);
-  background: var(--color-surface);
-  border-radius: var(--radius-2xl);
-  box-shadow: var(--shadow-lg);
-  border: 1px solid rgba(var(--color-primary-rgb), 0.1);
-}
-
-.edit-trip-form {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-2xl);
-}
-
-.form-column {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xl);
-}
-
-/* ============================================
-   FORM ELEMENTS
-   ============================================ */
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-}
-
-.form-group label {
-  display: block;
-  margin: 0;
-  font-weight: 700;
-  font-size: clamp(0.85rem, 2vw, 0.95rem);
-  color: var(--text-primary);
-  font-family: var(--font-secondary);
-}
-
-.edit-trip-form input,
-.edit-trip-form select {
-  width: 100%;
-  padding: var(--space-md) var(--space-lg);
-  font-size: 1rem;
-  border: 2px solid rgba(var(--color-primary-rgb), 0.15);
-  border-radius: var(--radius-lg);
-  background: var(--color-background);
-  box-sizing: border-box;
-  transition: all var(--transition-normal);
-  font-family: var(--font-primary);
-  color: var(--text-primary);
-}
-
-.edit-trip-form input::placeholder {
-  color: var(--text-secondary);
-  opacity: 0.6;
-}
-
-.edit-trip-form input:focus,
-.edit-trip-form select:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.15);
-  outline: none;
-}
-
-/* ============================================
-   STATUS SELECTOR
-   ============================================ */
-
-.status-selector {
-  display: flex;
-  width: 100%;
-  background: var(--color-background);
-  border-radius: var(--radius-lg);
-  padding: var(--space-xs);
-  border: 2px solid rgba(var(--color-primary-rgb), 0.15);
-  gap: var(--space-xs);
-}
-
-.status-option {
-  flex: 1;
-  padding: var(--space-md) var(--space-sm);
-  border: none;
-  background-color: transparent;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  font-weight: 700;
-  color: var(--text-secondary);
-  transition: all var(--transition-normal);
-  font-size: 0.85rem;
-  text-transform: capitalize;
-}
-
-.status-option:hover {
-  color: var(--color-primary);
-}
-
-.status-option.active {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-  color: white;
-  box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
-}
-
-/* ============================================
-   FORM MESSAGES
-   ============================================ */
-
-.form-message-footer {
-  grid-column: 1 / -1;
-  text-align: center;
-  margin-top: var(--space-xl);
   font-weight: 600;
-  padding: var(--space-lg);
-  border-radius: var(--radius-lg);
-  background: rgba(var(--color-secondary-rgb), 0.15);
-  color: var(--color-secondary);
-  border: 1px solid rgba(var(--color-secondary-rgb), 0.2);
+  font-size: 0.78rem;
+  background: rgba(255, 255, 255, 0.06);
 }
 
-.edit-trip-container h6 {
-  color: var(--color-error);
-  font-size: 0.85rem;
-  margin: var(--space-sm) 0;
+.edit-back-link:hover {
+  background: rgba(255, 255, 255, 0.15);
 }
 
-/* ============================================
-   DANGER ZONE
-   ============================================ */
-
-.danger-zone {
-  margin-top: var(--space-2xl);
-  padding-top: var(--space-xl);
-  border-top: 2px dashed rgba(var(--color-error-rgb), 0.3);
+.edit-trip-hero-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
-.danger-zone-header h4 {
-  margin: 0 0 var(--space-sm) 0;
-  color: var(--color-error);
-  font-size: 1.1rem;
-  font-weight: 700;
-  padding: var(--space-md) var(--space-lg);
-}
-
-.danger-zone-header p {
-  margin: 0 0 var(--space-lg) 0;
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  padding: 0 var(--space-lg);
-}
-
-.delete-button {
+.edit-icon-btn {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  border: 1px solid rgba(14, 59, 76, 0.18);
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--color-primary, #0e3b4c);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-sm);
-  padding: var(--space-md) var(--space-xl);
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: white;
-  background: linear-gradient(135deg, var(--color-error) 0%, #c53030 100%);
-  border: none;
-  border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: all var(--transition-normal);
-  margin: var(--space-md) var(--space-lg);
-  box-shadow: var(--shadow-md);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
-.delete-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
+.edit-icon-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(7, 27, 37, 0.22);
 }
 
-.delete-button:active:not(:disabled) {
-  transform: translateY(0);
+.edit-icon-btn.is-favorite {
+  background: rgba(255, 220, 227, 0.96);
+  color: #a0183e;
+  border-color: rgba(160, 24, 62, 0.33);
 }
 
-.delete-button:disabled {
-  opacity: 0.5;
+.edit-icon-btn.danger {
+  border-color: rgba(176, 26, 26, 0.26);
+  color: #9f1d1d;
+  background: rgba(255, 235, 235, 0.94);
+}
+
+.edit-icon-btn:disabled {
+  opacity: 0.6;
   cursor: not-allowed;
 }
 
-/* ============================================
-   RESPONSIVE DESIGN
-   ============================================ */
+.edit-trip-hero-copy {
+  display: grid;
+  gap: 0.36rem;
+}
 
-@media (max-width: 1024px) {
-  .edit-trip-form {
-    grid-template-columns: 1fr;
-    gap: var(--space-xl);
+.edit-overline {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  font-size: 0.69rem;
+  opacity: 0.88;
+}
+
+.edit-trip-hero-copy h1 {
+  margin: 0;
+  font-size: clamp(1.24rem, 2.35vw, 2rem);
+  line-height: 1.12;
+}
+
+.edit-trip-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.edit-trip-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.24rem;
+  font-size: 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.22rem 0.48rem;
+}
+
+.edit-trip-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.48rem;
+}
+
+.edit-btn {
+  border-radius: 0.72rem;
+  border: 1px solid rgba(14, 59, 76, 0.18);
+  min-height: 2.45rem;
+  padding: 0.42rem 0.62rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.edit-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 18px rgba(10, 33, 45, 0.12);
+}
+
+.edit-btn.primary {
+  background: linear-gradient(140deg, var(--color-secondary, #4db6d1), var(--color-primary, #0e3b4c));
+  border-color: transparent;
+  color: #fff;
+}
+
+.edit-btn.ghost {
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--color-primary, #0e3b4c);
+}
+
+.edit-btn.danger {
+  background: linear-gradient(140deg, #cb3a3a, #971f1f);
+  border-color: transparent;
+  color: #fff;
+}
+
+.edit-btn.is-link {
+  width: 100%;
+}
+
+.edit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.edit-invite-banner {
+  border-radius: 0.9rem;
+  border: 1px solid rgba(14, 59, 76, 0.15);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 10px 24px rgba(10, 33, 45, 0.09);
+  padding: 0.7rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.edit-invite-banner h3 {
+  margin: 0;
+  color: var(--color-primary, #0e3b4c);
+  font-size: 0.86rem;
+}
+
+.edit-invite-banner code {
+  display: inline-block;
+  margin-top: 0.25rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  font-size: 0.73rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(14, 59, 76, 0.18);
+  background: rgba(14, 59, 76, 0.07);
+  padding: 0.25rem 0.44rem;
+}
+
+.edit-invite-banner small {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--color-text-secondary, #4f6672);
+  font-size: 0.7rem;
+}
+
+.edit-trip-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr);
+  gap: 0.65rem;
+}
+
+.edit-main-column,
+.edit-side-column {
+  display: grid;
+  gap: 0.65rem;
+  align-content: start;
+}
+
+.edit-card {
+  border-radius: 0.9rem;
+  border: 1px solid rgba(14, 59, 76, 0.13);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 12px 28px rgba(10, 33, 45, 0.1);
+  padding: 0.72rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.edit-card-head {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.edit-card-head h2 {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--color-primary, #0e3b4c);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.27rem;
+}
+
+.edit-card-head p {
+  margin: 0;
+  color: var(--color-text-secondary, #4f6672);
+  font-size: 0.74rem;
+}
+
+.edit-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.edit-form-grid label,
+.edit-member-form label {
+  display: grid;
+  gap: 0.24rem;
+  font-size: 0.73rem;
+  font-weight: 600;
+  color: var(--color-text-secondary, #4f6672);
+}
+
+.edit-form-grid input,
+.edit-form-grid select,
+.edit-status-row select,
+.edit-member-controls select,
+.edit-member-form input,
+.edit-member-form select,
+.edit-textarea {
+  width: 100%;
+  min-height: 2.3rem;
+  border-radius: 0.66rem;
+  border: 1px solid rgba(14, 59, 76, 0.2);
+  background: rgba(252, 255, 255, 0.96);
+  color: var(--color-text-primary, #102a34);
+  font-size: 0.8rem;
+  padding: 0.4rem 0.56rem;
+  outline: none;
+}
+
+.edit-form-grid input:focus,
+.edit-form-grid select:focus,
+.edit-status-row select:focus,
+.edit-member-controls select:focus,
+.edit-member-form input:focus,
+.edit-member-form select:focus,
+.edit-textarea:focus {
+  border-color: rgba(14, 59, 76, 0.45);
+  box-shadow: 0 0 0 3px rgba(14, 59, 76, 0.1);
+}
+
+.edit-card-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.edit-status-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.45rem;
+}
+
+.edit-muted {
+  margin: 0;
+  color: var(--color-text-secondary, #4f6672);
+  font-size: 0.75rem;
+}
+
+.edit-itinerary-list {
+  display: grid;
+  gap: 0.46rem;
+}
+
+.edit-itinerary-day {
+  border: 1px solid rgba(14, 59, 76, 0.12);
+  border-radius: 0.7rem;
+  background: rgba(14, 59, 76, 0.04);
+  padding: 0.5rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.edit-itinerary-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.edit-itinerary-head h4 {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-text-primary, #102a34);
+}
+
+.edit-itinerary-head small {
+  color: var(--color-text-tertiary, #5f7784);
+  font-size: 0.69rem;
+}
+
+.edit-itinerary-day ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.24rem;
+}
+
+.edit-itinerary-day li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.28rem;
+  color: var(--color-text-secondary, #4f6672);
+  font-size: 0.75rem;
+}
+
+.edit-itinerary-day li svg {
+  margin-top: 0.08rem;
+  color: #15825f;
+  flex-shrink: 0;
+}
+
+.edit-schedule-list {
+  display: grid;
+  gap: 0.34rem;
+}
+
+.edit-schedule-item {
+  border: 1px solid rgba(14, 59, 76, 0.11);
+  border-radius: 0.66rem;
+  background: rgba(14, 59, 76, 0.05);
+  padding: 0.45rem;
+  display: grid;
+  gap: 0.18rem;
+}
+
+.edit-schedule-item strong {
+  font-size: 0.76rem;
+  color: var(--color-text-primary, #102a34);
+}
+
+.edit-schedule-item p,
+.edit-schedule-item small,
+.edit-schedule-item em {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--color-text-secondary, #4f6672);
+}
+
+.edit-members-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.44rem;
+}
+
+.edit-member-item {
+  border: 1px solid rgba(14, 59, 76, 0.12);
+  border-radius: 0.7rem;
+  background: rgba(14, 59, 76, 0.05);
+  padding: 0.45rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.42rem;
+}
+
+.edit-member-item img,
+.edit-avatar-fallback {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.edit-avatar-fallback {
+  background: linear-gradient(140deg, rgba(14, 59, 76, 0.22), rgba(87, 184, 203, 0.35));
+}
+
+.edit-member-main strong {
+  display: block;
+  font-size: 0.76rem;
+  color: var(--color-text-primary, #102a34);
+}
+
+.edit-member-main small {
+  color: var(--color-text-tertiary, #5f7784);
+  font-size: 0.69rem;
+}
+
+.edit-member-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+}
+
+.edit-member-controls select {
+  min-height: 2rem;
+  width: auto;
+  min-width: 6rem;
+}
+
+.edit-role-pill {
+  border-radius: 999px;
+  border: 1px solid rgba(14, 59, 76, 0.18);
+  background: rgba(14, 59, 76, 0.08);
+  padding: 0.2rem 0.45rem;
+  font-size: 0.68rem;
+  color: var(--color-primary, #0e3b4c);
+}
+
+.edit-member-form {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.danger-zone-card {
+  border-color: rgba(178, 36, 36, 0.2);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 245, 245, 0.96));
+}
+
+.edit-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 26, 36, 0.46);
+  z-index: 150;
+  display: grid;
+  place-items: center;
+  padding: 0.65rem;
+}
+
+.edit-modal {
+  width: min(700px, 100%);
+  border-radius: 0.95rem;
+  border: 1px solid rgba(14, 59, 76, 0.2);
+  background: #fff;
+  box-shadow: 0 28px 58px rgba(4, 26, 36, 0.33);
+  padding: 0.85rem;
+  display: grid;
+  gap: 0.62rem;
+}
+
+.edit-modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.edit-modal-head h3 {
+  margin: 0;
+  color: var(--color-primary, #0e3b4c);
+  font-size: 0.96rem;
+}
+
+.edit-textarea {
+  min-height: 180px;
+  resize: vertical;
+}
+
+.edit-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
+
+.spin {
+  animation: spin 0.85s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 
-@media (max-width: 768px) {
-  .edit-trip-nav {
-    flex-wrap: wrap;
-    gap: var(--space-md);
-    padding: var(--space-md);
+@media (max-width: 1120px) {
+  .edit-loading-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .edit-trip-title {
-    font-size: clamp(1.25rem, 4vw, 1.75rem);
-    order: 1;
+  .edit-trip-quick-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .edit-trip-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .edit-side-column {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .edit-loading-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .edit-trip-shell,
+  .edit-trip-loading {
+    width: calc(100% - 0.72rem);
+  }
+
+  .edit-trip-hero,
+  .edit-trip-hero > img {
+    min-height: 230px;
+  }
+
+  .edit-trip-hero-overlay {
+    padding: 0.72rem;
+  }
+
+  .edit-trip-meta {
+    gap: 0.25rem;
+  }
+
+  .edit-trip-quick-actions,
+  .edit-form-grid,
+  .edit-status-row,
+  .edit-side-column {
+    grid-template-columns: 1fr;
+  }
+
+  .edit-invite-banner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .edit-card-actions {
+    justify-content: stretch;
+  }
+
+  .edit-card-actions .edit-btn {
     width: 100%;
   }
 
-  .nav-back-button {
-    order: 0;
-    flex: 0;
+  .edit-member-item {
+    grid-template-columns: auto minmax(0, 1fr);
   }
 
-  .save-button-nav {
-    order: 2;
-    justify-content: center;
-    flex: 0;
+  .edit-member-controls {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
   }
 
-  .edit-trip-container {
-    margin: var(--space-xl);
-    padding: var(--space-xl);
-    border-radius: var(--radius-xl);
+  .edit-member-controls select {
+    min-width: 0;
+    width: 100%;
+    max-width: 10rem;
   }
 
-  .edit-trip-form {
+  .edit-error-actions {
+    width: 100%;
+    display: grid;
     grid-template-columns: 1fr;
-    gap: var(--space-lg);
-  }
-
-  .form-group label {
-    font-size: 0.9rem;
-  }
-
-  .edit-trip-form input,
-  .edit-trip-form select {
-    padding: var(--space-md) var(--space-lg);
-    font-size: 1rem;
   }
 }
 
-@media (max-width: 480px) {
-  .edit-trip-nav {
-    padding: var(--space-sm) var(--space-md);
+@media (max-width: 520px) {
+  .edit-trip-page {
+    padding-top: 0.45rem;
   }
 
-  .edit-trip-title {
+  .edit-trip-shell,
+  .edit-trip-loading {
+    width: calc(100% - 0.45rem);
+    gap: 0.5rem;
+  }
+
+  .edit-trip-hero,
+  .edit-trip-hero > img {
+    min-height: 210px;
+  }
+
+  .edit-trip-hero-copy h1 {
     font-size: 1.25rem;
   }
 
-  .edit-trip-container {
-    margin: var(--space-md);
-    padding: var(--space-md);
-    border-radius: var(--radius-lg);
+  .edit-back-link {
+    font-size: 0.72rem;
+    padding: 0.3rem 0.52rem;
   }
 
-  .edit-trip-form {
-    grid-template-columns: 1fr;
-    gap: var(--space-md);
+  .edit-icon-btn {
+    width: 2.1rem;
+    height: 2.1rem;
   }
 
-  .form-column {
-    gap: var(--space-md);
+  .edit-btn {
+    min-height: 2.35rem;
+    font-size: 0.74rem;
   }
 
-  .form-group {
-    gap: var(--space-xs);
+  .edit-card {
+    padding: 0.6rem;
   }
 
-  .form-group label {
-    font-size: 0.85rem;
+  .edit-itinerary-head {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
-  .edit-trip-form input,
-  .edit-trip-form select {
-    padding: var(--space-sm) var(--space-md);
-    font-size: 1rem;
-    border-radius: var(--radius-md);
-  }
-
-  .status-option {
-    font-size: 0.75rem;
-    padding: var(--space-sm) var(--space-xs);
-  }
-
-  .delete-button {
-    padding: var(--space-md) var(--space-lg);
-    font-size: 0.9rem;
-    margin: var(--space-md) 0;
+  .edit-modal {
+    padding: 0.68rem;
   }
 }

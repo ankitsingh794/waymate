@@ -24,6 +24,7 @@ import { IoPeopleSharp } from 'react-icons/io5';
 import { FaTrainSubway } from 'react-icons/fa6';
 import api from '../../utils/axiosInstance';
 import { useAuth } from '../../context/AuthContext';
+import { Toast } from '../../components/UI';
 import './Details.css';
 
 const STATUS_OPTIONS = [
@@ -910,7 +911,11 @@ export default function TripDetails() {
         </div>
       </header>
 
-      {feedback.text && <div className={`trip-feedback is-${feedback.type}`}>{feedback.text}</div>}
+      <Toast
+        variant={feedback.type}
+        message={feedback.text}
+        onClose={() => setFeedback((prev) => ({ ...prev, text: '' }))}
+      />
 
       <section className="trip-quick-actions">
         <button type="button" className="trip-primary-button" onClick={handleDownloadPdf} disabled={actionState.downloadingPdf}>
