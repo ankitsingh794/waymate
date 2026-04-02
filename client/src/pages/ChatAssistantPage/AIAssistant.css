@@ -240,7 +240,22 @@ body.ai-scroll-locked {
 .ai-message-row.is-user .ai-message-bubble {
   background: linear-gradient(140deg, var(--color-primary), var(--color-primary-light));
   border-color: transparent;
-  color: var(--color-text-inverse);
+  color: #fff;
+}
+
+.ai-message-row.is-user .ai-message-bubble,
+.ai-message-row.is-user .ai-message-bubble p,
+.ai-message-row.is-user .ai-message-bubble li,
+.ai-message-row.is-user .ai-message-bubble h1,
+.ai-message-row.is-user .ai-message-bubble h2,
+.ai-message-row.is-user .ai-message-bubble h3,
+.ai-message-row.is-user .ai-message-bubble h4,
+.ai-message-row.is-user .ai-message-bubble h5,
+.ai-message-row.is-user .ai-message-bubble h6,
+.ai-message-row.is-user .ai-message-bubble strong,
+.ai-message-row.is-user .ai-message-bubble em,
+.ai-message-row.is-user .ai-message-bubble code {
+  color: #fff;
 }
 
 .ai-message-bubble.is-error {
@@ -277,7 +292,8 @@ body.ai-scroll-locked {
 }
 
 .ai-message-row.is-user .ai-message-bubble a {
-  color: #d1f4ff;
+  color: #fff;
+  text-decoration: underline;
 }
 
 .ai-message-row.is-assistant .ai-message-bubble a {
