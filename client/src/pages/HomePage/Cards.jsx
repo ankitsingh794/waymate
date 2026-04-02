@@ -4,62 +4,77 @@ import {
     VscLightbulb,
     VscLightbulbSparkle,
     VscLocation,
-    VscCheck
+    VscCheck,
 } from 'react-icons/vsc';
 import './Cards.css';
 
-// Card component for reusability
-const CardItem = ({ icon: Icon, title, description }) => (
-    <div className="card">
-        <Icon className="card-icon" />
-        <h3>{title}</h3>
-        <p>{description}</p>
-    </div>
+const CardItem = ({ icon: Icon, title, description, tag }) => (
+    <article className="home-feature-card">
+        <div className="home-feature-icon-wrap">
+            <Icon className="home-feature-icon" />
+        </div>
+        <div className="home-feature-content">
+            <span className="home-feature-tag">{tag}</span>
+            <h3>{title}</h3>
+            <p>{description}</p>
+        </div>
+    </article>
 );
 
-// Cards data
 const cardsData = [
     {
         icon: VscRobot,
-        title: 'AI-Powered Recommendations',
-        description: 'Get personalized travel suggestions based on your preferences, budget, and travel style.'
+        tag: 'AI Core',
+        title: 'Personalized recommendations',
+        description: 'Get destination ideas tuned to your style, budget, and travel pace in seconds.',
     },
     {
         icon: VscMap,
-        title: 'Smart Itineraries',
-        description: 'Create optimized day-by-day itineraries that maximize your time and minimize travel time.'
+        tag: 'Routing',
+        title: 'Smart itineraries',
+        description: 'Build day-by-day plans with realistic travel times and practical route sequencing.',
     },
     {
         icon: VscLightbulb,
-        title: 'Local Insights',
-        description: 'Discover hidden gems and local experiences curated by AI, not just tourist traps.'
+        tag: 'Discovery',
+        title: 'Local insights',
+        description: 'Find meaningful spots and experiences beyond the standard tourist checklist.',
     },
     {
         icon: VscLightbulbSparkle,
-        title: 'Real-Time Updates',
-        description: 'Get instant updates on weather, events, and travel conditions for your trip.'
+        tag: 'Realtime',
+        title: 'Live travel context',
+        description: 'Stay updated with weather shifts, local events, and trip-impacting changes.',
     },
     {
         icon: VscLocation,
-        title: 'Interactive Maps',
-        description: 'Explore destinations with detailed maps and location-based recommendations.'
+        tag: 'Navigation',
+        title: 'Interactive map planning',
+        description: 'View recommendations geographically to make better movement decisions.',
     },
     {
         icon: VscCheck,
-        title: 'Collaborative Planning',
-        description: 'Share plans with friends and family, collect suggestions, and plan together seamlessly.'
-    }
+        tag: 'Collaboration',
+        title: 'Shared trip planning',
+        description: 'Invite friends and family, align choices quickly, and move together confidently.',
+    },
 ];
 
 export default function Cards() {
     return (
-        <div className="cards-container">
-            <div className="cards-title">Why Choose WayMate?</div>
-            <div className="cards-grid">
-                {cardsData.map((card, i) => (
-                    <CardItem key={i} {...card} />
-                ))}
+        <section id="features" className="home-features-section">
+            <div className="home-features-shell">
+                <header className="home-features-header">
+                    <h2>Why travelers choose WayMate</h2>
+                    <p>Every feature is designed to make planning faster, clearer, and more enjoyable on every screen.</p>
+                </header>
+
+                <div className="home-features-grid">
+                    {cardsData.map((card) => (
+                        <CardItem key={card.title} {...card} />
+                    ))}
+                </div>
             </div>
-        </div>
+        </section>
     );
 }

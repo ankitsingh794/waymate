@@ -1,177 +1,226 @@
 /* ============================================
-   GLOBE COMPONENT - CLEAN & MODERN
+   HOME GLOBE SECTION
    ============================================ */
 
-:root {
-    --ease: cubic-bezier(0.4, 0, 0.2, 1);
+.home-globe-section {
+  padding: clamp(3rem, 8vw, 5.8rem) 0;
 }
 
-.globe-container {
-    width: 100%;
-    background: linear-gradient(135deg, var(--color-background) 0%, #f5f7ff 100%);
-    padding: var(--space-3xl) var(--space-xl);
+.home-globe-shell {
+  width: min(var(--max-content-width), calc(100% - 3rem));
+  margin-inline: auto;
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: clamp(1.2rem, 4vw, 3rem);
+  align-items: center;
 }
 
-.globe-content {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-3xl);
-    align-items: center;
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: var(--space-3xl) var(--space-xl);
+.home-globe-copy {
+  display: grid;
+  gap: var(--space-4);
 }
 
-.globe-text {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-lg);
+.home-globe-kicker {
+  width: fit-content;
+  border-radius: var(--radius-full);
+  padding: 0.35rem 0.82rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+  background: rgba(14, 59, 76, 0.08);
+  border: 1px solid rgba(14, 59, 76, 0.12);
 }
 
-.globe-text h2 {
-    font-size: clamp(2rem, 5vw, 2.5rem);
-    font-weight: 800;
-    margin: 0;
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    line-height: 1.2;
+.home-globe-copy h2 {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: clamp(1.7rem, 4.8vw, 2.7rem);
+  line-height: 1.12;
 }
 
-.globe-text p {
-    font-size: 1.1rem;
-    color: var(--color-text-secondary);
-    margin: 0;
-    line-height: 1.6;
-    max-width: 500px;
+.home-globe-copy p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  line-height: 1.75;
+  font-size: clamp(1rem, 2.3vw, 1.12rem);
 }
 
-.globe-visual {
-    position: relative;
-    height: 400px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.home-globe-list {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.7rem;
 }
 
-.globe-sphere {
-    width: 300px;
-    height: 300px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 30% 30%, var(--color-primary-light), var(--color-primary));
-    position: relative;
-    box-shadow: 0 30px 60px rgba(237, 107, 126, 0.2);
-    animation: float 6s ease-in-out infinite;
+.home-globe-list li {
+  position: relative;
+  padding-left: 1rem;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
 }
 
-.globe-ring {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotateX(70deg);
-    width: 350px;
-    height: 60px;
-    border: 2px solid rgba(107, 163, 118, 0.3);
-    border-radius: 50%;
-    animation: spin 20s linear infinite;
+.home-globe-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.56rem;
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
 }
 
-@keyframes float {
-    0%, 100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-30px);
-    }
+.home-globe-visual {
+  position: relative;
+  min-height: 430px;
+  display: grid;
+  place-items: center;
 }
 
-@keyframes spin {
-    from {
-        transform: translate(-50%, -50%) rotateX(70deg) rotateZ(0deg);
-    }
-    to {
-        transform: translate(-50%, -50%) rotateX(70deg) rotateZ(360deg);
-    }
+.home-globe-aura {
+  position: absolute;
+  width: clamp(230px, 35vw, 390px);
+  height: clamp(230px, 35vw, 390px);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(87, 184, 203, 0.28), rgba(87, 184, 203, 0));
+  animation: globePulse 4s ease-in-out infinite;
 }
 
-/* ============================================
-   RESPONSIVE DESIGN
-   ============================================ */
-
-@media (max-width: 1024px) {
-    .globe-content {
-        grid-template-columns: 1fr;
-        gap: var(--space-2xl);
-        padding: var(--space-2xl) var(--space-xl);
-    }
-
-    .globe-visual {
-        height: 350px;
-    }
-
-    .globe-sphere {
-        width: 250px;
-        height: 250px;
-    }
-
-    .globe-ring {
-        width: 300px;
-    }
+.home-globe-sphere {
+  position: relative;
+  width: clamp(180px, 27vw, 280px);
+  height: clamp(180px, 27vw, 280px);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 30%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0) 40%),
+    radial-gradient(circle at 50% 80%, rgba(87, 184, 203, 0.22), rgba(87, 184, 203, 0) 62%),
+    linear-gradient(145deg, var(--color-primary-light), var(--color-primary));
+  box-shadow: 0 22px 50px rgba(14, 59, 76, 0.28);
+  animation: globeFloat 8s ease-in-out infinite;
 }
 
-@media (max-width: 768px) {
-    .globe-content {
-        gap: var(--space-2xl);
-        padding: var(--space-2xl) var(--space-lg);
-    }
-
-    .globe-text h2 {
-        font-size: 1.75rem;
-    }
-
-    .globe-text p {
-        font-size: 1rem;
-    }
-
-    .globe-visual {
-        height: 300px;
-    }
-
-    .globe-sphere {
-        width: 200px;
-        height: 200px;
-    }
-
-    .globe-ring {
-        width: 240px;
-    }
+.home-globe-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 50%;
+  border: 1px solid rgba(87, 184, 203, 0.6);
+  transform: translate(-50%, -50%);
 }
 
-@media (max-width: 480px) {
-    .globe-content {
-        gap: var(--space-xl);
-        padding: var(--space-xl) var(--space-md);
-    }
+.home-globe-ring-one {
+  width: 125%;
+  height: 26%;
+  transform: translate(-50%, -50%) rotateX(72deg);
+  animation: globeSpinA 14s linear infinite;
+}
 
-    .globe-text h2 {
-        font-size: 1.5rem;
-    }
+.home-globe-ring-two {
+  width: 132%;
+  height: 26%;
+  transform: translate(-50%, -50%) rotateX(72deg) rotate(35deg);
+  border-color: rgba(255, 255, 255, 0.7);
+  animation: globeSpinB 12s linear infinite;
+}
 
-    .globe-text p {
-        font-size: 0.95rem;
-    }
+.home-globe-pin {
+  position: absolute;
+  width: 0.62rem;
+  height: 0.62rem;
+  border-radius: 50%;
+  background: var(--color-secondary-light);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.25);
+}
 
-    .globe-visual {
-        height: 250px;
-    }
+.home-globe-pin-one {
+  left: 18%;
+  top: 33%;
+}
 
-    .globe-sphere {
-        width: 160px;
-        height: 160px;
-    }
+.home-globe-pin-two {
+  right: 18%;
+  top: 47%;
+}
 
-    .globe-ring {
-        width: 190px;
-    }
+.home-globe-pin-three {
+  right: 42%;
+  bottom: 18%;
+}
+
+@keyframes globeFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes globePulse {
+  0%,
+  100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.45;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes globeSpinA {
+  from {
+    transform: translate(-50%, -50%) rotateX(72deg) rotate(0deg);
+  }
+
+  to {
+    transform: translate(-50%, -50%) rotateX(72deg) rotate(360deg);
+  }
+}
+
+@keyframes globeSpinB {
+  from {
+    transform: translate(-50%, -50%) rotateX(72deg) rotate(35deg);
+  }
+
+  to {
+    transform: translate(-50%, -50%) rotateX(72deg) rotate(395deg);
+  }
+}
+
+@media (max-width: 1100px) {
+  .home-globe-shell {
+    width: min(var(--max-content-width), calc(100% - 2rem));
+    grid-template-columns: 1fr;
+  }
+
+  .home-globe-copy {
+    order: 2;
+  }
+
+  .home-globe-visual {
+    order: 1;
+    min-height: 330px;
+  }
+}
+
+@media (max-width: 860px) {
+  .home-globe-shell {
+    width: calc(100% - 1.5rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-globe-aura,
+  .home-globe-sphere,
+  .home-globe-ring-one,
+  .home-globe-ring-two {
+    animation: none;
+  }
 }
