@@ -4,47 +4,23 @@ import {
   VscArrowLeft,
   VscCalendar,
   VscCheck,
-  VscCloudDownload,
-  VscCopy,
   VscEdit,
   VscError,
-  VscHeart,
+  VscCommentDiscussion,
   VscInfo,
   VscLoading,
   VscOrganization,
   VscRefresh,
+  VscRobot,
   VscSave,
-  VscShare,
   VscTrash,
   VscWarning,
 } from 'react-icons/vsc';
-import { FaTrainSubway } from 'react-icons/fa6';
 import { IoPeopleSharp } from 'react-icons/io5';
 import api from '../../utils/axiosInstance';
 import { useAuth } from '../../context/AuthContext';
 import { Toast } from '../../components/UI';
 import './EditTrip.css';
-
-const STATUS_OPTIONS = [
-  'planning',
-  'upcoming',
-  'active',
-  'completed',
-  'canceled',
-  'planned',
-  'ongoing',
-  'in_progress',
-  'pending_confirmation',
-  'unconfirmed',
-];
-
-const STATUS_API_MAP = {
-  planned: 'planning',
-  ongoing: 'active',
-  in_progress: 'active',
-  pending_confirmation: 'active',
-  unconfirmed: 'active',
-};
 
 const ACCOMMODATION_OPTIONS = ['budget', 'standard', 'luxury'];
 const TRANSPORT_OPTIONS = ['any', 'flight', 'train', 'bus', 'car'];
@@ -78,17 +54,6 @@ function formatDate(value) {
   return date.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-function formatDateTime(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Unknown';
-  return date.toLocaleString(undefined, {
-    day: '2-digit',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
 function formatDateOrFallback(value) {
   if (!value) return 'Not set';
   return formatDate(value);
@@ -101,11 +66,6 @@ function formatTextOrFallback(value) {
 function getMemberUserId(member) {
   if (!member) return '';
   return typeof member.userId === 'string' ? member.userId : member.userId?._id || '';
-}
-
-function normalizeStatusForEndpoint(status) {
-  if (!status) return 'planning';
-  return STATUS_API_MAP[status] || status;
 }
 
 function normalizeItinerary(itinerary, startDate) {
@@ -159,18 +119,6 @@ function normalizeItinerary(itinerary, startDate) {
       activities,
       editable: false,
     }));
-}
-
-function getFilenameFromDisposition(dispositionHeader, fallbackName) {
-  if (!dispositionHeader || typeof dispositionHeader !== 'string') return fallbackName;
-  const match = dispositionHeader.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
-  const rawName = match?.[1] || match?.[2];
-  if (!rawName) return fallbackName;
-  try {
-    return decodeURIComponent(rawName);
-  } catch {
-    return rawName;
-  }
 }
 
 function EditTripLoadingScreen() {
@@ -241,11 +189,6 @@ export default function EditTrip() {
     transportMode: 'any',
     purpose: 'leisure',
   });
-  const [statusDraft, setStatusDraft] = useState('planning');
-  const [isFavorite, setIsFavorite] = useState(false);
-
-  const [inviteToken, setInviteToken] = useState('');
-  const [inviteExpiry, setInviteExpiry] = useState('');
 
   const [memberForm, setMemberForm] = useState({
     ageGroup: '',
@@ -260,12 +203,8 @@ export default function EditTrip() {
   const [actionState, setActionState] = useState({
     refreshing: false,
     savingDetails: false,
-    savingStatus: false,
-    togglingFavorite: false,
-    generatingInvite: false,
-    copyingInvite: false,
-    downloadingPdf: false,
-    upgradingSchedule: false,
+    openingGroupChat: false,
+    openingAiGroupChat: false,
     savingMemberDetails: false,
     savingItinerary: false,
     deletingTrip: false,
@@ -289,12 +228,6 @@ export default function EditTrip() {
   const isOwner = currentMember?.role === 'owner';
   const canEditTrip = currentMember?.role === 'owner' || currentMember?.role === 'editor';
 
-  const statusOptions = useMemo(() => {
-    const unique = new Set(STATUS_OPTIONS);
-    if (trip?.status) unique.add(trip.status);
-    return Array.from(unique);
-  }, [trip?.status]);
-
   const currentDraft = useMemo(
     () => ({
       startDate: formData.startDate || '',
@@ -303,12 +236,11 @@ export default function EditTrip() {
       accommodationType: formData.accommodationType || 'standard',
       transportMode: formData.transportMode || 'any',
       purpose: formData.purpose || 'leisure',
-      status: statusDraft || 'planning',
       ageGroup: memberForm.ageGroup || '',
       gender: memberForm.gender || '',
       relation: memberForm.relation.trim(),
     }),
-    [formData, memberForm.ageGroup, memberForm.gender, memberForm.relation, statusDraft]
+    [formData, memberForm.ageGroup, memberForm.gender, memberForm.relation]
   );
 
   const draftChanges = useMemo(() => {
@@ -321,7 +253,6 @@ export default function EditTrip() {
       { key: 'accommodationType', label: 'Accommodation', format: formatTextOrFallback, emphasis: 'normal' },
       { key: 'transportMode', label: 'Transport Preference', format: formatTextOrFallback, emphasis: 'normal' },
       { key: 'purpose', label: 'Purpose', format: formatTextOrFallback, emphasis: 'normal' },
-      { key: 'status', label: 'Status', format: formatTextOrFallback, emphasis: 'high' },
       { key: 'ageGroup', label: 'My Age Group', format: formatTextOrFallback, emphasis: 'normal' },
       { key: 'gender', label: 'My Gender', format: formatTextOrFallback, emphasis: 'normal' },
       {
@@ -356,11 +287,6 @@ export default function EditTrip() {
       'purpose',
     ].some((key) => String(currentDraft[key] ?? '') !== String(baselineDraft[key] ?? ''));
   }, [baselineDraft, currentDraft]);
-
-  const hasStatusChange = useMemo(() => {
-    if (!baselineDraft) return false;
-    return String(currentDraft.status ?? '') !== String(baselineDraft.status ?? '');
-  }, [baselineDraft, currentDraft.status]);
 
   const hasMemberDetailsChanges = useMemo(() => {
     if (!baselineDraft) return false;
@@ -400,22 +326,6 @@ export default function EditTrip() {
       });
     }
 
-    if (currentDraft.status === 'completed' && end > now) {
-      checks.push({
-        id: 'future-completed',
-        severity: 'warning',
-        message: 'Status is set to Completed, but the trip end date is still in the future.',
-      });
-    }
-
-    if (currentDraft.status === 'active' && start > now) {
-      checks.push({
-        id: 'future-active',
-        severity: 'warning',
-        message: 'Status is Active, but the trip start date is in the future.',
-      });
-    }
-
     if (checks.length === 0) {
       checks.push({
         id: 'all-good',
@@ -425,14 +335,13 @@ export default function EditTrip() {
     }
 
     return checks;
-  }, [currentDraft.endDate, currentDraft.startDate, currentDraft.status, currentDraft.travelers, members.length]);
+  }, [currentDraft.endDate, currentDraft.startDate, currentDraft.travelers, members.length]);
 
   const hasCriticalAttention = attentionChecks.some((item) => item.severity === 'critical');
 
   const hydrateFromTrip = useCallback(
     (nextTrip) => {
       setTrip(nextTrip);
-      setIsFavorite(Boolean(nextTrip?.favorite));
       const nextDraft = {
         startDate: formatDateInput(nextTrip?.startDate),
         endDate: formatDateInput(nextTrip?.endDate),
@@ -440,13 +349,10 @@ export default function EditTrip() {
         accommodationType: nextTrip?.preferences?.accommodationType || 'standard',
         transportMode: nextTrip?.preferences?.transportMode || 'any',
         purpose: nextTrip?.purpose || 'leisure',
-        status: nextTrip?.status || 'planning',
         ageGroup: '',
         gender: '',
         relation: '',
       };
-
-      setStatusDraft(nextDraft.status);
       setFormData({
         destination: nextTrip?.destination || '',
         startDate: nextDraft.startDate,
@@ -469,19 +375,6 @@ export default function EditTrip() {
         relation: nextDraft.relation,
       });
       setBaselineDraft(nextDraft);
-
-      if (Array.isArray(nextTrip?.inviteTokens) && nextTrip.inviteTokens.length > 0) {
-        const now = Date.now();
-        const activeTokens = nextTrip.inviteTokens
-          .filter((token) => token?.token && new Date(token.expires).getTime() > now)
-          .sort((a, b) => new Date(b.expires).getTime() - new Date(a.expires).getTime());
-
-        setInviteToken(activeTokens[0]?.token || '');
-        setInviteExpiry(activeTokens[0]?.expires || '');
-      } else {
-        setInviteToken('');
-        setInviteExpiry('');
-      }
     },
     [user?._id]
   );
@@ -569,7 +462,6 @@ export default function EditTrip() {
       transportMode: baselineDraft.transportMode,
       purpose: baselineDraft.purpose,
     }));
-    setStatusDraft(baselineDraft.status);
     setMemberForm({
       ageGroup: baselineDraft.ageGroup,
       gender: baselineDraft.gender,
@@ -632,147 +524,65 @@ export default function EditTrip() {
     }
   };
 
-  const handleSaveStatus = async () => {
-    if (!canEditTrip) {
-      setFeedback({ type: 'error', text: 'Only owners or editors can update trip status.' });
-      return;
+  const findTripGroupSession = async () => {
+    const { data } = await api.get('/chat/sessions/group');
+    const sessions = Array.isArray(data?.data?.sessions) ? data.data.sessions : [];
+
+    const matched = sessions.find((session) => {
+      const sessionTripId = typeof session?.tripId === 'string' ? session.tripId : session?.tripId?._id;
+      return String(sessionTripId || '') === String(id);
+    });
+
+    if (matched?._id) {
+      return matched._id;
     }
 
-    if (!statusDraft || statusDraft === trip?.status) return;
+    const createResponse = await api.post('/chat/sessions/group', { tripId: id });
+    return createResponse?.data?.data?.session?._id || '';
+  };
 
-    setActionState((prev) => ({ ...prev, savingStatus: true }));
+  const handleOpenGroupChat = async () => {
+    setActionState((prev) => ({ ...prev, openingGroupChat: true }));
     try {
-      const endpointStatus = normalizeStatusForEndpoint(statusDraft);
-      let updatedTrip = null;
-
-      try {
-        const { data } = await api.patch(`/trips/${id}/status`, { status: endpointStatus });
-        updatedTrip = data?.data?.trip || null;
-      } catch {
-        const { data } = await api.patch(`/trips/${id}/details`, { status: statusDraft });
-        updatedTrip = data?.data?.trip || null;
+      const sessionId = await findTripGroupSession();
+      if (!sessionId) {
+        throw new Error('Group chat session is unavailable for this trip.');
       }
 
-      if (updatedTrip) {
-        hydrateFromTrip(updatedTrip);
-      } else {
-        setTrip((prev) => (prev ? { ...prev, status: endpointStatus } : prev));
-        setStatusDraft(endpointStatus);
-        setBaselineDraft((prev) => (prev ? { ...prev, status: endpointStatus } : prev));
-      }
-
-      setFeedback({ type: 'success', text: 'Trip status updated successfully.' });
-    } catch (statusError) {
-      setFeedback({ type: 'error', text: getErrorMessage(statusError, 'Failed to update trip status.') });
+      navigate('/assistant', {
+        state: {
+          sessionMode: 'group',
+          sessionId,
+          tripId: id,
+          tripName: trip?.destination || '',
+        },
+      });
+    } catch (chatError) {
+      setFeedback({ type: 'error', text: getErrorMessage(chatError, 'Failed to open group chat session.') });
     } finally {
-      setActionState((prev) => ({ ...prev, savingStatus: false }));
+      setActionState((prev) => ({ ...prev, openingGroupChat: false }));
     }
   };
 
-  const handleToggleFavorite = async () => {
-    setActionState((prev) => ({ ...prev, togglingFavorite: true }));
-    const previous = isFavorite;
-    setIsFavorite((prev) => !prev);
-
+  const handleOpenAiGroupChat = async () => {
+    setActionState((prev) => ({ ...prev, openingAiGroupChat: true }));
     try {
-      const { data } = await api.patch(`/trips/${id}/favorite`);
-      const nextFavorite = data?.data?.favorite;
-      if (typeof nextFavorite === 'boolean') {
-        setIsFavorite(nextFavorite);
-      }
-      setFeedback({ type: 'success', text: 'Favorite status updated.' });
-    } catch (favoriteError) {
-      setIsFavorite(previous);
-      setFeedback({ type: 'error', text: getErrorMessage(favoriteError, 'Failed to update favorite status.') });
+      const { data } = await api.post('/chat/sessions/ai');
+      const sessionId = data?.data?.sessionId || '';
+
+      navigate('/assistant', {
+        state: {
+          sessionMode: 'ai',
+          sessionId,
+          tripId: id,
+          tripName: trip?.destination || '',
+          prefillMessage: `Help us coordinate the trip to ${trip?.destination || 'our destination'}.`,
+        },
+      });
+    } catch (chatError) {
+      setFeedback({ type: 'error', text: getErrorMessage(chatError, 'Failed to open AI group chat session.') });
     } finally {
-      setActionState((prev) => ({ ...prev, togglingFavorite: false }));
-    }
-  };
-
-  const handleGenerateInvite = async () => {
-    setActionState((prev) => ({ ...prev, generatingInvite: true }));
-    try {
-      const { data } = await api.post(`/trips/${id}/generate-invite`);
-      const token = data?.data?.inviteToken || '';
-      const expiresAt = data?.data?.expiresAt || '';
-      setInviteToken(token);
-      setInviteExpiry(expiresAt);
-      setFeedback({ type: 'success', text: token ? 'Invite token generated successfully.' : 'Invite token request completed.' });
-    } catch (inviteError) {
-      setFeedback({ type: 'error', text: getErrorMessage(inviteError, 'Failed to generate invite token.') });
-    } finally {
-      setActionState((prev) => ({ ...prev, generatingInvite: false }));
-    }
-  };
-
-  const handleCopyInviteToken = async () => {
-    if (!inviteToken) return;
-
-    setActionState((prev) => ({ ...prev, copyingInvite: true }));
-    try {
-      if (navigator?.clipboard?.writeText) {
-        await navigator.clipboard.writeText(inviteToken);
-      } else {
-        const helper = document.createElement('textarea');
-        helper.value = inviteToken;
-        helper.setAttribute('readonly', '');
-        helper.style.position = 'absolute';
-        helper.style.left = '-9999px';
-        document.body.appendChild(helper);
-        helper.select();
-        document.execCommand('copy');
-        helper.remove();
-      }
-
-      setFeedback({ type: 'success', text: 'Invite token copied to clipboard.' });
-    } catch {
-      setFeedback({ type: 'error', text: 'Could not copy invite token.' });
-    } finally {
-      setActionState((prev) => ({ ...prev, copyingInvite: false }));
-    }
-  };
-
-  const handleDownloadPdf = async () => {
-    setActionState((prev) => ({ ...prev, downloadingPdf: true }));
-    try {
-      const response = await api.get(`/trips/${id}/download`, { responseType: 'blob' });
-      const blobUrl = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
-
-      const fallbackFileName = `waymate-${(trip?.destination || 'trip').replace(/\s+/g, '-').toLowerCase()}.pdf`;
-      const disposition = response?.headers?.['content-disposition'] || response?.headers?.['Content-Disposition'];
-      const fileName = getFilenameFromDisposition(disposition, fallbackFileName);
-
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(blobUrl);
-
-      setFeedback({ type: 'success', text: 'Trip PDF downloaded.' });
-    } catch (downloadError) {
-      setFeedback({ type: 'error', text: getErrorMessage(downloadError, 'Failed to download trip PDF.') });
-    } finally {
-      setActionState((prev) => ({ ...prev, downloadingPdf: false }));
-    }
-  };
-
-  const handleUpgradeSmartSchedule = async () => {
-    setActionState((prev) => ({ ...prev, upgradingSchedule: true }));
-    try {
-      const { data } = await api.post(`/trips/${id}/smart-schedule`);
-      const schedule = data?.data?.schedule;
-      if (schedule) {
-        setTrip((prev) => (prev ? { ...prev, smartSchedule: schedule } : prev));
-      } else {
-        await loadTripData(false);
-      }
-      setFeedback({ type: 'success', text: 'Smart schedule generated successfully.' });
-    } catch (scheduleError) {
-      setFeedback({ type: 'error', text: getErrorMessage(scheduleError, 'Failed to generate smart schedule.') });
-    } finally {
-      setActionState((prev) => ({ ...prev, upgradingSchedule: false }));
+      setActionState((prev) => ({ ...prev, openingAiGroupChat: false }));
     }
   };
 
@@ -1010,15 +820,6 @@ export default function EditTrip() {
                   {actionState.refreshing ? <VscLoading className="spin" /> : <VscRefresh />}
                 </button>
 
-                <button
-                  type="button"
-                  className={`edit-icon-btn ${isFavorite ? 'is-favorite' : ''}`}
-                  onClick={handleToggleFavorite}
-                  disabled={actionState.togglingFavorite}
-                  aria-label="Toggle favorite"
-                >
-                  {actionState.togglingFavorite ? <VscLoading className="spin" /> : <VscHeart />}
-                </button>
               </div>
             </div>
 
@@ -1071,74 +872,29 @@ export default function EditTrip() {
           </section>
         )}
 
-        <section className="edit-trip-quick-actions">
+        <section className="edit-trip-chat-actions">
+          <button
+            type="button"
+            className="edit-btn ghost"
+            onClick={handleOpenGroupChat}
+            disabled={actionState.openingGroupChat}
+          >
+            {actionState.openingGroupChat ? <VscLoading className="spin" /> : <VscCommentDiscussion />} Group Chat
+          </button>
+
           <button
             type="button"
             className="edit-btn primary"
-            onClick={handleSaveDetails}
-            disabled={!canEditTrip || actionState.savingDetails || !hasCoreDetailsChanges || hasCriticalAttention}
+            onClick={handleOpenAiGroupChat}
+            disabled={actionState.openingAiGroupChat}
           >
-            {actionState.savingDetails ? <VscLoading className="spin" /> : <VscSave />} Save Details
+            {actionState.openingAiGroupChat ? <VscLoading className="spin" /> : <VscRobot />} AI Group Chat
           </button>
 
-          <button
-            type="button"
-            className="edit-btn ghost"
-            onClick={handleSaveStatus}
-            disabled={!canEditTrip || actionState.savingStatus || !hasStatusChange}
-          >
-            {actionState.savingStatus ? <VscLoading className="spin" /> : <VscCheck />} Save Status
-          </button>
-
-          <button
-            type="button"
-            className="edit-btn ghost"
-            onClick={handleGenerateInvite}
-            disabled={actionState.generatingInvite}
-          >
-            {actionState.generatingInvite ? <VscLoading className="spin" /> : <VscShare />} Generate Invite
-          </button>
-
-          <button
-            type="button"
-            className="edit-btn ghost"
-            onClick={handleUpgradeSmartSchedule}
-            disabled={actionState.upgradingSchedule}
-          >
-            {actionState.upgradingSchedule ? <VscLoading className="spin" /> : <FaTrainSubway />} Smart Schedule
-          </button>
-
-          <button
-            type="button"
-            className="edit-btn ghost"
-            onClick={handleDownloadPdf}
-            disabled={actionState.downloadingPdf}
-          >
-            {actionState.downloadingPdf ? <VscLoading className="spin" /> : <VscCloudDownload />} Download PDF
-          </button>
-
-          <Link to={`/trip/${id}/expenses`} className="edit-btn ghost is-link">
-            <VscOrganization /> Open Expenses
-          </Link>
+          <p>
+            Group Chat opens the trip session for members. AI Group Chat opens the assistant with trip context for planning support.
+          </p>
         </section>
-
-        {inviteToken && (
-          <section className="edit-invite-banner">
-            <div>
-              <h3>Invite Token</h3>
-              <code>{inviteToken}</code>
-              <small>Expires: {formatDateTime(inviteExpiry)}</small>
-            </div>
-            <button
-              type="button"
-              className="edit-btn ghost"
-              onClick={handleCopyInviteToken}
-              disabled={actionState.copyingInvite}
-            >
-              {actionState.copyingInvite ? <VscLoading className="spin" /> : <VscCopy />} Copy
-            </button>
-          </section>
-        )}
 
         <main className="edit-trip-layout">
           <section className="edit-main-column">
@@ -1226,34 +982,6 @@ export default function EditTrip() {
             <article className="edit-card">
               <div className="edit-card-head">
                 <h2>
-                  <VscInfo /> Status Management
-                </h2>
-                <p>Save status updates independently without changing other details.</p>
-              </div>
-
-              <div className="edit-status-row">
-                <select value={statusDraft} onChange={(event) => setStatusDraft(event.target.value)}>
-                  {statusOptions.map((status) => (
-                    <option key={status} value={status}>
-                      {titleCase(status)}
-                    </option>
-                  ))}
-                </select>
-
-                <button
-                  type="button"
-                  className="edit-btn primary"
-                  onClick={handleSaveStatus}
-                  disabled={!canEditTrip || actionState.savingStatus || !hasStatusChange}
-                >
-                  {actionState.savingStatus ? <VscLoading className="spin" /> : <VscCheck />} Save Status
-                </button>
-              </div>
-            </article>
-
-            <article className="edit-card">
-              <div className="edit-card-head">
-                <h2>
                   <VscCalendar /> Itinerary Editor
                 </h2>
                 <p>Fine-tune day plans and keep itinerary updates synchronized.</p>
@@ -1289,34 +1017,6 @@ export default function EditTrip() {
                 </div>
               ) : (
                 <p className="edit-muted">No itinerary entries available yet.</p>
-              )}
-            </article>
-
-            <article className="edit-card">
-              <div className="edit-card-head">
-                <h2>
-                  <FaTrainSubway /> Smart Schedule
-                </h2>
-                <p>Generate and review train recommendations for this trip.</p>
-              </div>
-
-              {trip.smartSchedule?.options?.length > 0 ? (
-                <div className="edit-schedule-list">
-                  {trip.smartSchedule.options.slice(0, 4).map((option, index) => (
-                    <div key={`${option.trainNumber}-${index}`} className="edit-schedule-item">
-                      <strong>
-                        {option.trainName} ({option.trainNumber})
-                      </strong>
-                      <p>
-                        {option.departureTime} to {option.arrivalTime} • {option.duration}
-                      </p>
-                      {option.availableClasses?.length > 0 && <small>{option.availableClasses.join(' | ')}</small>}
-                      {option.recommendationReason && <em>{option.recommendationReason}</em>}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="edit-muted">No smart schedule generated yet. Use the action button above to create one.</p>
               )}
             </article>
           </section>

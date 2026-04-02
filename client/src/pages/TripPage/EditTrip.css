@@ -261,10 +261,23 @@
   align-items: center;
 }
 
-.edit-trip-quick-actions {
+.edit-trip-chat-actions {
+  border-radius: 0.9rem;
+  border: 1px solid rgba(14, 59, 76, 0.14);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 10px 24px rgba(10, 33, 45, 0.08);
+  padding: 0.7rem;
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.48rem;
+  align-items: center;
+}
+
+.edit-trip-chat-actions p {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.73rem;
+  color: var(--color-text-secondary, #4f6672);
 }
 
 .edit-btn {
@@ -751,8 +764,8 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .edit-trip-quick-actions {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .edit-trip-chat-actions {
+    grid-template-columns: 1fr;
   }
 
   .edit-trip-layout {
@@ -787,7 +800,7 @@
     gap: 0.25rem;
   }
 
-  .edit-trip-quick-actions,
+  .edit-trip-chat-actions,
   .edit-form-grid,
   .edit-status-row,
   .edit-side-column {

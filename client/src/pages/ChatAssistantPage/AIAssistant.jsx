@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { IoMdSend } from 'react-icons/io';
 import {
@@ -11,6 +11,7 @@ import {
   VscInfo,
   VscLoading,
   VscLocation,
+  VscOrganization,
   VscRobot,
   VscSparkle,
   VscTag,
@@ -106,8 +107,16 @@ function useGeolocation() {
   return { location, error, loading };
 }
 
-function AssistantHeader() {
+function AssistantHeader({ sessionMode, tripName }) {
   const { t } = useTranslation('aiAssistant');
+  const isGroupSession = sessionMode === 'group';
+
+  const title = isGroupSession ? 'Trip Group Chat' : t('title');
+  const subtitle = isGroupSession
+    ? tripName
+      ? `Group conversation for ${tripName}`
+      : 'Message everyone in this trip session'
+    : 'Plan faster with real-time AI trip assistance';
 
   return (
     <header className="ai-assistant-header">
@@ -118,14 +127,14 @@ function AssistantHeader() {
         </Link>
 
         <div className="ai-header-title">
-          <VscSparkle />
+          {isGroupSession ? <VscOrganization /> : <VscSparkle />}
           <div>
-            <h1>{t('title')}</h1>
-            <p>Plan faster with real-time AI trip assistance</p>
+            <h1>{title}</h1>
+            <p>{subtitle}</p>
           </div>
         </div>
 
-        <span className="ai-header-status">Live</span>
+        <span className="ai-header-status">{isGroupSession ? 'Group' : 'Live'}</span>
       </div>
     </header>
   );
@@ -177,7 +186,7 @@ function TripSummaryCard({ summary }) {
   );
 }
 
-function MessageBubble({ message, prevMessage, nextMessage, currentUserId }) {
+function MessageBubble({ message, prevMessage, nextMessage, currentUserId, chatMode }) {
   if (message.summary) {
     return (
       <div className="ai-system-row">
@@ -192,6 +201,10 @@ function MessageBubble({ message, prevMessage, nextMessage, currentUserId }) {
   const nextSenderId = typeof nextMessage?.sender === 'string' ? nextMessage?.sender : nextMessage?.sender?._id;
   const prevSenderKey = prevSenderId || prevMessage?.type || 'system';
   const nextSenderKey = nextSenderId || nextMessage?.type || 'system';
+  const senderName =
+    typeof message?.sender === 'object'
+      ? message?.sender?.name || message?.sender?.email || 'Participant'
+      : message?.senderName || 'Participant';
 
   const isUser = message.type === 'user' || senderId === currentUserId;
   const isFirstInGroup = !prevMessage || prevSenderKey !== currentSenderKey;
@@ -201,18 +214,21 @@ function MessageBubble({ message, prevMessage, nextMessage, currentUserId }) {
     hour: '2-digit',
     minute: '2-digit',
   });
+  const avatarLabel = chatMode === 'group' && !isUser ? senderName.charAt(0).toUpperCase() : null;
 
   return (
     <div className={`ai-message-row ${isUser ? 'is-user' : 'is-assistant'}`}>
       <div className="ai-avatar-slot">
         {isLastInGroup && (
           <span className={`ai-avatar ${isUser ? 'is-user' : 'is-assistant'}`}>
-            {isUser ? 'U' : <VscSparkle />}
+            {isUser ? 'U' : avatarLabel || <VscSparkle />}
           </span>
         )}
       </div>
 
       <div className="ai-message-stack">
+        {chatMode === 'group' && !isUser && isFirstInGroup && <span className="ai-sender-label">{senderName}</span>}
+
         <article
           className={`ai-message-bubble ${
             isFirstInGroup && isLastInGroup ? 'is-single' : isFirstInGroup ? 'is-first' : isLastInGroup ? 'is-last' : 'is-middle'
@@ -242,11 +258,12 @@ function StatusBar({ text }) {
   );
 }
 
-function ChatWorkspace({ userLocation, geoError, geoLoading }) {
+function ChatWorkspace({ userLocation, geoError, geoLoading, sessionConfig }) {
   const { t } = useTranslation('aiAssistant');
   const { user } = useAuth();
 
   const [sessionId, setSessionId] = useState(null);
+  const [sessionMode, setSessionMode] = useState(sessionConfig?.sessionMode === 'group' ? 'group' : 'ai');
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isMobileToolsOpen, setIsMobileToolsOpen] = useState(false);
@@ -265,12 +282,14 @@ function ChatWorkspace({ userLocation, geoError, geoLoading }) {
   const messagesContainerRef = useRef(null);
   const inputRef = useRef(null);
 
+  const isGroupSession = sessionMode === 'group';
+
   const promptSuggestions = useMemo(() => {
     const query = inputValue.trim().toLowerCase();
-    if (!query) return [];
+    if (!query || isGroupSession) return [];
 
     return QUERY_LIBRARY.filter((item) => item.toLowerCase().includes(query)).slice(0, 8);
-  }, [inputValue]);
+  }, [inputValue, isGroupSession]);
 
   const pushLocalMessage = useCallback((payload) => {
     setMessages((prev) => [
@@ -364,6 +383,11 @@ function ChatWorkspace({ userLocation, geoError, geoLoading }) {
       }
 
       if (command === '/clear') {
+        if (isGroupSession) {
+          setInlineNotice('Clear is only available in AI assistant mode.');
+          return;
+        }
+
         try {
           setIsLoadingHistory(true);
           await api.post('/chat/sessions/ai/clear');
@@ -389,7 +413,7 @@ function ChatWorkspace({ userLocation, geoError, geoLoading }) {
         }
       }
     },
-    [pushLocalMessage, t]
+    [isGroupSession, pushLocalMessage, t]
   );
 
   const submitPrompt = useCallback(
@@ -410,10 +434,15 @@ function ChatWorkspace({ userLocation, geoError, geoLoading }) {
 
       try {
         setIsWaitingForResponse(true);
-        await api.post(`/chat/message/ai/${sessionId}`, {
-          message: text,
-          origin: userLocation || undefined,
-        });
+        if (isGroupSession) {
+          await api.post(`/messages/session/${sessionId}/text`, { message: text });
+          setIsWaitingForResponse(false);
+        } else {
+          await api.post(`/chat/message/ai/${sessionId}`, {
+            message: text,
+            origin: userLocation || undefined,
+          });
+        }
       } catch {
         pushLocalMessage({
           sender: 'ai',
@@ -424,13 +453,51 @@ function ChatWorkspace({ userLocation, geoError, geoLoading }) {
         setIsWaitingForResponse(false);
       }
     },
-    [isWaitingForResponse, pushLocalMessage, sendCommand, sessionId, t, userLocation]
+    [isGroupSession, isWaitingForResponse, pushLocalMessage, sendCommand, sessionId, t, userLocation]
   );
 
   useEffect(() => {
     let mounted = true;
 
     const initializeSession = async () => {
+      const requestedMode = sessionConfig?.sessionMode === 'group' ? 'group' : 'ai';
+      const requestedSessionId = sessionConfig?.sessionId || null;
+      const prefillMessage = sessionConfig?.prefillMessage || '';
+
+      setSessionMode(requestedMode);
+
+      if (requestedSessionId) {
+        if (mounted) {
+          setSessionId(requestedSessionId);
+          if (prefillMessage) {
+            setInputValue(prefillMessage);
+          }
+
+          if (requestedMode === 'group') {
+            const context = sessionConfig?.tripName ? ` for ${sessionConfig.tripName}` : '';
+            setInlineNotice(`Connected to trip group chat${context}.`);
+          }
+        }
+        return;
+      }
+
+      if (requestedMode === 'group') {
+        if (mounted) {
+          setMessages([
+            {
+              id: createTempId(),
+              sender: 'system',
+              type: 'system',
+              text: 'Group session is missing. Open Group Chat again from the trip editor.',
+              isError: true,
+              createdAt: new Date().toISOString(),
+            },
+          ]);
+          setIsLoadingHistory(false);
+        }
+        return;
+      }
+
       try {
         const response = await api.post('/chat/sessions/ai');
         const id = response?.data?.data?.sessionId;
@@ -459,7 +526,7 @@ function ChatWorkspace({ userLocation, geoError, geoLoading }) {
     return () => {
       mounted = false;
     };
-  }, [t]);
+  }, [sessionConfig, t]);
 
   useEffect(() => {
     if (!sessionId) return;
@@ -553,18 +620,22 @@ function ChatWorkspace({ userLocation, geoError, geoLoading }) {
     };
 
     socket.on('newMessage', handleNewMessage);
-    socket.on('statusUpdate', handleStatusUpdate);
-    socket.on('tripCreated', handleTripCreated);
-    socket.on('tripCreationError', handleTripCreationError);
+    if (!isGroupSession) {
+      socket.on('statusUpdate', handleStatusUpdate);
+      socket.on('tripCreated', handleTripCreated);
+      socket.on('tripCreationError', handleTripCreationError);
+    }
 
     return () => {
       socket.emit('leaveSession', sessionId);
       socket.off('newMessage', handleNewMessage);
-      socket.off('statusUpdate', handleStatusUpdate);
-      socket.off('tripCreated', handleTripCreated);
-      socket.off('tripCreationError', handleTripCreationError);
+      if (!isGroupSession) {
+        socket.off('statusUpdate', handleStatusUpdate);
+        socket.off('tripCreated', handleTripCreated);
+        socket.off('tripCreationError', handleTripCreationError);
+      }
     };
-  }, [pushLocalMessage, sessionId]);
+  }, [isGroupSession, pushLocalMessage, sessionId]);
 
   useEffect(() => {
     if (isLoadingMore) return;
@@ -628,7 +699,7 @@ function ChatWorkspace({ userLocation, geoError, geoLoading }) {
           <div ref={messagesEndRef} />
         </div>
 
-        {statusUpdate && <StatusBar text={statusUpdate} />}
+        {!isGroupSession && statusUpdate && <StatusBar text={statusUpdate} />}
 
         {inlineNotice && (
           <div className="ai-inline-notice">
@@ -669,7 +740,11 @@ function ChatWorkspace({ userLocation, geoError, geoLoading }) {
               rows={1}
               spellCheck="true"
               autoComplete="off"
-              placeholder={t('inputPlaceholder')}
+              placeholder={
+                isGroupSession
+                  ? 'Message the trip group session.'
+                  : t('inputPlaceholder')
+              }
               value={inputValue}
               onChange={(event) => setInputValue(event.target.value)}
               onKeyDown={(event) => {
@@ -713,28 +788,30 @@ function ChatWorkspace({ userLocation, geoError, geoLoading }) {
       />
 
       <aside id="ai-side-panel" className={`ai-side-panel ${isMobileToolsOpen ? 'is-open' : ''}`}>
-        <article className="ai-side-card">
-          <header>
-            <h3>
-              <VscRobot /> Quick prompts
-            </h3>
-          </header>
-          <div className="ai-prompt-list">
-            {DEFAULT_PROMPTS.map((prompt) => (
-              <button
-                key={prompt}
-                type="button"
-                onClick={() => {
-                  setInputValue(prompt);
-                  inputRef.current?.focus();
-                  setIsMobileToolsOpen(false);
-                }}
-              >
-                {prompt}
-              </button>
-            ))}
-          </div>
-        </article>
+        {!isGroupSession && (
+          <article className="ai-side-card">
+            <header>
+              <h3>
+                <VscRobot /> Quick prompts
+              </h3>
+            </header>
+            <div className="ai-prompt-list">
+              {DEFAULT_PROMPTS.map((prompt) => (
+                <button
+                  key={prompt}
+                  type="button"
+                  onClick={() => {
+                    setInputValue(prompt);
+                    inputRef.current?.focus();
+                    setIsMobileToolsOpen(false);
+                  }}
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+          </article>
+        )}
 
         <article className="ai-side-card">
           <header>
@@ -758,6 +835,7 @@ function ChatWorkspace({ userLocation, geoError, geoLoading }) {
                 setIsMobileToolsOpen(false);
                 submitPrompt('/clear');
               }}
+              disabled={isGroupSession}
             >
               <VscTrash /> /clear
             </button>
@@ -780,6 +858,18 @@ function ChatWorkspace({ userLocation, geoError, geoLoading }) {
 export default function AIAssistantPage() {
   const { loading: authLoading } = useAuth();
   const { location, error: geoError, loading: geoLoading } = useGeolocation();
+  const routerLocation = useLocation();
+
+  const sessionConfig = useMemo(() => {
+    const state = routerLocation.state || {};
+
+    return {
+      sessionMode: state?.sessionMode === 'group' ? 'group' : 'ai',
+      sessionId: typeof state?.sessionId === 'string' ? state.sessionId : '',
+      tripName: typeof state?.tripName === 'string' ? state.tripName : '',
+      prefillMessage: typeof state?.prefillMessage === 'string' ? state.prefillMessage : '',
+    };
+  }, [routerLocation.state]);
 
   useEffect(() => {
     document.body.classList.add('ai-scroll-locked');
@@ -800,8 +890,8 @@ export default function AIAssistantPage() {
 
   return (
     <div className="ai-assistant-page">
-      <AssistantHeader />
-      <ChatWorkspace userLocation={location} geoError={geoError} geoLoading={geoLoading} />
+      <AssistantHeader sessionMode={sessionConfig.sessionMode} tripName={sessionConfig.tripName} />
+      <ChatWorkspace userLocation={location} geoError={geoError} geoLoading={geoLoading} sessionConfig={sessionConfig} />
     </div>
   );
 }

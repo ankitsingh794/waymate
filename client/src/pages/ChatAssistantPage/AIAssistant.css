@@ -223,6 +223,12 @@ body.ai-scroll-locked {
   align-items: flex-start;
 }
 
+.ai-sender-label {
+  font-size: 0.68rem;
+  color: var(--color-text-tertiary);
+  padding-left: 0.12rem;
+}
+
 .ai-message-bubble {
   border-radius: 1rem;
   border: 1px solid rgba(14, 59, 76, 0.12);

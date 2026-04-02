@@ -13,6 +13,7 @@ const Message = require('../models/Message');
 const notificationService = require('../services/notificationService');
 const { invalidateUserCache } = require('../services/cacheInvalidationService')
 const { updateLastMessage } = require('../services/chatService');
+const AppError = require('../utils/AppError');
 
 
 /**
@@ -542,7 +543,7 @@ exports.createGroupSession = async (req, res, next) => {
         // Check if session already exists
         const existingSession = await ChatSession.findOne({ 
             tripId: tripId,
-            type: 'group' 
+            sessionType: 'group' 
         });
 
         if (existingSession) {
@@ -555,9 +556,10 @@ exports.createGroupSession = async (req, res, next) => {
         const participants = trip.group.members.map(member => member.userId);
         
         const newSession = new ChatSession({
-            type: 'group',
+            sessionType: 'group',
             participants: participants,
-            tripId: tripId
+            tripId: tripId,
+            name: `Trip to ${trip.destination || 'Group'}`
         });
 
         await newSession.save();
