@@ -1,8 +1,11 @@
-import React from 'react';
 import './Globe.css';
 
 export default function Globe() {
-    const highlights = ['150+ destination-ready countries', 'Smart routing for mixed transport', 'Live adjustments while traveling'];
+    const highlights = [
+        '150+ destination-ready countries',
+        'Smart routing for mixed transport',
+        'Live adjustments while traveling',
+    ];
 
     return (
         <section className="home-globe-section">

@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap');
+
 /* ============================================
    HOME PAGE - MODERN RESPONSIVE LANDING
    ============================================ */
@@ -111,6 +113,8 @@
   letter-spacing: -0.02em;
   margin: 0;
   color: var(--color-primary);
+  font-family: 'Fraunces', Georgia, 'Times New Roman', serif;
+  font-weight: 600;
 }
 
 .home-hero-copy p {
@@ -216,6 +220,168 @@
   font-size: var(--font-size-sm);
 }
 
+.home-hero-editorial {
+  position: relative;
+  min-height: 460px;
+  display: grid;
+  place-items: center;
+}
+
+.home-editorial-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(8px);
+}
+
+.home-editorial-orb-one {
+  width: clamp(220px, 34vw, 360px);
+  height: clamp(220px, 34vw, 360px);
+  top: 6%;
+  left: 4%;
+  background: radial-gradient(circle, rgba(87, 184, 203, 0.45), rgba(87, 184, 203, 0));
+  animation: homeDrift 8s ease-in-out infinite;
+}
+
+.home-editorial-orb-two {
+  width: clamp(190px, 29vw, 300px);
+  height: clamp(190px, 29vw, 300px);
+  right: 8%;
+  bottom: 10%;
+  background: radial-gradient(circle, rgba(14, 59, 76, 0.34), rgba(14, 59, 76, 0));
+  animation: homeDrift 11s ease-in-out infinite reverse;
+}
+
+.home-editorial-orb-three {
+  width: clamp(140px, 24vw, 220px);
+  height: clamp(140px, 24vw, 220px);
+  right: 20%;
+  top: 14%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0));
+}
+
+.home-editorial-note {
+  position: relative;
+  z-index: 2;
+  width: min(100%, 430px);
+  padding: clamp(1.2rem, 3vw, 2rem);
+  border-radius: 1.35rem;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(14, 59, 76, 0.12);
+  box-shadow: var(--shadow-xl);
+  backdrop-filter: blur(12px);
+  display: grid;
+  gap: var(--space-4);
+}
+
+.home-editorial-note span {
+  width: fit-content;
+  border-radius: var(--radius-full);
+  padding: 0.35rem 0.8rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+  background: rgba(14, 59, 76, 0.08);
+  border: 1px solid rgba(14, 59, 76, 0.12);
+}
+
+.home-editorial-note h3 {
+  margin: 0;
+  color: var(--color-primary);
+  font-family: 'Fraunces', Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.22rem, 2.6vw, 1.55rem);
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+.home-editorial-note p {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.7;
+  color: var(--color-text-secondary);
+}
+
+.home-editorial-note ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.home-editorial-note li {
+  position: relative;
+  padding-left: 0.95rem;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.home-editorial-note li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.52rem;
+  width: 0.38rem;
+  height: 0.38rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+}
+
+/* ============================================
+   PROOF
+   ============================================ */
+
+.home-proof {
+  padding: clamp(2.2rem, 6vw, 4rem) 0 clamp(2.8rem, 7vw, 4.8rem);
+  scroll-margin-top: 96px;
+}
+
+.home-proof-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(0.9rem, 2.3vw, 1.4rem);
+}
+
+.home-proof-card {
+  border-radius: 1.1rem;
+  border: 1px solid rgba(14, 59, 76, 0.12);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: var(--shadow-sm);
+  padding: clamp(1rem, 2.3vw, 1.35rem);
+  display: grid;
+  gap: var(--space-3);
+  transition:
+    transform var(--transition-base),
+    box-shadow var(--transition-base),
+    border-color var(--transition-base);
+}
+
+.home-proof-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: rgba(14, 59, 76, 0.2);
+}
+
+.home-proof-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--color-primary);
+}
+
+.home-proof-card h3 {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: clamp(1.02rem, 2.2vw, 1.18rem);
+}
+
+.home-proof-card p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  line-height: 1.7;
+  font-size: var(--font-size-sm);
+}
+
 .home-hero-visual {
   position: relative;
   min-height: 470px;
@@ -312,6 +478,46 @@
   padding: clamp(3rem, 8vw, 6rem) 0;
 }
 
+.home-how-layout {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: clamp(1.3rem, 4vw, 2.7rem);
+  align-items: start;
+}
+
+.home-how-intro {
+  display: grid;
+  gap: var(--space-4);
+  position: sticky;
+  top: 112px;
+}
+
+.home-how-intro span {
+  width: fit-content;
+  border-radius: var(--radius-full);
+  padding: 0.35rem 0.8rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+  background: rgba(14, 59, 76, 0.08);
+  border: 1px solid rgba(14, 59, 76, 0.12);
+}
+
+.home-how-intro h2 {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: clamp(1.72rem, 4.5vw, 2.55rem);
+  line-height: 1.15;
+}
+
+.home-how-intro p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  line-height: 1.75;
+}
+
 .home-steps-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -351,6 +557,14 @@
   color: var(--color-text-secondary);
   line-height: 1.7;
   font-size: var(--font-size-sm);
+}
+
+.home-step-card strong {
+  margin-top: var(--space-4);
+  display: block;
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
 }
 
 /* ============================================
@@ -479,9 +693,26 @@
     order: 2;
   }
 
+  .home-hero-editorial {
+    order: 1;
+    min-height: 360px;
+  }
+
   .home-hero-visual {
     order: 1;
     min-height: 380px;
+  }
+
+  .home-proof-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-how-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .home-how-intro {
+    position: static;
   }
 }
 
@@ -505,6 +736,10 @@
 
   .home-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-proof-grid {
+    grid-template-columns: 1fr;
   }
 
   .home-steps-grid {
@@ -548,6 +783,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .home-btn,
+  .home-editorial-orb-one,
+  .home-editorial-orb-two,
   .home-orb-main,
   .home-orb-accent {
     transition: none;

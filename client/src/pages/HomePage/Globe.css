@@ -13,11 +13,19 @@
   grid-template-columns: 1.05fr 0.95fr;
   gap: clamp(1.2rem, 4vw, 3rem);
   align-items: center;
+  border-radius: 1.35rem;
+  border: 1px solid rgba(14, 59, 76, 0.12);
+  background:
+    radial-gradient(circle at 6% 8%, rgba(87, 184, 203, 0.12), rgba(87, 184, 203, 0) 36%),
+    rgba(255, 255, 255, 0.88);
+  box-shadow: var(--shadow-sm);
+  padding: clamp(1.2rem, 3.5vw, 2.2rem);
 }
 
 .home-globe-copy {
   display: grid;
   gap: var(--space-4);
+  max-width: 62ch;
 }
 
 .home-globe-kicker {
@@ -59,7 +67,8 @@
   position: relative;
   padding-left: 1rem;
   color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
+  font-size: clamp(0.88rem, 2vw, 0.96rem);
+  line-height: 1.6;
 }
 
 .home-globe-list li::before {
@@ -78,6 +87,17 @@
   min-height: 430px;
   display: grid;
   place-items: center;
+}
+
+.home-globe-visual::after {
+  content: '';
+  position: absolute;
+  width: clamp(160px, 24vw, 220px);
+  height: clamp(34px, 5vw, 46px);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(14, 59, 76, 0.22), rgba(14, 59, 76, 0));
+  bottom: 14%;
+  filter: blur(8px);
 }
 
 .home-globe-aura {
@@ -213,6 +233,7 @@
 @media (max-width: 860px) {
   .home-globe-shell {
     width: calc(100% - 1.5rem);
+    padding: clamp(1rem, 4vw, 1.45rem);
   }
 }
 

@@ -1,17 +1,18 @@
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
-import { VscArrowRight, VscRobot } from 'react-icons/vsc';
+import { VscArrowRight, VscCheck, VscMap, VscRobot } from 'react-icons/vsc';
 import Navbar from '../../components/navbar.jsx';
 import Cards from './Cards.jsx';
 import Feedback from './Feedback.jsx';
 import Globe from './Globe.jsx';
 import './Home.css';
 
-const StepCard = ({ number, title, description }) => (
+const StepCard = ({ number, title, description, outcome }) => (
     <article className="home-step-card">
         <span className="home-step-number">{number}</span>
         <h3>{title}</h3>
         <p>{description}</p>
+        <strong>{outcome}</strong>
     </article>
 );
 
@@ -20,26 +21,47 @@ export default function Home() {
 
     const steps = [
         {
-            number: '1',
-            title: 'Share your travel style',
-            description: 'Set goals, budget, and pace so the planner adapts to how you actually travel.',
+            number: '01',
+            title: 'Shape your brief in minutes',
+            description: 'Tell WayMate how you like to move, spend, and explore. It reads your preferences like an editor reads a travel brief.',
+            outcome: 'Outcome: a clear planning direction before you even pick dates.',
         },
         {
-            number: '2',
-            title: 'Get smart recommendations',
-            description: 'Discover routes, timings, and local ideas tailored to your trip context.',
+            number: '02',
+            title: 'Receive route stories, not raw lists',
+            description: 'You get route options with context: timing logic, vibe shifts through the day, and practical tradeoffs.',
+            outcome: 'Outcome: every recommendation explains why it belongs in your trip.',
         },
         {
-            number: '3',
-            title: 'Build and refine your plan',
-            description: 'Create your itinerary, collaborate with others, and adjust in real time.',
+            number: '03',
+            title: 'Collaborate and adapt on the fly',
+            description: 'Invite friends, react to real-time changes, and keep one synchronized itinerary across every screen.',
+            outcome: 'Outcome: confident decisions from first idea to final boarding call.',
         },
     ];
 
     const stats = [
-        { value: '150+', label: 'Countries covered' },
-        { value: '24/7', label: 'AI trip assistant' },
-        { value: '4.9/5', label: 'Traveler satisfaction' },
+        { value: '150+', label: 'Country-ready planning models' },
+        { value: '42K+', label: 'Monthly travel plans drafted' },
+        { value: '4.9/5', label: 'Traveler confidence score' },
+    ];
+
+    const proof = [
+        {
+            icon: VscRobot,
+            title: 'AI that keeps context',
+            body: 'WayMate remembers pace, budget, and preferences so suggestions improve every iteration.',
+        },
+        {
+            icon: VscMap,
+            title: 'Routing that respects reality',
+            body: 'Built-in timing logic prevents overpacked days and keeps your route physically practical.',
+        },
+        {
+            icon: VscCheck,
+            title: 'Decisions you can trust',
+            body: 'Each recommendation is transparent, editable, and designed for collaborative planning.',
+        },
     ];
 
     const plannerPath = isAuthenticated ? '/assistant' : '/register';
@@ -54,19 +76,21 @@ export default function Home() {
                 <section className="home-hero">
                     <div className="home-shell home-hero-grid">
                         <div className="home-hero-copy">
-                            <span className="home-eyebrow">AI-powered travel planning</span>
-                            <h1>Plan smarter journeys with WayMate.</h1>
+                            <span className="home-eyebrow">
+                                Premium AI trip planning
+                            </span>
+                            <h1>WayMate turns trip ideas into editorial-grade itineraries.</h1>
                             <p>
-                                Turn vague ideas into clear, personalized itineraries with a modern planner that blends
-                                recommendations, navigation, and collaboration in one place.
+                                From first spark to final check-in, plan with a platform that blends intelligence,
+                                aesthetics, and practical routing in one calm workflow.
                             </p>
 
                             <div className="home-hero-actions">
                                 <Link to={plannerPath} className="home-btn home-btn-primary">
-                                    Start planning <VscArrowRight />
+                                    Start your travel brief <VscArrowRight />
                                 </Link>
                                 <a href="#features" className="home-btn home-btn-outline">
-                                    Explore features
+                                    Read the feature story
                                 </a>
                             </div>
 
@@ -80,31 +104,57 @@ export default function Home() {
                             </div>
                         </div>
 
-                        <div className="home-hero-visual" aria-hidden="true">
-                            <div className="home-orb home-orb-main" />
-                            <div className="home-orb home-orb-accent" />
+                        <div className="home-hero-editorial" aria-hidden="true">
+                            <div className="home-editorial-orb home-editorial-orb-one" />
+                            <div className="home-editorial-orb home-editorial-orb-two" />
+                            <div className="home-editorial-orb home-editorial-orb-three" />
 
-                            <article className="home-hero-panel">
-                                <VscRobot className="home-panel-icon" />
-                                <h3>Your intelligent trip co-pilot</h3>
-                                <p>Build full itineraries, compare routes, and adapt plans on the fly.</p>
+                            <article className="home-editorial-note">
+                                <span>Field Note</span>
+                                <h3>"Tokyo in five days, with quiet mornings and late city energy."</h3>
+                                <p>
+                                    WayMate translates this into a living schedule that balances movement, budget,
+                                    and spontaneity.
+                                </p>
                                 <ul>
-                                    <li>Adaptive destination suggestions</li>
-                                    <li>Budget-aware planning flows</li>
-                                    <li>Collaborative travel coordination</li>
+                                    <li>Dynamic route timing</li>
+                                    <li>Budget-aware recommendations</li>
+                                    <li>Instant team collaboration</li>
                                 </ul>
                             </article>
                         </div>
                     </div>
                 </section>
 
+                <section id="proof" className="home-proof">
+                    <div className="home-shell">
+                        <div className="home-proof-grid">
+                            {proof.map((item) => {
+                                const Icon = item.icon;
+                                return (
+                                    <article key={item.title} className="home-proof-card">
+                                        <Icon className="home-proof-icon" />
+                                        <h3>{item.title}</h3>
+                                        <p>{item.body}</p>
+                                    </article>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </section>
+
+                <Globe />
                 <Cards />
 
                 <section className="home-how">
-                    <div className="home-shell">
-                        <div className="home-section-header">
-                            <h2>How WayMate works</h2>
-                            <p>Three focused steps from idea to itinerary.</p>
+                    <div className="home-shell home-how-layout">
+                        <div className="home-how-intro">
+                            <span>Process</span>
+                            <h2>A planning rhythm that feels intentional.</h2>
+                            <p>
+                                This is not a checklist machine. It is a guided narrative flow that helps you decide
+                                faster and travel better.
+                            </p>
                         </div>
 
                         <div className="home-steps-grid">
@@ -114,25 +164,26 @@ export default function Home() {
                                     number={step.number}
                                     title={step.title}
                                     description={step.description}
+                                    outcome={step.outcome}
                                 />
                             ))}
                         </div>
                     </div>
                 </section>
 
-                <Globe />
                 <Feedback />
 
                 <section className="home-cta">
                     <div className="home-shell">
                         <article className="home-cta-card">
-                            <span className="home-cta-kicker">Ready when you are</span>
-                            <h2>Build your next trip with confidence.</h2>
+                            <span className="home-cta-kicker">Now boarding thoughtful travel</span>
+                            <h2>Build your next route with taste and confidence.</h2>
                             <p>
-                                From quick weekend escapes to long adventures, WayMate keeps every detail aligned.
+                                Whether it is a long-weekend reset or a month abroad, WayMate gives you a plan that
+                                feels curated, realistic, and ready to move.
                             </p>
                             <Link to={startPath} className="home-btn home-btn-light">
-                                Get started free <VscArrowRight />
+                                Enter WayMate <VscArrowRight />
                             </Link>
                         </article>
                     </div>
@@ -144,20 +195,26 @@ export default function Home() {
                     <div className="home-footer-grid">
                         <section className="home-footer-column">
                             <h4>WayMate</h4>
-                            <p>Your AI-powered travel companion for faster planning and better trips.</p>
+                            <p>
+                                The editorial trip studio for modern travelers who want beautiful planning and reliable
+                                execution.
+                            </p>
                         </section>
 
                         <section className="home-footer-column">
                             <h4>Product</h4>
                             <ul>
                                 <li>
-                                    <a href="#features">Features</a>
+                                    <a href="#features">Feature Story</a>
+                                </li>
+                                <li>
+                                    <a href="#proof">Trust Signals</a>
                                 </li>
                                 <li>
                                     <Link to={plannerPath}>AI Assistant</Link>
                                 </li>
                                 <li>
-                                    <Link to="/login">Sign in</Link>
+                                    <Link to="/login">Sign In</Link>
                                 </li>
                             </ul>
                         </section>
@@ -170,18 +227,18 @@ export default function Home() {
                                 </li>
                                 <li>
                                     <a href="https://github.com/ankitsingh794/waymate" target="_blank" rel="noreferrer">
-                                        GitHub
+                                        Open Source
                                     </a>
                                 </li>
                                 <li>
-                                    <Link to="/register">Create account</Link>
+                                    <Link to="/register">Create Account</Link>
                                 </li>
                             </ul>
                         </section>
                     </div>
 
                     <div className="home-footer-bottom">
-                        <p>{year} WayMate. All rights reserved.</p>
+                        <p>{year} WayMate. Crafted for better journeys.</p>
                     </div>
                 </div>
             </footer>

@@ -6,19 +6,25 @@
   position: sticky;
   top: 0;
   z-index: var(--z-sticky);
-  background: rgba(255, 255, 255, 0.84);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(14, 59, 76, 0.12);
+  padding: 0.7rem 0;
+  background: linear-gradient(180deg, rgba(248, 250, 251, 0.9), rgba(248, 250, 251, 0));
+  backdrop-filter: blur(6px);
 }
 
 .navbar-shell {
   width: min(var(--max-content-width), calc(100% - 3rem));
-  height: 72px;
+  height: 70px;
   margin-inline: auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-6);
+  border-radius: 999px;
+  border: 1px solid rgba(14, 59, 76, 0.13);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 16px 34px rgba(14, 59, 76, 0.12);
+  backdrop-filter: blur(14px);
+  padding: 0 0.9rem 0 1.05rem;
 }
 
 .logo {
@@ -85,6 +91,13 @@
   text-decoration: none;
 }
 
+.nav-cta:focus-visible,
+.nav-link:focus-visible,
+.hamburger:focus-visible {
+  outline: 2px solid rgba(87, 184, 203, 0.9);
+  outline-offset: 2px;
+}
+
 .hamburger {
   display: none;
   width: 2.5rem;
@@ -128,7 +141,9 @@
 @media (max-width: 860px) {
   .navbar-shell {
     width: calc(100% - 1.5rem);
-    height: 64px;
+    height: 62px;
+    border-radius: 1rem;
+    padding: 0 0.72rem 0 0.85rem;
   }
 
   .logo img {
@@ -141,7 +156,7 @@
 
   .navbar-links {
     position: fixed;
-    top: 74px;
+    top: 78px;
     left: 0.75rem;
     right: 0.75rem;
     display: grid;
@@ -176,7 +191,7 @@
 @media (max-width: 560px) {
   .navbar-shell {
     width: calc(100% - 1rem);
-    height: 60px;
+    height: 58px;
   }
 
   .logo img {
@@ -184,7 +199,7 @@
   }
 
   .navbar-links {
-    top: 68px;
+    top: 72px;
     left: 0.5rem;
     right: 0.5rem;
     padding: var(--space-4);

@@ -7,10 +7,51 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Environment files
+.env
+.env.*
+!.env.example
+
 node_modules
 dist
 dist-ssr
 *.local
+
+# Tool and build caches
+.cache/
+.vite/
+.turbo/
+.eslintcache
+*.tsbuildinfo
+
+# Python caches from local assistant tooling
+__pycache__/
+*.py[cod]
+
+# Local AI/IDE assistant artifacts
+.agent/
+.claude/
+.codebuddy/
+.codex/
+.continue/
+.cursor/
+.gemini/
+.idx/
+.kiro/
+.qoder/
+.roo/
+.github/
+.supermaven/
+.trae/
+.windsurf/
+
+# Generated prompt/skill datasets
+.opencode/
+.github/prompts/
+
+# Local deploy/platform folders
+.vercel/
+.netlify/
 
 # Editor directories and files
 .vscode/*

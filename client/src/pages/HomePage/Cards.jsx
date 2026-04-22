@@ -1,3 +1,4 @@
+import { createElement } from 'react';
 import {
     VscRobot,
     VscMap,
@@ -8,15 +9,18 @@ import {
 } from 'react-icons/vsc';
 import './Cards.css';
 
-const CardItem = ({ icon: Icon, title, description, tag }) => (
+const CardItem = ({ icon, title, description, tag, callout }) => (
     <article className="home-feature-card">
-        <div className="home-feature-icon-wrap">
-            <Icon className="home-feature-icon" />
+        <div className="home-feature-header-row">
+            <span className="home-feature-tag">{tag}</span>
+            <div className="home-feature-icon-wrap">
+                {createElement(icon, { className: 'home-feature-icon' })}
+            </div>
         </div>
         <div className="home-feature-content">
-            <span className="home-feature-tag">{tag}</span>
             <h3>{title}</h3>
             <p>{description}</p>
+            <strong>{callout}</strong>
         </div>
     </article>
 );
@@ -24,39 +28,45 @@ const CardItem = ({ icon: Icon, title, description, tag }) => (
 const cardsData = [
     {
         icon: VscRobot,
-        tag: 'AI Core',
-        title: 'Personalized recommendations',
-        description: 'Get destination ideas tuned to your style, budget, and travel pace in seconds.',
+        tag: 'Narrative AI',
+        title: 'Recommendations with point of view',
+        description: 'WayMate does more than list places. It frames each recommendation around the experience you want to create.',
+        callout: 'Story-first planning, not decision fatigue.',
     },
     {
         icon: VscMap,
-        tag: 'Routing',
-        title: 'Smart itineraries',
-        description: 'Build day-by-day plans with realistic travel times and practical route sequencing.',
+        tag: 'Route Design',
+        title: 'Itineraries that move naturally',
+        description: 'Travel windows, transit reality, and daily energy are mapped together so your trip feels smooth from morning to night.',
+        callout: 'Fewer rushed hops, better days.',
     },
     {
         icon: VscLightbulb,
         tag: 'Discovery',
-        title: 'Local insights',
-        description: 'Find meaningful spots and experiences beyond the standard tourist checklist.',
+        title: 'Local moments worth keeping',
+        description: 'Find independent cafes, overlooked neighborhoods, and cultural picks that match your style, not generic rankings.',
+        callout: 'Travel with character, not cliches.',
     },
     {
         icon: VscLightbulbSparkle,
-        tag: 'Realtime',
-        title: 'Live travel context',
-        description: 'Stay updated with weather shifts, local events, and trip-impacting changes.',
+        tag: 'Live Context',
+        title: 'Signals that keep plans current',
+        description: 'When weather, events, or timing shifts, WayMate updates your plan with realistic alternatives in seconds.',
+        callout: 'Adaptive decisions, lower stress.',
     },
     {
         icon: VscLocation,
-        tag: 'Navigation',
-        title: 'Interactive map planning',
-        description: 'View recommendations geographically to make better movement decisions.',
+        tag: 'Map Studio',
+        title: 'Visual planning across the city',
+        description: 'See your days on a spatial canvas so every booking, transfer, and stop is geographically coherent.',
+        callout: 'Map clarity before you commit.',
     },
     {
         icon: VscCheck,
         tag: 'Collaboration',
-        title: 'Shared trip planning',
-        description: 'Invite friends and family, align choices quickly, and move together confidently.',
+        title: 'One plan, shared perspective',
+        description: 'Bring your group into a single planning flow where feedback, choices, and priorities are easy to align.',
+        callout: 'Consensus without the chaos.',
     },
 ];
 
@@ -65,8 +75,12 @@ export default function Cards() {
         <section id="features" className="home-features-section">
             <div className="home-features-shell">
                 <header className="home-features-header">
-                    <h2>Why travelers choose WayMate</h2>
-                    <p>Every feature is designed to make planning faster, clearer, and more enjoyable on every screen.</p>
+                    <span>Feature Story</span>
+                    <h2>A modern planning stack designed like a travel magazine.</h2>
+                    <p>
+                        Every capability is shaped to feel clear, elegant, and actionable, from your first route draft
+                        to your final confirmation.
+                    </p>
                 </header>
 
                 <div className="home-features-grid">
