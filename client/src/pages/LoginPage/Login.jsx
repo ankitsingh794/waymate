@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import api from '../../utils/axiosInstance';
 import './Register.css';
 import { useAuth } from '../../context/AuthContext';
+import AuthAmbientDecor from './AuthAmbientDecor';
 
 
 export default function Login() {
@@ -41,6 +42,7 @@ export default function Login() {
 
     return (
         <div className='register-container'>
+            <AuthAmbientDecor />
             <div className='register-title'>{t('login.title')}</div>
             <form onSubmit={handleSubmit} className='register-form'>
                 <h3>{t('login.emailLabel')}</h3>

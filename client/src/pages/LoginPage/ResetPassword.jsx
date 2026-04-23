@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../../utils/axiosInstance';
 import './Register.css';
+import AuthAmbientDecor from './AuthAmbientDecor';
 
 export default function ResetPassword() {
   const { t } = useTranslation('auth');
@@ -55,6 +56,7 @@ export default function ResetPassword() {
 
   return (
     <div className="register-container">
+      <AuthAmbientDecor />
       <div className="register-title">{t('resetPassword.title')}</div>
       <form className="register-form" onSubmit={handleSubmit}>
         <h3>{t('resetPassword.newPasswordLabel')}</h3>

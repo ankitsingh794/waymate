@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../utils/axiosInstance';
 import { useAuth } from '../../context/AuthContext';
 import './Register.css';
+import AuthAmbientDecor from './AuthAmbientDecor';
 
 export default function ForgotPassword() {
   const { t } = useTranslation('auth');
@@ -38,6 +39,7 @@ export default function ForgotPassword() {
 
   return (
     <div className='register-container'>
+      <AuthAmbientDecor />
       <div className='register-title'>{t('forgotPassword.title')}</div>
       <form onSubmit={handleSubmit} className='register-form'>
         <h3>{t('forgotPassword.emailLabel')}</h3>

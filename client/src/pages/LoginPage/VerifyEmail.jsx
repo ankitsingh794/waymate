@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import api from '../../utils/axiosInstance';
 import './Register.css';
 import { useAuth } from '../../context/AuthContext';
+import AuthAmbientDecor from './AuthAmbientDecor';
 
 export default function VerifyEmail() {
   const { t } = useTranslation('auth');
@@ -53,6 +54,7 @@ export default function VerifyEmail() {
 
   return (
     <div className='register-container'>
+      <AuthAmbientDecor />
       <div className='register-title'>{status}</div>
       
       {verified && (
