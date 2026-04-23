@@ -12,6 +12,7 @@ export default function VerifyEmail() {
   const token = searchParams.get('token');
   const [status, setStatus] = useState(t('verifyEmail.verifying'));
   const [verified, setVerified] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
   const { login } = useAuth();
 
@@ -23,10 +24,15 @@ export default function VerifyEmail() {
           setUserInfo({ user, accessToken });
           setStatus('Email verified successfully! 🎉');
           setVerified(true);
+          setHasError(false);
         })
-        .catch(() => setStatus(t('verifyEmail.error')));
+        .catch(() => {
+          setStatus(t('verifyEmail.error'));
+          setHasError(true);
+        });
     } else {
       setStatus('No verification token found.');
+      setHasError(true);
     }
   }, [token, t]);
 
@@ -50,61 +56,36 @@ export default function VerifyEmail() {
       <div className='register-title'>{status}</div>
       
       {verified && (
-        <div style={{ marginTop: '30px', textAlign: 'center' }}>
-          <h3 style={{ color: '#333', marginBottom: '20px' }}>
+        <div className="auth-verify-actions">
+          <h3 className="auth-verify-heading">
             How would you like to continue using WayMate?
           </h3>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', maxWidth: '400px', margin: '0 auto' }}>
+          <div className="auth-verify-buttons">
             <button 
               onClick={continueOnWeb}
-              className="cta-button"
-              style={{ 
-                backgroundColor: '#0d6efd', 
-                padding: '15px 25px',
-                fontSize: '16px',
-                borderRadius: '8px',
-                border: 'none',
-                color: 'white',
-                cursor: 'pointer',
-                fontWeight: '600'
-              }}
+              className="cta-button cta-button-web"
             >
               🌐 Continue on Web Browser
             </button>
             
             <button 
               onClick={continueOnMobile}
-              className="cta-button"
-              style={{ 
-                backgroundColor: '#198754', 
-                padding: '15px 25px',
-                fontSize: '16px',
-                borderRadius: '8px',
-                border: 'none',
-                color: 'white',
-                cursor: 'pointer',
-                fontWeight: '600'
-              }}
+              className="cta-button cta-button-mobile"
             >
               📱 Continue on Mobile App
             </button>
           </div>
           
-          <p style={{ 
-            marginTop: '20px', 
-            color: '#666', 
-            fontSize: '14px',
-            lineHeight: '1.5'
-          }}>
+          <p className="auth-verify-note">
             Choose "Mobile App" if you have the WayMate app installed on your device. 
             Otherwise, continue on the web for the full experience!
           </p>
         </div>
       )}
       
-      {!verified && status.includes('error') && (
-        <Link to="/login" className="cta-button" style={{ marginTop: '20px', display: 'inline-block' }}>
+      {!verified && hasError && (
+        <Link to="/login" className="cta-button auth-back-link">
           Back to Login
         </Link>
       )}
