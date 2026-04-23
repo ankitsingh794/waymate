@@ -37,6 +37,10 @@ export default function Navbar() {
             <div className="navbar-shell" ref={menuRef}>
                 <Link to={isAuthenticated ? '/dashboard' : '/'} className="logo" onClick={handleLinkClick}>
                     <img src={Logo} alt="WayMate" loading="lazy" decoding="async" />
+                    <span className="logo-copy" aria-hidden="true">
+                        <strong>WayMate</strong>
+                        <em>Atelier</em>
+                    </span>
                 </Link>
 
                 <button
@@ -78,7 +82,10 @@ export default function Navbar() {
                                 Home
                             </Link>
                             <a href="#features" className="nav-link" onClick={handleLinkClick}>
-                                Features
+                                Capabilities
+                            </a>
+                            <a href="#proof" className="nav-link" onClick={handleLinkClick}>
+                                Trust
                             </a>
                             <Link to="/login" className="nav-cta" onClick={handleLinkClick}>
                                 Login

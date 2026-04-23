@@ -1,14 +1,19 @@
 import { VscStarFull } from 'react-icons/vsc';
 import './Feedback.css';
 
-const TestimonialCard = ({ avatar, name, role, text }) => (
+const TestimonialCard = ({ avatar, name, role, signal, text }) => (
     <article className="home-testimonial-card">
-        <div className="home-testimonial-stars" aria-label="5 star rating">
-            {[...Array(5)].map((_, i) => (
-                <VscStarFull key={i} aria-hidden="true" />
-            ))}
+        <div className="home-testimonial-topline">
+            <div className="home-testimonial-stars" aria-label="5 star rating">
+                {[...Array(5)].map((_, i) => (
+                    <VscStarFull key={i} aria-hidden="true" />
+                ))}
+            </div>
+            <span className="home-testimonial-signal">{signal}</span>
         </div>
-        <p>{text}</p>
+
+        <blockquote>{text}</blockquote>
+
         <div className="home-testimonial-author">
             <div className="home-author-avatar">{avatar}</div>
             <div className="home-author-info">
@@ -21,22 +26,25 @@ const TestimonialCard = ({ avatar, name, role, text }) => (
 
 const testimonialsData = [
     {
-        avatar: 'SA',
-        name: 'Sarah Anderson',
-        role: 'Solo traveler',
-        text: 'WayMate mapped our Bali plans in minutes. It felt like planning with someone who already knew us.',
+        avatar: 'NK',
+        name: 'Nina Kapoor',
+        role: 'Remote creative lead',
+        signal: '2-city workcation',
+        text: '"WayMate translated a messy team brief into a schedule we could actually execute. We stopped arguing about logistics and started looking forward to the trip."',
     },
     {
-        avatar: 'MJ',
-        name: 'Michael Jones',
-        role: 'Adventure planner',
-        text: 'I could finally balance budget and experiences without juggling ten different tools and tabs.',
+        avatar: 'TR',
+        name: 'Theo Ramirez',
+        role: 'Family travel planner',
+        signal: 'Family itinerary',
+        text: '"The route sequencing was the difference maker. We avoided backtracking, kept everyone’s pace in check, and still had room for spontaneous detours."',
     },
     {
-        avatar: 'EP',
-        name: 'Emily Parker',
-        role: 'Remote worker',
-        text: 'The route planning and itinerary flow are clean, quick, and reliable on both phone and laptop.',
+        avatar: 'AL',
+        name: 'Ari Levin',
+        role: 'Founder and frequent flyer',
+        signal: 'Time-critical travel',
+        text: '"When a train delay disrupted our day, alternatives appeared instantly with trade-offs explained. It felt like having an operations editor in our pocket."',
     },
 ];
 
@@ -45,8 +53,12 @@ export default function Feedback() {
         <section className="home-feedback-section">
             <div className="home-feedback-shell">
                 <header className="home-feedback-header">
-                    <h2>Loved by modern travelers</h2>
-                    <p>Real feedback from people using WayMate to build better travel plans with less friction.</p>
+                    <span className="home-section-kicker">Social Proof</span>
+                    <h2>Teams and travelers trust WayMate when decisions need to move fast.</h2>
+                    <p>
+                        Field-tested feedback from users planning group escapes, focused workcations, and
+                        high-constraint itineraries.
+                    </p>
                 </header>
 
                 <div className="home-feedback-grid">

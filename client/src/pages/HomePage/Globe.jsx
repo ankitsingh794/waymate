@@ -2,20 +2,20 @@ import './Globe.css';
 
 export default function Globe() {
     const highlights = [
-        '150+ destination-ready countries',
-        'Smart routing for mixed transport',
-        'Live adjustments while traveling',
+        '150+ regional mobility patterns mapped',
+        'Rail, metro, rideshare, and walking flows combined',
+        'Local pacing presets for relaxed or high-output trips',
     ];
 
     return (
-        <section className="home-globe-section">
+        <section className="home-globe-section" aria-labelledby="home-globe-title">
             <div className="home-globe-shell">
                 <div className="home-globe-copy">
-                    <span className="home-globe-kicker">Global coverage</span>
-                    <h2>Explore the world with confidence.</h2>
+                    <span className="home-globe-kicker">Coverage Studio</span>
+                    <h2 id="home-globe-title">One planning language across cities, terminals, and borders.</h2>
                     <p>
-                        Discover where to go, when to move, and how to organize each day with a planner designed for
-                        real-world travel variability.
+                        Build plans that respect real transit behavior and local rhythm. WayMate helps your itinerary
+                        stay elegant whether you are crossing neighborhoods or countries.
                     </p>
 
                     <ul className="home-globe-list">
@@ -23,6 +23,11 @@ export default function Globe() {
                             <li key={item}>{item}</li>
                         ))}
                     </ul>
+
+                    <p className="home-globe-footnote">
+                        Coverage intelligence is continuously tuned so route logic stays practical for solo travelers,
+                        families, and mixed-group journeys.
+                    </p>
                 </div>
 
                 <div className="home-globe-visual" aria-hidden="true">
