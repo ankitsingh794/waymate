@@ -9,7 +9,7 @@ import React, {
   useRef,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../utils/axiosInstance';
+import api, { refreshClient } from '../utils/axiosInstance';
 import { getSocket, disconnectSocket, setTokenRefreshCallback, reconnectSocket } from '../utils/socketManager';
 
 const AuthContext = createContext();
@@ -22,19 +22,18 @@ export default function AuthProvider({ children }) {
   const tokenRefreshIntervalRef = useRef(null);
 
   const connectSocket = useCallback((token) => {
-    if (!token) {
-      console.error('[Socket Auth] Attempted to connect without a token.');
-      return;
-    }
-    const socket = getSocket();
-    if (socket) {
-      if (socket.connected) {
-        socket.disconnect();
+    if (!token) return;
+    try {
+      const socket = getSocket();
+      if (socket) {
+        if (socket.connected) {
+          socket.disconnect();
+        }
+        socket.auth = { token };
+        socket.connect();
       }
-      socket.auth = { token };
-      socket.connect();
-    } else {
-        console.error('[Socket Auth] Could not retrieve socket instance.');
+    } catch (err) {
+      console.warn('[Socket Auth] Connection deferred:', err?.message);
     }
   }, []);
 
@@ -42,48 +41,49 @@ export default function AuthProvider({ children }) {
    * Clears all session data, logs out from the backend, and redirects to the login page.
    */
   const handleLogout = useCallback(async () => {
-    console.log("Initiating logout...");
     clearInterval(tokenRefreshIntervalRef.current);
 
     try {
       await api.post('/auth/logout');
     } catch (error) {
-      console.error("Logout API call failed, proceeding with client-side cleanup:", error);
+      console.warn("Logout API call failed, proceeding with client cleanup:", error?.message);
     } finally {
       setUser(null);
       localStorage.removeItem('accessToken');
-      api.defaults.headers.common['Authorization'] = null;
+      localStorage.removeItem('user');
+      delete api.defaults.headers.common['Authorization'];
       disconnectSocket();
-      navigate('/login');
+      navigate('/login', { replace: true });
     }
   }, [navigate]);
 
   /**
-   * Refreshes the access token and reconnects the socket
+   * Refreshes the access token and reconnects the socket.
+   * Uses unintercepted refreshClient to guarantee no interceptor recursion.
    */
   const handleTokenRefresh = useCallback(async () => {
     try {
-      console.log("Attempting to refresh access token for socket authentication...");
-      const { data } = await api.post('/auth/refresh-token');
-      const newAccessToken = data.data.accessToken;
+      const { data } = await refreshClient.post('/auth/refresh-token');
+      const newAccessToken = data?.data?.accessToken;
       
+      if (!newAccessToken) {
+        throw new Error('Refresh response missing access token');
+      }
+
       localStorage.setItem('accessToken', newAccessToken);
       api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
       
-      // Reconnect socket with new token
       reconnectSocket(newAccessToken);
-      console.log("Token refreshed and socket reconnected successfully.");
-      
       return newAccessToken;
     } catch (error) {
-      console.error("Could not refresh token for socket authentication. Session is invalid.", error);
+      console.warn("Socket token refresh failed:", error?.message);
       handleLogout();
       throw error;
     }
   }, [handleLogout]);
 
   /**
-   * Schedules a periodic refresh of the access token before it expires.
+   * Schedules a periodic refresh of the access token before it expires (every 14 minutes).
    */
   const scheduleTokenRefresh = useCallback(() => {
     clearInterval(tokenRefreshIntervalRef.current);
@@ -91,18 +91,26 @@ export default function AuthProvider({ children }) {
     const REFRESH_INTERVAL = 14 * 60 * 1000;
 
     const refreshToken = async () => {
+      // If token was removed, stop interval
+      if (!localStorage.getItem('accessToken')) {
+        clearInterval(tokenRefreshIntervalRef.current);
+        return;
+      }
+
       try {
-        console.log("Attempting to refresh access token...");
-        const { data } = await api.post('/auth/refresh-token');
-        const newAccessToken = data.data.accessToken;
+        const { data } = await refreshClient.post('/auth/refresh-token');
+        const newAccessToken = data?.data?.accessToken;
         
+        if (!newAccessToken) {
+          throw new Error('Missing access token');
+        }
+
         localStorage.setItem('accessToken', newAccessToken);
         api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
         
         connectSocket(newAccessToken);
-        console.log("Token refreshed successfully.");
       } catch (error) {
-        console.error("Could not refresh token. Session is invalid.", error);
+        console.warn("Periodic token refresh failed:", error?.message);
         handleLogout();
       }
     };
@@ -110,15 +118,46 @@ export default function AuthProvider({ children }) {
     tokenRefreshIntervalRef.current = setInterval(refreshToken, REFRESH_INTERVAL);
   }, [connectSocket, handleLogout]);
 
-  // Set up socket token refresh callback
+  // Hook socket manager into token refresh
   useEffect(() => {
     setTokenRefreshCallback(handleTokenRefresh);
   }, [handleTokenRefresh]);
 
+  // Listen for session expiration events dispatched by axiosInstance
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      clearInterval(tokenRefreshIntervalRef.current);
+      setUser(null);
+      disconnectSocket();
+    };
+
+    window.addEventListener('auth:session-expired', handleSessionExpired);
+    return () => window.removeEventListener('auth:session-expired', handleSessionExpired);
+  }, []);
+
+  // Multi-tab synchronization: sync logout and login events across tabs
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'accessToken') {
+        if (!e.newValue) {
+          // Token removed in another tab -> sync logout immediately
+          clearInterval(tokenRefreshIntervalRef.current);
+          setUser(null);
+          disconnectSocket();
+          delete api.defaults.headers.common['Authorization'];
+          navigate('/login', { replace: true });
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [navigate]);
+
   /**
-   * Logs in the user, sets state, and initializes the session.
+   * Logs in the user, sets state, and navigates seamlessly.
    */
-  const login = useCallback(async (userData, accessToken) => {
+  const login = useCallback(async (userData, accessToken, redirectTo = '/dashboard') => {
     setUser(userData);
     localStorage.setItem('accessToken', accessToken);
     api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
@@ -126,12 +165,24 @@ export default function AuthProvider({ children }) {
     connectSocket(accessToken);
     scheduleTokenRefresh();
 
-    navigate('/dashboard');
+    navigate(redirectTo, { replace: true });
   }, [navigate, connectSocket, scheduleTokenRefresh]);
+
+  /**
+   * Restores session on initial app mount:
+   * Only calls refresh-token if a prior session token exists in localStorage.
+   * If user is unauthenticated or a guest, finishes loading immediately without spamming network requests.
+   */
   useEffect(() => {
     const restoreSession = async () => {
+      const storedToken = localStorage.getItem('accessToken');
+      if (!storedToken) {
+        setLoading(false);
+        return;
+      }
+
       try {
-        const res = await api.post('/auth/refresh-token');
+        const res = await refreshClient.post('/auth/refresh-token');
         const { accessToken, user: restoredUser } = res.data.data;
         
         setUser(restoredUser);
@@ -140,12 +191,17 @@ export default function AuthProvider({ children }) {
         
         connectSocket(accessToken);
         scheduleTokenRefresh();
-      } catch (err) {
+      } catch {
+        // Stale or invalid session - silently clean up
         setUser(null);
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('user');
+        delete api.defaults.headers.common['Authorization'];
       } finally {
         setLoading(false);
       }
     };
+
     restoreSession();
   }, [connectSocket, scheduleTokenRefresh]);
 

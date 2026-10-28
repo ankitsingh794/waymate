@@ -42,10 +42,11 @@ const sendError = (res, statusCode, message) => {
  */
 const sendTokenResponse = (res, statusCode, message, tokens, userData = {}) => {
   const cookieOptions = {
-    expires: new Date(Date.now() + process.env.JWT_REFRESH_COOKIE_EXPIRE * 24 * 60 * 60 * 1000),
+    expires: new Date(Date.now() + (Number(process.env.JWT_REFRESH_COOKIE_EXPIRE) || 7) * 24 * 60 * 60 * 1000),
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'None',
+    sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
+    path: '/',
   };
 
   res.cookie('refreshToken', tokens.refreshToken, cookieOptions);

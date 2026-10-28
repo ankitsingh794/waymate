@@ -5,7 +5,7 @@ const AppError = require('../utils/AppError');
 const sendEmail = require('../utils/sendEmail');
 const logger =require('../utils/logger');
 const { generateAccessToken, generateRefreshToken, verifyToken } = require('../utils/tokenUtils');
-const { blacklistToken } = require('../config/redis');
+const { blacklistToken, isTokenBlacklisted } = require('../config/redis');
 const { generateVerificationEmailHTML, generatePasswordResetEmailHTML } = require('../utils/emailTemplates');
 const { sendSuccess, sendTokenResponse } = require('../utils/responseHelper');
 
@@ -169,6 +169,10 @@ exports.refreshToken = async (req, res, next) => {
         if (!decoded) {
             return next(new AppError('Authentication failed. Invalid or expired refresh token.', 401));
         }
+
+        if (decoded.jti && (await isTokenBlacklisted(decoded.jti))) {
+            return next(new AppError('Authentication failed. Refresh token has been invalidated.', 401));
+        }
         
         const user = await User.findById(decoded.id);
         if (!user || user.accountStatus !== 'active') {
@@ -188,7 +192,7 @@ exports.logoutUser = async (req, res, next) => {
             const decoded = jwt.decode(accessToken);
             if (decoded?.jti && decoded?.exp) {
                 const expires = decoded.exp - Math.floor(Date.now() / 1000);
-                if (expires > 0) await blacklistToken(`at_${decoded.jti}`, expires);
+                if (expires > 0) await blacklistToken(decoded.jti, expires);
             }
         }
 
@@ -198,11 +202,18 @@ exports.logoutUser = async (req, res, next) => {
             const decoded = jwt.decode(refreshToken);
             if (decoded?.jti && decoded?.exp) {
                 const expires = decoded.exp - Math.floor(Date.now() / 1000);
-                if (expires > 0) await blacklistToken(`rt_${decoded.jti}`, expires);
+                if (expires > 0) await blacklistToken(decoded.jti, expires);
             }
         }
 
-        res.clearCookie('refreshToken', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', path: '/' });
+        const cookieOptions = {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
+            path: '/',
+        };
+
+        res.clearCookie('refreshToken', cookieOptions);
         
         sendSuccess(res, 200, 'Logged out successfully');
     } catch (error) {

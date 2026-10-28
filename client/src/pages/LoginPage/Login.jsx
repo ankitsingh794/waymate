@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../../utils/axiosInstance';
 import { useAuth } from '../../context/AuthContext';
@@ -12,11 +12,15 @@ export default function Login() {
     const [message, setMessage] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
     const { login, user } = useAuth();
 
+    // Preserve target destination if redirected from a protected route
+    const destination = location.state?.from?.pathname || '/dashboard';
+
     useEffect(() => {
-        if (user) navigate('/dashboard', { replace: true });
-    }, [user, navigate]);
+        if (user) navigate(destination, { replace: true });
+    }, [user, navigate, destination]);
 
     const handleChange = (e) =>
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -28,9 +32,20 @@ export default function Login() {
         try {
             const res = await api.post('/auth/login', formData);
             const { accessToken, user } = res.data.data;
-            login(user, accessToken);
+            login(user, accessToken, destination);
         } catch (err) {
-            setMessage(err.response?.data?.message || 'Invalid credentials. Please try again.');
+            const status = err.response?.status;
+            let displayMsg = err.response?.data?.message;
+
+            if (status === 429) {
+                displayMsg = 'Too many attempts. Please pause a moment before trying again.';
+            } else if (status === 401) {
+                displayMsg = 'Incorrect email or password. Please check your credentials.';
+            } else if (!displayMsg) {
+                displayMsg = 'Unable to connect. Please check your connection and try again.';
+            }
+
+            setMessage(displayMsg);
         } finally {
             setIsSubmitting(false);
         }
@@ -63,6 +78,7 @@ export default function Login() {
                                 className="auth-field-input"
                                 placeholder="you@example.com"
                                 autoComplete="email"
+                                value={formData.email}
                                 onChange={handleChange}
                                 required
                             />
@@ -79,6 +95,7 @@ export default function Login() {
                                 className="auth-field-input"
                                 placeholder="••••••••"
                                 autoComplete="current-password"
+                                value={formData.password}
                                 onChange={handleChange}
                                 required
                             />

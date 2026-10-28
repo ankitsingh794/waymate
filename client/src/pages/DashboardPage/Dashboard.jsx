@@ -96,6 +96,16 @@ function splitTripsByLifecycle(trips) {
   };
 }
 
+function titleCase(value) {
+  if (!value) return 'Unknown';
+  return String(value)
+    .replace(/_/g, ' ')
+    .split(' ')
+    .filter(Boolean)
+    .map((chunk) => chunk[0].toUpperCase() + chunk.slice(1))
+    .join(' ');
+}
+
 function formatDate(dateValue) {
   if (!dateValue) return 'TBD';
   const date = new Date(dateValue);
@@ -931,7 +941,7 @@ export default function Dashboard() {
                   ))}
                 </div>
 
-                {!!places.length ? (
+                {places.length > 0 ? (
                   <div className="dashboard-places-grid">
                     {places.map((place, index) => {
                       const mapQuery = encodeURIComponent(`${place.name || ''} ${place.address || place.vicinity || ''}`);
