@@ -1,39 +1,39 @@
 /**
- * Input Component Styles
- * Modern form input with various states
+ * Input.css — WayMate canonical form field system
+ * Covers: text, email, password, date, number (type="text" wrapper)
+ *         select (via .input-select)
+ *         textarea (via .input-textarea)
  */
+
+/* ── Wrapper ──────────────────────────────────────────────────────────────── */
 
 .input-wrapper {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--ds-space-2);
   width: auto;
 }
 
-.input-full-width {
-  width: 100%;
-}
+.input-full-width { width: 100%; }
 
-/* ============================================
-   LABEL
-   ============================================ */
+/* ── Label ────────────────────────────────────────────────────────────────── */
 
 .input-label {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-primary);
+  font-size: var(--ds-text-sm);
+  font-weight: var(--ds-weight-medium);
+  color: var(--ds-text-primary);
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--ds-space-1);
+  font-family: var(--ds-font-ui);
 }
 
 .input-required {
-  color: var(--color-error);
+  color: var(--ds-error);
+  font-weight: var(--ds-weight-bold);
 }
 
-/* ============================================
-   INPUT FIELD
-   ============================================ */
+/* ── Field wrapper (hosts icon + input) ───────────────────────────────────── */
 
 .input-field-wrapper {
   position: relative;
@@ -41,144 +41,155 @@
   align-items: center;
 }
 
-.input {
+/* ── Input element ────────────────────────────────────────────────────────── */
+
+.input,
+.input-select,
+.input-textarea {
   width: 100%;
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background-color: var(--color-white);
-  color: var(--color-text-primary);
-  font-family: var(--font-primary);
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-normal);
-  line-height: var(--line-height-normal);
-  transition: all var(--transition-fast);
+  padding: var(--ds-space-3) var(--ds-space-4);
+  border: 1.5px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  background-color: var(--ds-surface);
+  color: var(--ds-text-primary);
+  font-family: var(--ds-font-ui);
+  font-size: var(--ds-text-base);
+  font-weight: var(--ds-weight-regular);
+  line-height: var(--ds-leading-normal);
+  transition:
+    border-color  var(--ds-transition-feedback),
+    box-shadow    var(--ds-transition-feedback);
   outline: none;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
-.input::placeholder {
-  color: var(--color-text-tertiary);
+.input::placeholder,
+.input-textarea::placeholder {
+  color: var(--ds-text-tertiary);
+  font-weight: var(--ds-weight-regular);
 }
 
-.input:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(14, 59, 76, 0.1);
+/* Focus — Forest-900 ring */
+.input:focus,
+.input-select:focus,
+.input-textarea:focus {
+  border-color: var(--ds-forest-900);
+  box-shadow: 0 0 0 3px rgba(23, 51, 40, 0.10);
 }
 
-.input:hover:not(:disabled):not(.input-error) {
-  border-color: var(--color-gray-400);
+/* Hover (not focused, not error) */
+.input:hover:not(:disabled):not(.input-error):not(:focus),
+.input-select:hover:not(:disabled):not(:focus),
+.input-textarea:hover:not(:disabled):not(.input-error):not(:focus) {
+  border-color: var(--ds-forest-400);
 }
 
-/* ============================================
-   SIZES
-   ============================================ */
+/* ── Select ───────────────────────────────────────────────────────────────── */
 
-.input-sm {
-  height: var(--input-height-sm);
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--font-size-sm);
+.input-select {
+  cursor: pointer;
+  /* Custom chevron via background-image */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23173328' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--ds-space-4) center;
+  padding-right: calc(var(--ds-space-4) + 20px);
 }
 
-.input-md {
-  height: var(--input-height);
-  padding: var(--space-3) var(--space-4);
-  font-size: var(--font-size-base);
+/* ── Textarea ─────────────────────────────────────────────────────────────── */
+
+.input-textarea {
+  resize: vertical;
+  min-height: 96px;
+  line-height: var(--ds-leading-relaxed);
 }
 
-.input-lg {
-  height: var(--input-height-lg);
-  padding: var(--space-4) var(--space-5);
-  font-size: var(--font-size-lg);
+/* ── Sizes ────────────────────────────────────────────────────────────────── */
+
+.input-sm,
+.input-sm.input-select { height: var(--ds-input-h-sm); padding: var(--ds-space-2) var(--ds-space-3); font-size: var(--ds-text-sm); }
+
+.input-md,
+.input-md.input-select { height: var(--ds-input-h); }
+
+.input-lg,
+.input-lg.input-select { height: var(--ds-btn-h-lg); padding: var(--ds-space-4) var(--ds-space-5); font-size: var(--ds-text-lg); border-radius: var(--ds-radius-xl); }
+
+/* ── States ───────────────────────────────────────────────────────────────── */
+
+/* Error */
+.input-error,
+.input-error.input-select {
+  border-color: var(--ds-error);
+  background-color: var(--ds-error-bg);
 }
 
-/* ============================================
-   ERROR STATE
-   ============================================ */
-
-.input-error {
-  border-color: var(--color-error);
+.input-error:focus,
+.input-error.input-select:focus {
+  box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.12);
 }
 
-.input-error:focus {
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
-}
-
-/* ============================================
-   SUCCESS STATE
-   ============================================ */
-
+/* Success */
 .input-success {
-  border-color: var(--color-success);
+  border-color: var(--ds-success);
 }
 
 .input-success:focus {
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+  box-shadow: 0 0 0 3px rgba(26, 122, 82, 0.12);
 }
 
-/* ============================================
-   DISABLED STATE
-   ============================================ */
-
-.input-disabled {
-  background-color: var(--color-gray-100);
-  color: var(--color-gray-500);
+/* Disabled */
+.input-disabled,
+.input:disabled,
+.input-select:disabled,
+.input-textarea:disabled {
+  background-color: var(--ds-surface-2);
+  color: var(--ds-text-tertiary);
   cursor: not-allowed;
-  border-color: var(--color-gray-200);
+  border-color: var(--ds-border);
+  opacity: 0.7;
 }
 
-.input-disabled::placeholder {
-  color: var(--color-gray-400);
-}
+.input-disabled::placeholder { color: var(--ds-text-tertiary); }
 
-/* ============================================
-   ICON STYLES
-   ============================================ */
+/* ── Icon ─────────────────────────────────────────────────────────────────── */
 
 .input-icon {
-  width: 20px;
-  height: 20px;
-  color: var(--color-text-secondary);
+  width: 18px;
+  height: 18px;
+  color: var(--ds-text-tertiary);
   flex-shrink: 0;
   position: absolute;
   pointer-events: none;
+  transition: color var(--ds-transition-feedback);
 }
 
-.input-has-icon-left .input-icon-left {
-  left: var(--space-4);
+.input-field-wrapper:focus-within .input-icon {
+  color: var(--ds-forest-700);
 }
 
-.input-has-icon-left .input {
-  padding-left: calc(var(--space-4) + 20px + var(--space-2));
-}
+.input-has-icon-left .input-icon-left  { left: var(--ds-space-4); }
+.input-has-icon-right .input-icon-right { right: var(--ds-space-4); }
 
-.input-has-icon-right .input-icon-right {
-  right: var(--space-4);
-}
+.input-has-icon-left  .input { padding-left:  calc(var(--ds-space-4) + 18px + var(--ds-space-2)); }
+.input-has-icon-right .input { padding-right: calc(var(--ds-space-4) + 18px + var(--ds-space-2)); }
 
-.input-has-icon-right .input {
-  padding-right: calc(var(--space-4) + 20px + var(--space-2));
-}
-
-/* ============================================
-   HELPER TEXT
-   ============================================ */
+/* ── Helper / error text ──────────────────────────────────────────────────── */
 
 .input-helper {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-secondary);
+  font-size: var(--ds-text-xs);
+  color: var(--ds-text-secondary);
   display: block;
+  font-family: var(--ds-font-ui);
 }
 
-.input-helper-error {
-  color: var(--color-error);
-}
+.input-helper-error { color: var(--ds-error); }
 
-/* ============================================
-   RESPONSIVE
-   ============================================ */
+/* ── Responsive ───────────────────────────────────────────────────────────── */
 
-@media (max-width: 768px) {
-  .input {
-    font-size: 16px; /* Prevents zoom on iOS */
-  }
+@media (max-width: 640px) {
+  /* Prevent iOS Safari zoom on focus */
+  .input,
+  .input-select,
+  .input-textarea { font-size: 16px; }
 }

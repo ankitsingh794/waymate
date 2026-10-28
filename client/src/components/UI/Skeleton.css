@@ -1,0 +1,40 @@
+/*
+ * Skeleton.css — shimmer loading placeholders
+ *
+ * Rule 3: The shimmer is the only animation — it is directly tied to a
+ * data-loading state, not decorative. Stops immediately via
+ * prefers-reduced-motion.
+ */
+
+.sk-item {
+  display: block;
+  border-radius: var(--ds-radius-md);
+  background: linear-gradient(
+    90deg,
+    var(--ds-sand-100, #f5ede0) 25%,
+    var(--ds-sand-200, #ead9c4) 50%,
+    var(--ds-sand-100, #f5ede0) 75%
+  );
+  background-size: 200% 100%;
+  animation: sk-shimmer 1.5s ease-in-out infinite;
+}
+
+.sk-item--round {
+  border-radius: var(--ds-radius-full);
+}
+
+.sk-block {
+  display: grid;
+}
+
+@keyframes sk-shimmer {
+  from { background-position: 200% center; }
+  to   { background-position: -200% center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sk-item {
+    animation: none;
+    background: var(--ds-sand-100, #f5ede0);
+  }
+}

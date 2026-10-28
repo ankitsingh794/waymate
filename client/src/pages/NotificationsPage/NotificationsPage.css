@@ -1,21 +1,23 @@
-/**
- * Notifications Page Styles
- */
+/* ============================================
+   NOTIFICATIONS PAGE — WAYMATE ATELIER
+   Real-time route alerts, disruptions & sync notices
+   ============================================ */
 
 .notifications-page {
   width: 100%;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--color-background);
-  font-family: var(--font-primary);
-  color: var(--color-text-primary);
+  background: var(--ds-canvas, #f8f5ee);
+  font-family: var(--ds-font-ui, Inter, sans-serif);
+  color: var(--ds-forest-900, #173328);
 }
 
 .notifications-body {
   flex: 1;
-  width: 100%;
-  padding: var(--space-3xl) var(--space-xl);
+  width: min(var(--ds-content-max, 1200px), calc(100% - 2.5rem));
+  margin: 0 auto;
+  padding: clamp(1.5rem, 4vw, 2.75rem) 0 clamp(2.5rem, 5vw, 4rem);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -24,96 +26,110 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: var(--space-xl);
-  margin-bottom: var(--space-3xl);
-  max-width: var(--max-content-width);
-  margin-left: auto;
-  margin-right: auto;
+  gap: 1.5rem;
+  margin-bottom: 2.25rem;
   flex-wrap: wrap;
 }
 
 .notifications-header h1 {
-  font-size: var(--font-size-4xl);
-  margin: 0 0 var(--space-md) 0;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-family: var(--ds-font-display, 'Playfair Display', serif);
+  font-size: clamp(1.85rem, 4vw, 2.75rem);
+  color: var(--ds-forest-900, #173328);
+  margin: 0 0 0.5rem;
+  line-height: 1.15;
 }
 
 .notifications-header p {
-  font-size: var(--font-size-lg);
-  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+  color: var(--ds-text-secondary, #4a5e57);
   margin: 0;
+  line-height: 1.5;
 }
 
 .notifications-container {
-  max-width: var(--max-content-width);
-  margin: 0 auto;
+  display: grid;
+  gap: 1rem;
 }
 
 .notifications-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-lg);
+  gap: 0.85rem;
 }
 
 .notification-card {
-  border-left: 4px solid transparent;
-  transition: all var(--transition-base);
+  border: 1px solid var(--ds-border, rgba(23, 51, 40, 0.08));
+  border-radius: var(--ds-radius-lg, 0.75rem);
+  background: var(--ds-surface, #ffffff);
+  box-shadow: 0 1px 4px rgba(23, 51, 40, 0.03);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+  position: relative;
 }
 
 .notification-card.unread {
-  background-color: rgba(14, 59, 76, 0.05);
-  border-left-color: var(--color-primary);
-  box-shadow: var(--shadow-md);
+  border-color: rgba(23, 51, 40, 0.18);
+  box-shadow: 0 4px 12px rgba(23, 51, 40, 0.06);
+}
+
+.notification-card.unread::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--ds-forest-900, #173328);
 }
 
 .notification-content {
   display: flex;
-  gap: var(--space-lg);
+  gap: 1rem;
   align-items: flex-start;
 }
 
 .notification-icon {
-  font-size: 2rem;
+  font-size: 1.25rem;
   flex-shrink: 0;
-  width: 50px;
-  height: 50px;
+  width: 42px;
+  height: 42px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-background-tertiary);
-  border-radius: var(--radius-lg);
+  background: var(--ds-canvas, #f8f5ee);
+  border: 1px solid var(--ds-border, rgba(23, 51, 40, 0.08));
+  color: var(--ds-forest-900, #173328);
+  border-radius: var(--ds-radius-md, 0.5rem);
 }
 
 .notification-text {
   flex: 1;
+  min-width: 0;
 }
 
 .notification-title {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
-  margin: 0 0 var(--space-2) 0;
-  color: var(--color-text-primary);
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.25rem;
+  color: var(--ds-forest-900, #173328);
 }
 
 .notification-message {
-  font-size: var(--font-size-base);
-  color: var(--color-text-secondary);
-  margin: 0 0 var(--space-md) 0;
-  line-height: var(--line-height-relaxed);
+  font-size: 0.88rem;
+  color: var(--ds-text-secondary, #4a5e57);
+  margin: 0 0 0.5rem;
+  line-height: 1.5;
 }
 
 .notification-footer {
   display: flex;
-  gap: var(--space-md);
+  gap: 0.75rem;
   align-items: center;
 }
 
 .notification-time {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-tertiary);
+  font-size: 0.76rem;
+  color: var(--ds-text-tertiary, #7a9490);
 }
 
 .notifications-empty {
@@ -121,50 +137,34 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--space-8);
+  padding: 3.5rem 1.5rem;
   text-align: center;
-  background: var(--color-background-secondary);
-  border-radius: var(--radius-xl);
-  border: 1px dashed var(--color-border);
+  background: var(--ds-surface, #ffffff);
+  border-radius: var(--ds-radius-xl, 1rem);
+  border: 1px dashed var(--ds-border-strong, rgba(23, 51, 40, 0.16));
 }
 
 .empty-icon {
-  font-size: 3rem;
-  color: var(--color-text-tertiary);
-  margin-bottom: var(--space-lg);
+  font-size: 2.5rem;
+  color: var(--ds-text-tertiary, #7a9490);
+  margin-bottom: 0.75rem;
 }
 
 .notifications-empty h3 {
-  font-size: var(--font-size-xl);
-  margin: 0 0 var(--space-sm) 0;
-  color: var(--color-text-primary);
+  font-family: var(--ds-font-display, 'Playfair Display', serif);
+  font-size: 1.35rem;
+  margin: 0 0 0.35rem;
+  color: var(--ds-forest-900, #173328);
 }
 
 .notifications-empty p {
-  color: var(--color-text-secondary);
+  color: var(--ds-text-secondary, #4a5e57);
   margin: 0;
-  font-size: var(--font-size-base);
+  font-size: 0.9rem;
 }
-
-/* ============================================
-   RESPONSIVE
-   ============================================ */
 
 @media (max-width: 768px) {
   .notifications-body {
-    padding: var(--space-xl);
-  }
-
-  .notifications-header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .notification-content {
-    flex-direction: column;
-  }
-
-  .notifications-list {
-    gap: var(--space-md);
+    padding: 1.25rem 0.5rem;
   }
 }

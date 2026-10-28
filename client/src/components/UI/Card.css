@@ -1,111 +1,110 @@
 /**
- * Card Component Styles
+ * Card.css — WayMate canonical card system
+ * Rule: NO hover lift (translateY). Shadow transitions only on elevated cards.
+ * Solid warm surfaces — no glassmorphism on content cards.
  */
 
+/* ── Base ─────────────────────────────────────────────────────────────────── */
+
 .card {
-  background-color: var(--color-white);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
-  transition: all var(--transition-base);
+  background-color: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-xl);
+  transition: box-shadow var(--ds-transition-feedback);
 }
 
+/* ── Elevated — subtle Forest-tinted shadow ───────────────────────────────── */
+
 .card-elevated {
-  box-shadow: var(--shadow-base);
+  box-shadow: var(--ds-shadow-1);
+  border-color: transparent;
 }
 
 .card-elevated:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--ds-shadow-2);
+  /* No translateY — Rule 3 */
 }
+
+/* ── Clickable — cursor change + background feedback only ─────────────────── */
 
 .card-clickable {
   cursor: pointer;
 }
 
 .card-clickable:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
+  background-color: var(--ds-surface-2);
 }
 
-/* ============================================
-   PADDING SIZES
-   ============================================ */
-
-.card-padding-sm {
-  padding: var(--space-3);
+.card-clickable:active {
+  background-color: var(--ds-sand-100, var(--ds-surface-2));
 }
 
-.card-padding-md {
-  padding: var(--space-5);
-}
+/* ── Padding sizes ────────────────────────────────────────────────────────── */
 
-.card-padding-lg {
-  padding: var(--space-8);
-}
+.card-padding-none { padding: 0; }
+.card-padding-sm   { padding: var(--ds-space-3); }
+.card-padding-md   { padding: var(--ds-space-5); }
+.card-padding-lg   { padding: var(--ds-space-8); }
 
-.card-padding-none {
-  padding: 0;
-}
-
-/* ============================================
-   CARD SECTIONS
-   ============================================ */
+/* ── Sections ─────────────────────────────────────────────────────────────── */
 
 .card-header {
-  padding: var(--space-5) var(--space-5) 0 var(--space-5);
-  border-bottom: 1px solid var(--color-border);
-  margin-bottom: var(--space-4);
+  padding: var(--ds-space-5) var(--ds-space-5) 0;
+  border-bottom: 1px solid var(--ds-border);
+  margin-bottom: var(--ds-space-4);
+  padding-bottom: var(--ds-space-4);
 }
 
 .card-header:only-child {
   border-bottom: none;
   margin-bottom: 0;
-  padding-bottom: var(--space-4);
 }
 
 .card-title {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
+  font-family: var(--ds-font-ui);
+  font-size: var(--ds-text-base);
+  font-weight: var(--ds-weight-semibold);
+  color: var(--ds-text-primary);
   margin: 0;
+  letter-spacing: var(--ds-tracking-normal);
 }
 
 .card-subtitle {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  margin: var(--space-2) 0 0 0;
+  font-size: var(--ds-text-sm);
+  color: var(--ds-text-secondary);
+  margin: var(--ds-space-1) 0 0;
+  font-weight: var(--ds-weight-regular);
 }
 
 .card-body {
-  padding: var(--space-4) var(--space-5);
+  padding: var(--ds-space-4) var(--ds-space-5);
 }
 
 .card-footer {
-  padding: var(--space-4) var(--space-5) var(--space-5) var(--space-5);
-  border-top: 1px solid var(--color-border);
+  padding: var(--ds-space-4) var(--ds-space-5) var(--ds-space-5);
+  border-top: 1px solid var(--ds-border);
   display: flex;
-  gap: var(--space-3);
+  gap: var(--ds-space-3);
   justify-content: flex-end;
+  align-items: center;
 }
 
-/* ============================================
-   RESPONSIVE
-   ============================================ */
+/* ── Responsive ───────────────────────────────────────────────────────────── */
 
 @media (max-width: 768px) {
-  .card-padding-lg {
-    padding: var(--space-4);
-  }
+  .card-padding-lg { padding: var(--ds-space-5); }
 
   .card-header {
-    padding: var(--space-4) var(--space-4) 0 var(--space-4);
+    padding: var(--ds-space-4) var(--ds-space-4) 0;
+    padding-bottom: var(--ds-space-3);
+    margin-bottom: var(--ds-space-3);
   }
 
-  .card-body {
-    padding: var(--space-3) var(--space-4);
-  }
+  .card-body  { padding: var(--ds-space-3) var(--ds-space-4); }
 
   .card-footer {
-    padding: var(--space-3) var(--space-4) var(--space-4) var(--space-4);
+    padding: var(--ds-space-3) var(--ds-space-4) var(--ds-space-4);
     flex-direction: column;
+    align-items: stretch;
   }
 }

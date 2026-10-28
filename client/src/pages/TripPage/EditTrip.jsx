@@ -19,7 +19,8 @@ import {
 import { IoPeopleSharp } from 'react-icons/io5';
 import api from '../../utils/axiosInstance';
 import { useAuth } from '../../context/AuthContext';
-import { Toast } from '../../components/UI';
+import { Toast, useConfirm } from '../../components/UI';
+
 import './EditTrip.css';
 
 const ACCOMMODATION_OPTIONS = ['budget', 'standard', 'luxury'];
@@ -174,6 +175,8 @@ export default function EditTrip() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const confirm = useConfirm();
+
 
   const [trip, setTrip] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -671,7 +674,13 @@ export default function EditTrip() {
   const handleRemoveMember = async (memberId, memberName) => {
     if (!memberId) return;
 
-    const confirmed = window.confirm(`Remove ${memberName || 'this member'} from the trip?`);
+    const confirmed = await confirm({
+      title: 'Remove member',
+      message: `Remove ${memberName || 'this member'} from the trip? This cannot be undone.`,
+      confirmLabel: 'Remove',
+      variant: 'error',
+    });
+
     if (!confirmed) return;
 
     const actionKey = `${memberId}:remove`;
@@ -755,7 +764,13 @@ export default function EditTrip() {
       return;
     }
 
-    const confirmed = window.confirm('Delete this trip permanently? This action cannot be undone.');
+    const confirmed = await confirm({
+      title: 'Delete trip permanently',
+      message: 'All trip data will be removed. This action cannot be undone.',
+      confirmLabel: 'Delete',
+      variant: 'error',
+    });
+
     if (!confirmed) return;
 
     setActionState((prev) => ({ ...prev, deletingTrip: true }));

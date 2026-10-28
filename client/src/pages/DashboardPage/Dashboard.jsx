@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   VscAccount,
@@ -196,7 +196,13 @@ function TripRail({ title, subtitle, trips }) {
         {trips.map((trip) => {
           const state = inferTripState(trip);
           return (
-            <article className="dashboard-trip-card" key={trip._id || trip.tripId}>
+            <article
+              className="dashboard-trip-card"
+              key={trip._id || trip.tripId}
+              // Prefetch the TripDetails chunk when the user hovers a card.
+              // Vite caches the import — by the time they click, it's ready.
+              onMouseEnter={() => import('../TripPage/Details')}
+            >
               <img
                 src={trip.coverImage || FALLBACK_TRIP_IMAGE}
                 alt={trip.destination || 'Trip destination'}
@@ -386,6 +392,34 @@ export default function Dashboard() {
     ],
     [household, surveyData, unreadNotifications]
   );
+
+  const [activeTab, setActiveTab] = useState('journeys');
+  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0, opacity: 0 });
+  const tabListRef = useRef(null);
+  const tabBtnRefs = useRef({});
+
+  const dashboardTabs = useMemo(
+    () => [
+      { id: 'journeys', label: 'Journeys & Routes', icon: VscCompass, count: allTrips.length },
+      { id: 'discovery', label: 'City Discovery', icon: VscSearch },
+      { id: 'mobility', label: 'Mobility & NATPAC', icon: VscGraph, badge: surveyData ? 'Ready' : 'Pending' },
+      { id: 'activity', label: 'Alerts & Comms', icon: VscBell, badge: unreadNotifications > 0 ? unreadNotifications : null },
+    ],
+    [allTrips.length, surveyData, unreadNotifications]
+  );
+
+  useLayoutEffect(() => {
+    const btn = tabBtnRefs.current[activeTab];
+    if (!btn || !tabListRef.current) return;
+    const parentRect = tabListRef.current.getBoundingClientRect();
+    const btnRect = btn.getBoundingClientRect();
+    setIndicatorStyle({
+      left: btnRect.left - parentRect.left,
+      width: btnRect.width,
+      opacity: 1,
+    });
+  }, [activeTab]);
+
 
   const fetchDashboardData = useCallback(
     async ({ isRefresh = false } = {}) => {
@@ -636,146 +670,248 @@ export default function Dashboard() {
           ))}
         </section>
 
-        <section className="dashboard-quick-actions-grid">
-          {quickActions.map((action) => (
-            <Link key={action.id} to={action.path} className="dashboard-quick-action-card">
-              <span className="dashboard-quick-action-icon">
-                <action.icon />
-              </span>
-              <div>
-                <h3>{action.title}</h3>
-                <p>{action.description}</p>
-              </div>
-              <span className="dashboard-quick-action-badge">{action.badge}</span>
-            </Link>
-          ))}
-        </section>
+        {/* ── Apple-style Segmented Control Bar ── */}
+        <nav className="dashboard-tabs-bar" role="tablist" aria-label="Dashboard sections">
+          <div className="dashboard-tabs-shell" ref={tabListRef}>
+            <div
+              className="dashboard-tab-indicator"
+              style={{
+                transform: `translateX(${indicatorStyle.left}px)`,
+                width: `${indicatorStyle.width}px`,
+                opacity: indicatorStyle.opacity,
+              }}
+              aria-hidden="true"
+            />
+            {dashboardTabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  id={`tab-${tab.id}`}
+                  aria-selected={isActive}
+                  aria-controls={`pane-${tab.id}`}
+                  ref={(el) => { tabBtnRefs.current[tab.id] = el; }}
+                  className={`dashboard-tab-btn ${isActive ? 'is-active' : ''}`}
+                  onClick={() => setActiveTab(tab.id)}
+                >
+                  <Icon className="dashboard-tab-icon" aria-hidden="true" />
+                  <span className="dashboard-tab-label">{tab.label}</span>
+                  {tab.count !== undefined && tab.count !== null && (
+                    <span className="dashboard-tab-badge">{tab.count}</span>
+                  )}
+                  {tab.badge && (
+                    <span className={`dashboard-tab-pill ${tab.badge === 'Ready' || tab.badge === 'Done' ? 'is-ready' : ''}`}>
+                      {tab.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </nav>
 
-        <div className="dashboard-layout-grid">
-          <main className="dashboard-main-column">
-            <Card className="dashboard-focus-card" padding="lg">
-              <CardHeader
-                title="Priority trip"
-                subtitle={focusTrip ? 'Most relevant trip based on current timeline.' : 'Create a trip to unlock operational insights.'}
-              />
-              <CardBody>
-                {!focusTrip ? (
-                  <div className="dashboard-empty-state">
-                    <p>You do not have active trips yet. Start with the AI assistant and create one in seconds.</p>
-                    <Button variant="secondary" icon={VscArrowRight} onClick={handleLaunchAssistant}>
-                      Plan first trip
-                    </Button>
-                  </div>
-                ) : (
-                  <>
-                    <div className="dashboard-focus-grid">
-                      <div>
-                        <div className="dashboard-focus-meta">
-                          <Badge variant={getStatusVariant(inferTripState(focusTrip))}>
-                            {inferTripState(focusTrip)}
-                          </Badge>
-                          <span>{formatDateRange(focusTrip.startDate, focusTrip.endDate)}</span>
-                        </div>
-
-                        <h2>{focusTrip.destination || 'Untitled trip'}</h2>
-
-                        <p className="dashboard-focus-copy">
-                          {getDaysUntil(focusTrip.startDate) > 0
-                            ? `${getDaysUntil(focusTrip.startDate)} day(s) left to kickoff.`
-                            : inferTripState(focusTrip) === 'ongoing'
-                              ? 'Trip is currently running. Keep plans and spend in sync.'
-                              : 'Trip timeline is complete. Review and reuse insights for the next plan.'}
-                        </p>
-
-                        <div className="dashboard-focus-actions">
-                          <Link to={`/trip/${focusTripId}`} className="dashboard-inline-link">
-                            View trip details <VscArrowRight />
-                          </Link>
-                          <Link to={`/trip/${focusTripId}/edit`} className="dashboard-inline-link">
-                            Edit trip
-                          </Link>
-                          <Link to={`/trip/${focusTripId}/expenses`} className="dashboard-inline-link">
-                            Open expenses
-                          </Link>
-                        </div>
-                      </div>
-
-                      <div className="dashboard-focus-stats">
-                        <article>
-                          <strong>{focusTrip.travelers || 1}</strong>
-                          <span>Travelers</span>
-                        </article>
-                        <article>
-                          <strong>{focusTripExpenseSummary?.totalSpent ? compactNumber(focusTripExpenseSummary.totalSpent) : '0'}</strong>
-                          <span>Spent so far</span>
-                        </article>
-                        <article>
-                          <strong>{focusTripExpenseSummary?.settlements?.length || 0}</strong>
-                          <span>Settlements</span>
-                        </article>
-                      </div>
-                    </div>
-
-                    {!!focusTrip.coverImage && (
-                      <img
-                        className="dashboard-focus-cover"
-                        src={focusTrip.coverImage}
-                        alt={focusTrip.destination || 'Trip destination'}
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    )}
-                  </>
-                )}
-              </CardBody>
-            </Card>
-
-            <Card padding="md" className="dashboard-search-card">
-              <CardBody>
-                <label htmlFor="dashboardTripSearch">Search trip destinations</label>
-                <div className="dashboard-search-row">
-                  <VscSearch />
-                  <input
-                    id="dashboardTripSearch"
-                    type="search"
-                    placeholder="Filter by destination"
-                    value={searchQuery}
-                    onChange={(event) => setSearchQuery(event.target.value)}
+        {/* ── TAB 1: JOURNEYS & ROUTES ── */}
+        {activeTab === 'journeys' && (
+          <div id="pane-journeys" role="tabpanel" aria-labelledby="tab-journeys" className="dashboard-tab-pane">
+            <div className="dashboard-layout-grid">
+              <main className="dashboard-main-column">
+                <Card className="dashboard-focus-card" padding="lg">
+                  <CardHeader
+                    title="Priority trip"
+                    subtitle={focusTrip ? 'Most relevant trip based on current timeline.' : 'Create a trip to unlock operational insights.'}
                   />
+                  <CardBody>
+                    {!focusTrip ? (
+                      <div className="dashboard-empty-state">
+                        <p>You do not have active trips yet. Start with the AI assistant and create one in seconds.</p>
+                        <Button variant="secondary" icon={VscArrowRight} onClick={handleLaunchAssistant}>
+                          Plan first trip
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="dashboard-focus-grid">
+                          <div>
+                            <div className="dashboard-focus-meta">
+                              <Badge variant={getStatusVariant(inferTripState(focusTrip))}>
+                                {inferTripState(focusTrip)}
+                              </Badge>
+                              <span>{formatDateRange(focusTrip.startDate, focusTrip.endDate)}</span>
+                            </div>
+
+                            <h2>{focusTrip.destination || 'Untitled trip'}</h2>
+
+                            <p className="dashboard-focus-copy">
+                              {getDaysUntil(focusTrip.startDate) > 0
+                                ? `${getDaysUntil(focusTrip.startDate)} day(s) left to kickoff.`
+                                : inferTripState(focusTrip) === 'ongoing'
+                                  ? 'Trip is currently running. Keep plans and spend in sync.'
+                                  : 'Trip timeline is complete. Review and reuse insights for the next plan.'}
+                            </p>
+
+                            <div className="dashboard-focus-actions">
+                              <Link to={`/trip/${focusTripId}`} className="dashboard-inline-link">
+                                View trip details <VscArrowRight />
+                              </Link>
+                              <Link to={`/trip/${focusTripId}/edit`} className="dashboard-inline-link">
+                                Edit trip
+                              </Link>
+                              <Link to={`/trip/${focusTripId}/expenses`} className="dashboard-inline-link">
+                                Open expenses
+                              </Link>
+                            </div>
+                          </div>
+
+                          <div className="dashboard-focus-stats">
+                            <article>
+                              <strong>{focusTrip.travelers || 1}</strong>
+                              <span>Travelers</span>
+                            </article>
+                            <article>
+                              <strong>{focusTripExpenseSummary?.totalSpent ? compactNumber(focusTripExpenseSummary.totalSpent) : '0'}</strong>
+                              <span>Spent so far</span>
+                            </article>
+                            <article>
+                              <strong>{focusTripExpenseSummary?.settlements?.length || 0}</strong>
+                              <span>Settlements</span>
+                            </article>
+                          </div>
+                        </div>
+
+                        {!!focusTrip.coverImage && (
+                          <img
+                            className="dashboard-focus-cover"
+                            src={focusTrip.coverImage}
+                            alt={focusTrip.destination || 'Trip destination'}
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        )}
+                      </>
+                    )}
+                  </CardBody>
+                </Card>
+
+                <Card padding="md" className="dashboard-search-card">
+                  <CardBody>
+                    <label htmlFor="dashboardTripSearch">Search trip destinations</label>
+                    <div className="dashboard-search-row">
+                      <VscSearch />
+                      <input
+                        id="dashboardTripSearch"
+                        type="search"
+                        placeholder="Filter by destination"
+                        value={searchQuery}
+                        onChange={(event) => setSearchQuery(event.target.value)}
+                      />
+                    </div>
+                  </CardBody>
+                </Card>
+
+                <TripRail
+                  title="Ongoing adventures"
+                  subtitle="Trips currently in motion"
+                  trips={filteredOngoingTrips}
+                />
+
+                <TripRail
+                  title="Upcoming trips"
+                  subtitle="Trips you should prepare for next"
+                  trips={filteredUpcomingTrips}
+                />
+
+                <TripRail
+                  title="Completed trips"
+                  subtitle="Past journeys and reusable inspiration"
+                  trips={filteredCompletedTrips}
+                />
+              </main>
+
+              <aside className="dashboard-side-column">
+                <div className="dashboard-side-actions-box">
+                  <span className="dashboard-side-kicker">Quick Launch</span>
+                  <div className="dashboard-quick-actions-stacked">
+                    {quickActions.map((action) => (
+                      <Link key={action.id} to={action.path} className="dashboard-quick-action-card">
+                        <span className="dashboard-quick-action-icon">
+                          <action.icon />
+                        </span>
+                        <div>
+                          <h3>{action.title}</h3>
+                          <p>{action.description}</p>
+                        </div>
+                        <span className="dashboard-quick-action-badge">{action.badge}</span>
+                      </Link>
+                    ))}
+                  </div>
                 </div>
-              </CardBody>
-            </Card>
 
-            <TripRail
-              title="Ongoing adventures"
-              subtitle="Trips currently in motion"
-              trips={filteredOngoingTrips}
-            />
+                <Card className="dashboard-side-card" padding="lg">
+                  <CardHeader title="Account health" subtitle="Profile and privacy controls" />
+                  <CardBody>
+                    <ul className="dashboard-profile-meta">
+                      <li>
+                        <VscAccount />
+                        <span>{profileData?.name || user?.name || 'User'}</span>
+                      </li>
+                      <li>
+                        <VscLocation />
+                        <span>
+                          {profileData?.location?.city
+                            ? `${profileData.location.city}${profileData.location.country ? `, ${profileData.location.country}` : ''}`
+                            : 'Location not set'}
+                        </span>
+                      </li>
+                      <li>
+                        <VscGraph />
+                        <span>{allTrips.length} total trip(s)</span>
+                      </li>
+                    </ul>
 
-            <TripRail
-              title="Upcoming trips"
-              subtitle="Trips you should prepare for next"
-              trips={filteredUpcomingTrips}
-            />
+                    <div className="dashboard-consent-grid">
+                      {consentSnapshot.map((consent) => (
+                        <article key={consent.key}>
+                          <span>{consent.label}</span>
+                          <Badge variant={consent.status === 'granted' ? 'success' : 'gray'} size="sm">
+                            {consent.status}
+                          </Badge>
+                        </article>
+                      ))}
+                    </div>
+                  </CardBody>
+                  <CardFooter>
+                    <Link to="/profile" className="dashboard-inline-link">
+                      <VscAccount /> Profile
+                    </Link>
+                    <Link to="/settings" className="dashboard-inline-link">
+                      <VscSettingsGear /> Settings
+                    </Link>
+                  </CardFooter>
+                </Card>
+              </aside>
+            </div>
+          </div>
+        )}
 
-            <TripRail
-              title="Completed trips"
-              subtitle="Past journeys and reusable inspiration"
-              trips={filteredCompletedTrips}
-            />
-
+        {/* ── TAB 2: CITY DISCOVERY ── */}
+        {activeTab === 'discovery' && (
+          <div id="pane-discovery" role="tabpanel" aria-labelledby="tab-discovery" className="dashboard-tab-pane">
             <Card className="dashboard-places-card" padding="lg">
               <CardHeader
-                title="Quick place discovery"
-                subtitle="Uses the find-places backend endpoint for location-based suggestions."
+                title="City & Route Discovery"
+                subtitle="Live recommendations powered by Google Places and real-time area intelligence."
               />
               <CardBody>
                 <div className="dashboard-place-search-bar">
                   <input
                     type="search"
-                    placeholder="Try: cafes, museums, street food..."
+                    placeholder="Try: cafes, museums, street food, parks..."
                     value={placeQuery}
                     onChange={(event) => setPlaceQuery(event.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') runPlaceSearch(placeQuery); }}
                   />
                   <Button
                     variant="secondary"
@@ -795,165 +931,261 @@ export default function Dashboard() {
                   ))}
                 </div>
 
-                {!!places.length && (
-                  <ul className="dashboard-places-list">
-                    {places.map((place, index) => (
-                      <li key={`${place.name}-${index}`}>
-                        <h4>{place.name || 'Unknown place'}</h4>
-                        <p>{place.address || place.vicinity || 'Address not available'}</p>
-                        <div>
-                          <span>Rating: {place.rating || 'N/A'}</span>
-                          {place.link && (
-                            <a href={place.link} target="_blank" rel="noreferrer">
-                              Open map
-                            </a>
-                          )}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </CardBody>
-            </Card>
-          </main>
-
-          <aside className="dashboard-side-column">
-            <Card className="dashboard-side-card" padding="lg">
-              <CardHeader
-                title="Notifications"
-                subtitle={`Unread: ${unreadNotifications}`}
-              />
-              <CardBody>
-                {notifications.length ? (
-                  <ul className="dashboard-notification-list">
-                    {notifications.map((notification) => (
-                      <li key={notification._id}>
-                        <div>
-                          <p>{notification.message}</p>
-                          <small>{formatDate(notification.createdAt)}</small>
-                        </div>
-                        {!notification.read && <Badge size="sm" variant="warning">New</Badge>}
-                      </li>
-                    ))}
-                  </ul>
+                {!!places.length ? (
+                  <div className="dashboard-places-grid">
+                    {places.map((place, index) => {
+                      const mapQuery = encodeURIComponent(`${place.name || ''} ${place.address || place.vicinity || ''}`);
+                      const mapUrl = place.link || `https://www.google.com/maps/search/?api=1&query=${mapQuery}`;
+                      return (
+                        <article key={`${place.name}-${index}`} className="dashboard-place-card">
+                          <div className="dashboard-place-body">
+                            <h4>{place.name || 'Unknown place'}</h4>
+                            <p>{place.address || place.vicinity || 'Address not available'}</p>
+                            <div className="dashboard-place-meta">
+                              <span className="dashboard-place-rating">★ {place.rating || 'N/A'}</span>
+                              <a
+                                href={mapUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="dashboard-place-map-link"
+                              >
+                                View on Map ↗
+                              </a>
+                            </div>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
                 ) : (
-                  <p className="dashboard-empty-text">No notifications yet.</p>
+                  <div className="dashboard-discovery-empty">
+                    <p>Enter a query above or click one of the curated tags to explore places near your travel destination.</p>
+                  </div>
                 )}
               </CardBody>
               <CardFooter>
-                <Button
-                  variant="outline"
-                  icon={VscBell}
-                  loading={actionBusy.notifications}
-                  onClick={handleMarkNotificationsRead}
-                  disabled={!unreadNotifications}
-                >
-                  Mark all as read
-                </Button>
-                <Link to="/notifications" className="dashboard-inline-link">
-                  Open center
+                <Link to="/explore" className="dashboard-inline-link">
+                  Open full exploration studio <VscArrowRight />
                 </Link>
               </CardFooter>
             </Card>
+          </div>
+        )}
 
-            <Card className="dashboard-side-card" padding="lg">
-              <CardHeader title="Household + Survey" subtitle="Household and socio-economic readiness" />
-              <CardBody>
-                <ul className="dashboard-snapshot-list">
-                  <li>
-                    <span>Household</span>
-                    <strong>{household?.householdName || 'Not joined'}</strong>
-                  </li>
-                  <li>
-                    <span>Members</span>
-                    <strong>{household?.members?.length || 0}</strong>
-                  </li>
-                  <li>
-                    <span>Survey</span>
-                    <strong>{surveyData ? 'Submitted' : 'Pending'}</strong>
-                  </li>
-                </ul>
-              </CardBody>
-              <CardFooter>
-                <Link to="/households" className="dashboard-inline-link">Manage household</Link>
-                <Link to="/surveys" className="dashboard-inline-link">Open survey</Link>
-              </CardFooter>
-            </Card>
+        {/* ── TAB 3: MOBILITY & NATPAC RESEARCH ── */}
+        {activeTab === 'mobility' && (
+          <div id="pane-mobility" role="tabpanel" aria-labelledby="tab-mobility" className="dashboard-tab-pane">
+            <div className="dashboard-mobility-editorial">
+              <span className="dashboard-mobility-kicker">NATPAC Transportation Research</span>
+              <h3>Passive Mobility Intelligence & Citizen Science</h3>
+              <p>
+                WayMate partners with transportation research agencies (like NATPAC) to eliminate 
+                costly manual surveys. By sharing anonymized trip telemetry and demographic patterns, 
+                you help cities optimize transit corridors, reduce congestion, and close the global infrastructure gap.
+              </p>
+            </div>
 
-            <Card className="dashboard-side-card" padding="lg">
-              <CardHeader title="Conversation hub" subtitle={`${groupSessions.length} active group chat(s)`} />
-              <CardBody>
-                {groupSessions.length ? (
-                  <ul className="dashboard-session-list">
-                    {groupSessions.slice(0, 4).map((session) => (
-                      <li key={session._id}>
-                        <div>
-                          <h4>{session.tripId?.destination || session.name || 'Trip chat'}</h4>
-                          <p>{session.lastMessage?.text || 'No recent messages yet.'}</p>
-                        </div>
-                        {session.tripId?._id ? (
-                          <Link to={`/trip/${session.tripId._id}`}>Open trip</Link>
-                        ) : (
-                          <span className="dashboard-muted-link">Trip unavailable</span>
-                        )}
+            <div className="dashboard-layout-grid">
+              <main className="dashboard-main-column">
+                <Card className="dashboard-side-card" padding="lg">
+                  <CardHeader
+                    title="Household Transport Hub"
+                    subtitle={household ? `${household.householdName || 'Household'} · ${household.members?.length || 1} member(s)` : 'No household linked yet'}
+                  />
+                  <CardBody>
+                    <ul className="dashboard-snapshot-list">
+                      <li>
+                        <span>Household Name</span>
+                        <strong>{household?.householdName || 'Not configured'}</strong>
                       </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="dashboard-empty-text">No group chat sessions yet.</p>
-                )}
-              </CardBody>
-              <CardFooter>
-                <Button variant="secondary" icon={VscRobot} onClick={handleLaunchAssistant} loading={actionBusy.ai}>
-                  Open assistant
-                </Button>
-              </CardFooter>
-            </Card>
+                      <li>
+                        <span>Total Members</span>
+                        <strong>{household?.members?.length || 0}</strong>
+                      </li>
+                      <li>
+                        <span>Role</span>
+                        <strong>{household?.creator === user?._id ? 'Owner / Creator' : 'Member'}</strong>
+                      </li>
+                    </ul>
 
-            <Card className="dashboard-side-card" padding="lg">
-              <CardHeader title="Account health" subtitle="Profile and privacy controls" />
-              <CardBody>
-                <ul className="dashboard-profile-meta">
-                  <li>
-                    <VscAccount />
-                    <span>{profileData?.name || user?.name || 'User'}</span>
-                  </li>
-                  <li>
-                    <VscLocation />
-                    <span>
-                      {profileData?.location?.city
-                        ? `${profileData.location.city}${profileData.location.country ? `, ${profileData.location.country}` : ''}`
-                        : 'Location not set'}
-                    </span>
-                  </li>
-                  <li>
-                    <VscGraph />
-                    <span>{allTrips.length} total trip(s)</span>
-                  </li>
-                </ul>
+                    {household?.members?.length > 0 && (
+                      <div className="dashboard-household-roster">
+                        <h5>Registered Household Members</h5>
+                        <div className="dashboard-roster-tags">
+                          {household.members.map((m, idx) => (
+                            <span key={idx} className="dashboard-roster-tag">
+                              {m.name || m.user?.name || `Member #${idx + 1}`}
+                              {m.relation && <small> ({m.relation})</small>}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardBody>
+                  <CardFooter>
+                    <Link to="/households" className="dashboard-inline-link">
+                      Manage Household Roster <VscArrowRight />
+                    </Link>
+                  </CardFooter>
+                </Card>
 
-                <div className="dashboard-consent-grid">
-                  {consentSnapshot.map((consent) => (
-                    <article key={consent.key}>
-                      <span>{consent.label}</span>
-                      <Badge variant={consent.status === 'granted' ? 'success' : 'gray'} size="sm">
-                        {consent.status}
-                      </Badge>
-                    </article>
-                  ))}
-                </div>
-              </CardBody>
-              <CardFooter>
-                <Link to="/profile" className="dashboard-inline-link">
-                  <VscAccount /> Profile
-                </Link>
-                <Link to="/settings" className="dashboard-inline-link">
-                  <VscSettingsGear /> Settings
-                </Link>
-              </CardFooter>
-            </Card>
-          </aside>
-        </div>
+                <Card className="dashboard-side-card" padding="lg">
+                  <CardHeader
+                    title="Socio-Economic Travel Survey"
+                    subtitle="Demographic and transit habits used for NATPAC modal split models"
+                  />
+                  <CardBody>
+                    <ul className="dashboard-snapshot-list">
+                      <li>
+                        <span>Survey Status</span>
+                        <Badge variant={surveyData ? 'success' : 'warning'} size="sm">
+                          {surveyData ? 'Completed' : 'Pending Submission'}
+                        </Badge>
+                      </li>
+                      <li>
+                        <span>Vehicles in Household</span>
+                        <strong>{surveyData?.vehicleCount ?? 'Not recorded'}</strong>
+                      </li>
+                      <li>
+                        <span>Primary Work Commute</span>
+                        <strong>{surveyData?.primaryTransportModeToWork ? titleCase(surveyData.primaryTransportModeToWork) : 'Not specified'}</strong>
+                      </li>
+                      <li>
+                        <span>Income Bracket</span>
+                        <strong>{surveyData?.householdIncome || 'Undisclosed'}</strong>
+                      </li>
+                    </ul>
+                  </CardBody>
+                  <CardFooter>
+                    <Link to="/surveys" className="dashboard-inline-link">
+                      {surveyData ? 'Update Survey Responses' : 'Complete Survey Now'} <VscArrowRight />
+                    </Link>
+                  </CardFooter>
+                </Card>
+              </main>
+
+              <aside className="dashboard-side-column">
+                <Card className="dashboard-side-card" padding="lg">
+                  <CardHeader
+                    title="Privacy & Data Sovereignty"
+                    subtitle="Apple-grade transparency and consent protection"
+                  />
+                  <CardBody>
+                    <p className="dashboard-privacy-note">
+                      Your identity is decoupled before research ingestion. GPS coordinates are aggregated into 
+                      O-D (Origin-Destination) cells. You may revoke telemetry permissions anytime with instant effect.
+                    </p>
+
+                    <div className="dashboard-consent-grid">
+                      {consentSnapshot.map((consent) => (
+                        <article key={consent.key}>
+                          <span>{consent.label}</span>
+                          <Badge variant={consent.status === 'granted' ? 'success' : 'gray'} size="sm">
+                            {consent.status}
+                          </Badge>
+                        </article>
+                      ))}
+                    </div>
+                  </CardBody>
+                  <CardFooter>
+                    <Link to="/settings" className="dashboard-inline-link">
+                      <VscSettingsGear /> Adjust Privacy Controls
+                    </Link>
+                  </CardFooter>
+                </Card>
+              </aside>
+            </div>
+          </div>
+        )}
+
+        {/* ── TAB 4: ALERTS & CONVERSATIONS ── */}
+        {activeTab === 'activity' && (
+          <div id="pane-activity" role="tabpanel" aria-labelledby="tab-activity" className="dashboard-tab-pane">
+            <div className="dashboard-layout-grid">
+              <main className="dashboard-main-column">
+                <Card className="dashboard-side-card" padding="lg">
+                  <CardHeader
+                    title="Live Notifications & Travel Alerts"
+                    subtitle={`Unread alerts: ${unreadNotifications}`}
+                  />
+                  <CardBody>
+                    {notifications.length ? (
+                      <ul className="dashboard-notification-list">
+                        {notifications.map((notification) => (
+                          <li key={notification._id}>
+                            <div>
+                              <p>{notification.message}</p>
+                              <small>{formatDate(notification.createdAt)}</small>
+                            </div>
+                            {!notification.read && <Badge size="sm" variant="warning">New</Badge>}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="dashboard-empty-text">No travel alerts or notifications at this time.</p>
+                    )}
+                  </CardBody>
+                  <CardFooter>
+                    <Button
+                      variant="outline"
+                      icon={VscBell}
+                      loading={actionBusy.notifications}
+                      onClick={handleMarkNotificationsRead}
+                      disabled={!unreadNotifications}
+                    >
+                      Mark all as read
+                    </Button>
+                    <Link to="/notifications" className="dashboard-inline-link">
+                      Open notification center <VscArrowRight />
+                    </Link>
+                  </CardFooter>
+                </Card>
+              </main>
+
+              <aside className="dashboard-side-column">
+                <Card className="dashboard-side-card" padding="lg">
+                  <CardHeader
+                    title="Trip Conversation Rooms"
+                    subtitle={`${groupSessions.length} active squad chat(s)`}
+                  />
+                  <CardBody>
+                    {groupSessions.length ? (
+                      <ul className="dashboard-session-list">
+                        {groupSessions.map((session) => (
+                          <li key={session._id}>
+                            <div>
+                              <h4>{session.tripId?.destination || session.name || 'Trip chat'}</h4>
+                              <p>{session.lastMessage?.text || 'No recent messages yet.'}</p>
+                            </div>
+                            {session.tripId?._id ? (
+                              <Link to={`/trip/${session.tripId._id}`} className="dashboard-inline-link">
+                                Open trip
+                              </Link>
+                            ) : (
+                              <span className="dashboard-muted-link">Trip unavailable</span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="dashboard-empty-text">No collaborative group sessions active yet.</p>
+                    )}
+                  </CardBody>
+                  <CardFooter>
+                    <Button
+                      variant="secondary"
+                      icon={VscRobot}
+                      onClick={handleLaunchAssistant}
+                      loading={actionBusy.ai}
+                    >
+                      Open AI Assistant
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </aside>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

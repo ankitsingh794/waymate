@@ -1,141 +1,123 @@
-/**
- * Surveys Page Styles
- */
+/* ============================================
+   SURVEYS PAGE — WAYMATE ATELIER
+   NATPAC Socio-Economic Mobility Research Instrument
+   ============================================ */
 
 .surveys-page {
   width: 100%;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--color-background);
-  font-family: var(--font-primary);
-  color: var(--color-text-primary);
+  background: var(--ds-canvas, #f8f5ee);
+  font-family: var(--ds-font-ui, Inter, sans-serif);
+  color: var(--ds-forest-900, #173328);
 }
 
 .surveys-body {
   flex: 1;
-  width: 100%;
-  padding: var(--space-3xl) var(--space-xl);
+  width: min(var(--ds-content-max, 1200px), calc(100% - 2.5rem));
+  margin: 0 auto;
+  padding: clamp(1.5rem, 4vw, 2.75rem) 0 clamp(2.5rem, 5vw, 4rem);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
 
 .page-header {
-  text-align: center;
-  margin-bottom: var(--space-3xl);
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
+  margin-bottom: 2.25rem;
+  max-width: 680px;
 }
 
 .page-header h1 {
-  font-size: var(--font-size-4xl);
-  margin: 0 0 var(--space-md) 0;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-family: var(--ds-font-display, 'Playfair Display', serif);
+  font-size: clamp(1.85rem, 4vw, 2.75rem);
+  color: var(--ds-forest-900, #173328);
+  margin: 0 0 0.5rem;
+  line-height: 1.15;
 }
 
 .page-header p {
-  font-size: var(--font-size-lg);
-  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+  color: var(--ds-text-secondary, #4a5e57);
   margin: 0;
+  line-height: 1.5;
 }
 
 .surveys-container {
-  max-width: var(--max-content-width);
-  margin: 0 auto;
   display: grid;
-  gap: var(--space-2xl);
+  gap: 1.5rem;
 }
 
 .survey-display {
   display: grid;
-  gap: var(--space-2xl);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
 }
 
 .survey-item {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
-  padding: var(--space-lg);
-  background: var(--color-background-secondary);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
+  gap: 0.4rem;
+  padding: 1.25rem;
+  background: var(--ds-surface, #ffffff);
+  border-radius: var(--ds-radius-lg, 0.75rem);
+  border: 1px solid var(--ds-border, rgba(23, 51, 40, 0.08));
+  box-shadow: 0 2px 6px rgba(23, 51, 40, 0.03);
 }
 
 .survey-item label {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-secondary);
+  font-size: var(--ds-text-xs, 0.75rem);
+  font-weight: 600;
+  color: var(--ds-text-tertiary, #7a9490);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: var(--ds-tracking-wider, 0.08em);
 }
 
 .survey-item p {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-medium);
+  font-size: 1.15rem;
+  font-weight: 600;
   margin: 0;
-  color: var(--color-text-primary);
+  color: var(--ds-forest-900, #173328);
 }
 
 .survey-form {
   display: grid;
-  gap: var(--space-2xl);
+  gap: 1.25rem;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
+  gap: 0.4rem;
 }
 
 .form-group label {
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-primary);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--ds-forest-900, #173328);
 }
 
 .form-group select,
 .form-group input {
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  font-family: var(--font-primary);
-  font-size: var(--font-size-base);
-  transition: all var(--transition-fast);
+  height: 44px;
+  padding: 0 0.85rem;
+  border: 1px solid var(--ds-border-strong, rgba(23, 51, 40, 0.16));
+  border-radius: var(--ds-radius-md, 0.5rem);
+  font-family: var(--ds-font-ui, Inter, sans-serif);
+  font-size: 0.92rem;
+  color: var(--ds-forest-900, #173328);
+  background: var(--ds-surface, #ffffff);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+  outline: none;
 }
 
 .form-group select:focus,
 .form-group input:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(14, 59, 76, 0.1);
+  border-color: var(--ds-forest-900, #173328);
+  box-shadow: 0 0 0 3px rgba(23, 51, 40, 0.08);
 }
-
-/* ============================================
-   RESPONSIVE
-   ============================================ */
 
 @media (max-width: 768px) {
   .surveys-body {
-    padding: var(--space-xl);
-  }
-
-  .surveys-container {
-    gap: var(--space-lg);
-  }
-
-  .survey-display {
-    gap: var(--space-lg);
-  }
-
-  .survey-item {
-    padding: var(--space-md);
-  }
-
-  .survey-form {
-    gap: var(--space-lg);
+    padding: 1.25rem 0.5rem;
   }
 }

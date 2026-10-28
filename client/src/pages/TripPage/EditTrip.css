@@ -1,10 +1,9 @@
 .edit-trip-page {
   min-height: 100vh;
-  padding: 0.75rem 0 1.1rem;
-  background:
-    radial-gradient(circle at 8% 0%, rgba(87, 184, 203, 0.16), transparent 34%),
-    radial-gradient(circle at 95% 8%, rgba(14, 59, 76, 0.08), transparent 30%),
-    linear-gradient(180deg, #f9fcfd 0%, #f3f8fb 55%, #eef4f7 100%);
+  padding: 1.25rem 0 3rem;
+  background: var(--ds-canvas, #f8f5ee);
+  font-family: var(--ds-font-ui, Inter, sans-serif);
+  color: var(--ds-forest-900, #173328);
 }
 
 .edit-trip-shell {
@@ -24,7 +23,7 @@
 .edit-loading-hero,
 .edit-loading-card {
   border-radius: 1rem;
-  border: 1px solid rgba(14, 59, 76, 0.13);
+  border: 1px solid rgba(23, 51, 40, 0.13);
   background: linear-gradient(100deg, rgba(255, 255, 255, 0.94), rgba(241, 248, 251, 0.94));
   position: relative;
   overflow: hidden;
@@ -92,7 +91,7 @@
 .edit-trip-hero {
   position: relative;
   border-radius: 1rem;
-  border: 1px solid rgba(14, 59, 76, 0.16);
+  border: 1px solid rgba(23, 51, 40, 0.16);
   overflow: hidden;
   min-height: 245px;
   box-shadow: 0 18px 42px rgba(7, 27, 37, 0.24);
@@ -110,8 +109,7 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(160deg, rgba(2, 27, 38, 0.78), rgba(2, 27, 38, 0.5)),
-    linear-gradient(320deg, rgba(13, 110, 130, 0.28), transparent 45%);
+    linear-gradient(180deg, rgba(15, 32, 24, 0.45) 0%, rgba(15, 32, 24, 0.92) 100%);
   color: #fff;
   padding: 0.92rem;
   display: grid;
@@ -153,7 +151,7 @@
   width: 2.25rem;
   height: 2.25rem;
   border-radius: 999px;
-  border: 1px solid rgba(14, 59, 76, 0.18);
+  border: 1px solid rgba(23, 51, 40, 0.18);
   background: rgba(255, 255, 255, 0.88);
   color: var(--color-primary, #0e3b4c);
   display: inline-flex;
@@ -263,7 +261,7 @@
 
 .edit-trip-chat-actions {
   border-radius: 0.9rem;
-  border: 1px solid rgba(14, 59, 76, 0.14);
+  border: 1px solid rgba(23, 51, 40, 0.14);
   background: rgba(255, 255, 255, 0.9);
   box-shadow: 0 10px 24px rgba(10, 33, 45, 0.08);
   padding: 0.7rem;
@@ -286,7 +284,7 @@
 
 .edit-btn {
   border-radius: 0.72rem;
-  border: 1px solid rgba(14, 59, 76, 0.18);
+  border: 1px solid rgba(23, 51, 40, 0.18);
   min-height: 2.45rem;
   padding: 0.42rem 0.62rem;
   font-size: 0.76rem;
@@ -333,7 +331,7 @@
 
 .edit-invite-banner {
   border-radius: 0.9rem;
-  border: 1px solid rgba(14, 59, 76, 0.15);
+  border: 1px solid rgba(23, 51, 40, 0.15);
   background: rgba(255, 255, 255, 0.9);
   box-shadow: 0 10px 24px rgba(10, 33, 45, 0.09);
   padding: 0.7rem;
@@ -355,8 +353,8 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
   font-size: 0.73rem;
   border-radius: 0.5rem;
-  border: 1px solid rgba(14, 59, 76, 0.18);
-  background: rgba(14, 59, 76, 0.07);
+  border: 1px solid rgba(23, 51, 40, 0.18);
+  background: rgba(23, 51, 40, 0.07);
   padding: 0.25rem 0.44rem;
 }
 
@@ -382,7 +380,7 @@
 
 .edit-card {
   border-radius: 0.9rem;
-  border: 1px solid rgba(14, 59, 76, 0.13);
+  border: 1px solid rgba(23, 51, 40, 0.13);
   background: rgba(255, 255, 255, 0.94);
   box-shadow: 0 12px 28px rgba(10, 33, 45, 0.1);
   padding: 0.72rem;
@@ -426,9 +424,9 @@
 
 .edit-attention-item,
 .edit-change-item {
-  border: 1px solid rgba(14, 59, 76, 0.12);
+  border: 1px solid rgba(23, 51, 40, 0.12);
   border-radius: 0.68rem;
-  background: rgba(14, 59, 76, 0.04);
+  background: rgba(23, 51, 40, 0.04);
   padding: 0.45rem 0.5rem;
   display: grid;
   gap: 0.2rem;
@@ -489,8 +487,8 @@
 }
 
 .edit-change-item.is-high {
-  border-color: rgba(14, 59, 76, 0.22);
-  background: rgba(14, 59, 76, 0.07);
+  border-color: rgba(23, 51, 40, 0.22);
+  background: rgba(23, 51, 40, 0.07);
 }
 
 .edit-form-grid {
@@ -518,7 +516,7 @@
   width: 100%;
   min-height: 2.3rem;
   border-radius: 0.66rem;
-  border: 1px solid rgba(14, 59, 76, 0.2);
+  border: 1px solid rgba(23, 51, 40, 0.2);
   background: rgba(252, 255, 255, 0.96);
   color: var(--color-text-primary, #102a34);
   font-size: 0.8rem;
@@ -533,8 +531,8 @@
 .edit-member-form input:focus,
 .edit-member-form select:focus,
 .edit-textarea:focus {
-  border-color: rgba(14, 59, 76, 0.45);
-  box-shadow: 0 0 0 3px rgba(14, 59, 76, 0.1);
+  border-color: rgba(23, 51, 40, 0.45);
+  box-shadow: 0 0 0 3px rgba(23, 51, 40, 0.1);
 }
 
 .edit-card-actions {
@@ -560,9 +558,9 @@
 }
 
 .edit-itinerary-day {
-  border: 1px solid rgba(14, 59, 76, 0.12);
+  border: 1px solid rgba(23, 51, 40, 0.12);
   border-radius: 0.7rem;
-  background: rgba(14, 59, 76, 0.04);
+  background: rgba(23, 51, 40, 0.04);
   padding: 0.5rem;
   display: grid;
   gap: 0.35rem;
@@ -614,9 +612,9 @@
 }
 
 .edit-schedule-item {
-  border: 1px solid rgba(14, 59, 76, 0.11);
+  border: 1px solid rgba(23, 51, 40, 0.11);
   border-radius: 0.66rem;
-  background: rgba(14, 59, 76, 0.05);
+  background: rgba(23, 51, 40, 0.05);
   padding: 0.45rem;
   display: grid;
   gap: 0.18rem;
@@ -644,9 +642,9 @@
 }
 
 .edit-member-item {
-  border: 1px solid rgba(14, 59, 76, 0.12);
+  border: 1px solid rgba(23, 51, 40, 0.12);
   border-radius: 0.7rem;
-  background: rgba(14, 59, 76, 0.05);
+  background: rgba(23, 51, 40, 0.05);
   padding: 0.45rem;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -663,7 +661,7 @@
 }
 
 .edit-avatar-fallback {
-  background: linear-gradient(140deg, rgba(14, 59, 76, 0.22), rgba(87, 184, 203, 0.35));
+  background: linear-gradient(140deg, rgba(23, 51, 40, 0.22), rgba(42, 90, 70, 0.2));
 }
 
 .edit-member-main strong {
@@ -691,8 +689,8 @@
 
 .edit-role-pill {
   border-radius: 999px;
-  border: 1px solid rgba(14, 59, 76, 0.18);
-  background: rgba(14, 59, 76, 0.08);
+  border: 1px solid rgba(23, 51, 40, 0.18);
+  background: rgba(23, 51, 40, 0.08);
   padding: 0.2rem 0.45rem;
   font-size: 0.68rem;
   color: var(--color-primary, #0e3b4c);
@@ -721,7 +719,7 @@
 .edit-modal {
   width: min(700px, 100%);
   border-radius: 0.95rem;
-  border: 1px solid rgba(14, 59, 76, 0.2);
+  border: 1px solid rgba(23, 51, 40, 0.2);
   background: #fff;
   box-shadow: 0 28px 58px rgba(4, 26, 36, 0.33);
   padding: 0.85rem;

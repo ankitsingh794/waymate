@@ -1,0 +1,585 @@
+/* ── Compass-ring app spinner (also defined in index.html critical CSS) ───── */
+/* Repeated here so the React-side GlobalSuspenseFallback can use it          */
+.app-compass-loader {
+  position: relative;
+  width: 48px;
+  height: 48px;
+}
+.app-compass-loader__outer {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--ds-sand-300);
+  border-top-color: var(--ds-forest-900);
+  animation: ds-compass-spin 1s linear infinite;
+}
+.app-compass-loader__inner {
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(23, 51, 40, 0.12);
+  border-bottom-color: var(--ds-forest-700);
+  animation: ds-compass-spin 0.7s linear infinite reverse;
+}
+.app-compass-loader__needle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1.5px;
+  height: 14px;
+  background: linear-gradient(to bottom, var(--ds-forest-900) 50%, rgba(23,51,40,0.25) 50%);
+  transform: translateX(-50%) translateY(-100%);
+  transform-origin: 50% 100%;
+  animation: ds-needle-spin 1s linear infinite;
+  border-radius: 1px;
+}
+@keyframes ds-compass-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes ds-needle-spin {
+  to { transform: translateX(-50%) translateY(-100%) rotate(360deg); }
+}
+
+:root {
+
+  /* ════════════════════════════════════════════════════════════════════════
+     COLOUR PALETTE — Forest-Sand system
+     Source of truth. Every other CSS variable references these.
+     ════════════════════════════════════════════════════════════════════════ */
+
+  /* Forest scale — primary brand colour */
+  --ds-forest-50:  #eef5f2;
+  --ds-forest-100: #d4e8df;
+  --ds-forest-200: #a9d1bf;
+  --ds-forest-300: #7dbaa0;
+  --ds-forest-400: #52a380;
+  --ds-forest-500: #2a7a5c;
+  --ds-forest-600: #226148;
+  --ds-forest-700: #1b4d38;
+  --ds-forest-800: #143a2a;
+  --ds-forest-900: #173328;   /* Primary — nav, hero, travel brief */
+  --ds-forest-950: #0e1f18;   /* Deepest dark surface */
+
+  /* Sand scale — warm accent */
+  --ds-sand-50:  #fdf9f4;
+  --ds-sand-100: #f8f2e7;
+  --ds-sand-200: #f0e3cc;
+  --ds-sand-300: #d7bc9c;   /* Primary warm accent */
+  --ds-sand-400: #c9a87e;
+  --ds-sand-500: #b89060;
+  --ds-sand-600: #9a7448;
+  --ds-sand-700: #7c5a34;
+
+  /* Canvas & surfaces */
+  --ds-canvas:   #f8f5ee;   /* Page background — warm off-white */
+  --ds-surface:  #ffffff;   /* Card, panel, modal backgrounds */
+  --ds-surface-2: #f5f2eb; /* Alternate surface (subtle step) */
+
+  /* Semantic aliases — components reference these, not the raw scale */
+  --ds-color-brand:        var(--ds-forest-900);
+  --ds-color-brand-light:  var(--ds-forest-700);
+  --ds-color-accent:       var(--ds-sand-300);
+  --ds-color-accent-dark:  var(--ds-sand-500);
+
+  /* Text */
+  --ds-text-primary:   var(--ds-forest-900);   /* Main body text */
+  --ds-text-secondary: #4a5e57;                /* Captions, metadata */
+  --ds-text-tertiary:  #7a9490;                /* Placeholders, hints */
+  --ds-text-inverse:   #ffffff;                /* Text on dark surfaces */
+  --ds-text-sand:      var(--ds-sand-200);     /* Text on forest-900 backgrounds */
+
+  /* Borders */
+  --ds-border:         rgba(23, 51, 40, 0.08); /* Structural border */
+  --ds-border-strong:  rgba(23, 51, 40, 0.18); /* Emphasis border */
+  --ds-border-sand:    rgba(215, 188, 156, 0.3); /* Border on dark surfaces */
+
+  /* Status */
+  --ds-success:        #1a7a52;
+  --ds-success-bg:     #edfaf4;
+  --ds-warning:        #b35c00;
+  --ds-warning-bg:     #fff7ed;
+  --ds-error:          #c0392b;
+  --ds-error-bg:       #fef2f2;
+  --ds-info:           #1d5fa6;
+  --ds-info-bg:        #eff6ff;
+  --ds-amber:          #d97706;   /* For alerts, priority dots */
+  --ds-amber-bg:       #fffbeb;
+
+  /* ════════════════════════════════════════════════════════════════════════
+     SHADOWS — Forest-tinted (not generic black)
+     Rule 1: never on content cards unless absolutely necessary
+     ════════════════════════════════════════════════════════════════════════ */
+  --ds-shadow-1: 0 1px 3px rgba(23, 51, 40, 0.07);
+  --ds-shadow-2: 0 4px 12px rgba(23, 51, 40, 0.10);
+  --ds-shadow-3: 0 8px 24px rgba(23, 51, 40, 0.13);
+  --ds-shadow-4: 0 16px 40px rgba(23, 51, 40, 0.16);
+  --ds-shadow-glass: 0 8px 32px rgba(23, 51, 40, 0.12), inset 0 1px 0 rgba(255,255,255,0.6);
+
+  /* ════════════════════════════════════════════════════════════════════════
+     TYPOGRAPHY
+     ════════════════════════════════════════════════════════════════════════ */
+  --ds-font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --ds-font-ui:      Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --ds-font-mono:    'SF Mono', 'Monaco', 'Menlo', 'Courier New', monospace;
+
+  /* Font sizes — fluid-friendly scale */
+  --ds-text-xs:   0.75rem;    /* 12px */
+  --ds-text-sm:   0.875rem;   /* 14px */
+  --ds-text-base: 1rem;       /* 16px */
+  --ds-text-lg:   1.125rem;   /* 18px */
+  --ds-text-xl:   1.25rem;    /* 20px */
+  --ds-text-2xl:  1.5rem;     /* 24px */
+  --ds-text-3xl:  1.875rem;   /* 30px */
+  --ds-text-4xl:  2.25rem;    /* 36px */
+  --ds-text-5xl:  3rem;       /* 48px */
+  --ds-text-6xl:  3.75rem;    /* 60px — hero only */
+
+  /* Font weights */
+  --ds-weight-light:    300;
+  --ds-weight-regular:  400;
+  --ds-weight-medium:   500;
+  --ds-weight-semibold: 600;
+  --ds-weight-bold:     700;
+  --ds-weight-black:    900;
+
+  /* Line heights */
+  --ds-leading-none:    1;
+  --ds-leading-tight:   1.2;
+  --ds-leading-snug:    1.375;
+  --ds-leading-normal:  1.5;
+  --ds-leading-relaxed: 1.625;
+
+  /* Letter spacing */
+  --ds-tracking-tight:  -0.02em;
+  --ds-tracking-normal:  0em;
+  --ds-tracking-wide:    0.04em;
+  --ds-tracking-wider:   0.08em;  /* For all-caps labels */
+  --ds-tracking-widest:  0.12em;
+
+  /* ════════════════════════════════════════════════════════════════════════
+     SPACING — 4px base grid
+     ════════════════════════════════════════════════════════════════════════ */
+  --ds-space-1:  0.25rem;   /*  4px */
+  --ds-space-2:  0.5rem;    /*  8px */
+  --ds-space-3:  0.75rem;   /* 12px */
+  --ds-space-4:  1rem;      /* 16px */
+  --ds-space-5:  1.25rem;   /* 20px */
+  --ds-space-6:  1.5rem;    /* 24px */
+  --ds-space-8:  2rem;      /* 32px */
+  --ds-space-10: 2.5rem;    /* 40px */
+  --ds-space-12: 3rem;      /* 48px */
+  --ds-space-16: 4rem;      /* 64px */
+  --ds-space-20: 5rem;      /* 80px */
+  --ds-space-24: 6rem;      /* 96px */
+  --ds-space-32: 8rem;      /* 128px */
+
+  /* ════════════════════════════════════════════════════════════════════════
+     BORDER RADIUS
+     ════════════════════════════════════════════════════════════════════════ */
+  --ds-radius-sm:   0.25rem;   /*  4px */
+  --ds-radius-md:   0.5rem;    /*  8px */
+  --ds-radius-lg:   0.75rem;   /* 12px */
+  --ds-radius-xl:   1rem;      /* 16px */
+  --ds-radius-2xl:  1.5rem;    /* 24px */
+  --ds-radius-3xl:  2rem;      /* 32px */
+  --ds-radius-full: 9999px;
+
+  /* ════════════════════════════════════════════════════════════════════════
+     MOTION HIERARCHY (Rule 3 from Design Refinement Directive)
+     ════════════════════════════════════════════════════════════════════════ */
+
+  /* Easing curves */
+  --ds-ease-out-expo:  cubic-bezier(0.16, 1, 0.3, 1);    /* Tier 2 standard */
+  --ds-ease-spring:    cubic-bezier(0.22, 1, 0.36, 1);   /* Tier 1 cinematic */
+  --ds-ease-in-out:    cubic-bezier(0.4, 0, 0.2, 1);     /* Tier 3 feedback */
+  --ds-ease-in:        cubic-bezier(0.4, 0, 1, 1);
+  --ds-ease-out:       cubic-bezier(0, 0, 0.2, 1);
+
+  /* Duration tokens */
+  --ds-dur-instant:   100ms;   /* Tier 3 feedback */
+  --ds-dur-base:      300ms;   /* Tier 3 transitions */
+  --ds-dur-slow:      500ms;   /* Tier 2 meaningful */
+  --ds-dur-cinematic: 760ms;   /* Tier 1 hero reveals */
+
+  /* Composite transition shorthands */
+  --ds-transition-feedback:  var(--ds-dur-base)  var(--ds-ease-in-out);
+  --ds-transition-page:      var(--ds-dur-slow)  var(--ds-ease-out-expo);
+  --ds-transition-reveal:    var(--ds-dur-cinematic) var(--ds-ease-spring);
+
+  /* ════════════════════════════════════════════════════════════════════════
+     GLASS — permitted surfaces only (Rule 1)
+     ════════════════════════════════════════════════════════════════════════ */
+  --ds-glass-bg:     rgba(255, 255, 255, 0.72);
+  --ds-glass-border: rgba(255, 255, 255, 0.5);
+  --ds-glass-blur:   blur(20px);
+  --ds-glass-blur-heavy: blur(32px);
+
+  /* ════════════════════════════════════════════════════════════════════════
+     LAYOUT & COMPONENT SIZES
+     ════════════════════════════════════════════════════════════════════════ */
+  --ds-navbar-height:    64px;
+  --ds-dock-height:      72px;        /* Mobile bottom dock */
+  --ds-sidebar-width:    280px;
+  --ds-content-max:      1200px;
+  --ds-content-narrow:   720px;       /* Articles, forms */
+  --ds-content-wide:     1400px;
+
+  --ds-btn-h-sm:  36px;
+  --ds-btn-h-md:  44px;
+  --ds-btn-h-lg:  52px;
+  --ds-input-h:   44px;
+  --ds-input-h-sm: 36px;
+
+  /* ════════════════════════════════════════════════════════════════════════
+     Z-INDEX STACK
+     ════════════════════════════════════════════════════════════════════════ */
+  --ds-z-base:         0;
+  --ds-z-raised:       10;
+  --ds-z-dropdown:     1000;
+  --ds-z-sticky:       1020;
+  --ds-z-dock:         1030;
+  --ds-z-backdrop:     1040;
+  --ds-z-modal:        1050;
+  --ds-z-drawer:       1060;
+  --ds-z-toast:        1070;
+  --ds-z-tooltip:      1080;
+  --ds-z-loader:       9999;
+
+  /* ════════════════════════════════════════════════════════════════════════
+     BACKWARD-COMPAT ALIASES
+     Allow old App.css / index.css variable names to resolve correctly
+     during the transition period. Each Phase (2–5) will migrate usages
+     to --ds-* names, at which point these aliases can be removed.
+     ════════════════════════════════════════════════════════════════════════ */
+
+  /* Old color tokens → Forest-Sand system */
+  --color-primary:           var(--ds-forest-900);
+  --color-primary-light:     var(--ds-forest-700);
+  --color-primary-dark:      var(--ds-forest-950);
+  --color-secondary:         var(--ds-sand-300);
+  --color-secondary-light:   var(--ds-sand-200);
+  --color-secondary-dark:    var(--ds-sand-500);
+  --color-accent:            var(--ds-sand-400);
+  --color-accent-light:      var(--ds-sand-300);
+
+  --color-background:            var(--ds-canvas);
+  --color-background-secondary:  var(--ds-surface-2);
+  --color-background-tertiary:   var(--ds-surface-2);
+  --color-surface:           var(--ds-surface);
+  --color-surface-alt:       var(--ds-surface-2);
+  --color-border:            var(--ds-border);
+
+  --color-text-primary:      var(--ds-text-primary);
+  --color-text-secondary:    var(--ds-text-secondary);
+  --color-text-tertiary:     var(--ds-text-tertiary);
+  --color-text-muted:        var(--ds-text-tertiary);
+  --color-text-inverse:      var(--ds-text-inverse);
+
+  --color-success:           var(--ds-success);
+  --color-warning:           var(--ds-warning);
+  --color-error:             var(--ds-error);
+  --color-info:              var(--ds-info);
+
+  /* Old shadow tokens */
+  --shadow-sm:  var(--ds-shadow-1);
+  --shadow-md:  var(--ds-shadow-2);
+  --shadow-lg:  var(--ds-shadow-3);
+  --shadow-xl:  var(--ds-shadow-4);
+  --shadow-base: var(--ds-shadow-1);
+  --shadow-2xl:  var(--ds-shadow-4);
+  --shadow-inner: inset 0 2px 4px rgba(23, 51, 40, 0.06);
+
+  /* Old spacing tokens */
+  --space-xs:  var(--ds-space-1);
+  --space-sm:  var(--ds-space-2);
+  --space-md:  var(--ds-space-4);
+  --space-lg:  var(--ds-space-6);
+  --space-xl:  var(--ds-space-8);
+  --space-2xl: var(--ds-space-10);
+  --space-3xl: var(--ds-space-12);
+  --space-1:   var(--ds-space-1);
+  --space-2:   var(--ds-space-2);
+  --space-3:   var(--ds-space-3);
+  --space-4:   var(--ds-space-4);
+  --space-5:   var(--ds-space-5);
+  --space-6:   var(--ds-space-6);
+  --space-8:   var(--ds-space-8);
+  --space-10:  var(--ds-space-10);
+  --space-12:  var(--ds-space-12);
+  --space-16:  var(--ds-space-16);
+  --space-20:  var(--ds-space-20);
+  --space-24:  var(--ds-space-24);
+  --space-32:  var(--ds-space-32);
+
+  /* Old radius tokens */
+  --radius-xs:   var(--ds-radius-sm);
+  --radius-sm:   var(--ds-radius-sm);
+  --radius-base: var(--ds-radius-md);
+  --radius-md:   var(--ds-radius-md);
+  --radius-lg:   var(--ds-radius-lg);
+  --radius-xl:   var(--ds-radius-xl);
+  --radius-2xl:  var(--ds-radius-2xl);
+  --radius-3xl:  var(--ds-radius-3xl);
+  --radius-full: var(--ds-radius-full);
+
+  /* Old transition tokens */
+  --transition-fast:   var(--ds-dur-instant) var(--ds-ease-in-out);
+  --transition-base:   var(--ds-dur-base)    var(--ds-ease-in-out);
+  --transition-normal: var(--ds-dur-base)    var(--ds-ease-in-out);
+  --transition-slow:   var(--ds-dur-slow)    var(--ds-ease-out-expo);
+  --transition-slower: var(--ds-dur-cinematic) var(--ds-ease-spring);
+
+  /* Old font tokens */
+  --font-primary:   var(--ds-font-ui);
+  --font-secondary: var(--ds-font-display);
+  --font-mono:      var(--ds-font-mono);
+
+  --font-size-xs:   var(--ds-text-xs);
+  --font-size-sm:   var(--ds-text-sm);
+  --font-size-base: var(--ds-text-base);
+  --font-size-lg:   var(--ds-text-lg);
+  --font-size-xl:   var(--ds-text-xl);
+  --font-size-2xl:  var(--ds-text-2xl);
+  --font-size-3xl:  var(--ds-text-3xl);
+  --font-size-4xl:  var(--ds-text-4xl);
+  --font-size-5xl:  var(--ds-text-5xl);
+
+  --font-weight-light:     var(--ds-weight-light);
+  --font-weight-normal:    var(--ds-weight-regular);
+  --font-weight-medium:    var(--ds-weight-medium);
+  --font-weight-semibold:  var(--ds-weight-semibold);
+  --font-weight-bold:      var(--ds-weight-bold);
+  --font-weight-extrabold: var(--ds-weight-black);
+
+  --line-height-tight:   var(--ds-leading-tight);
+  --line-height-snug:    var(--ds-leading-snug);
+  --line-height-normal:  var(--ds-leading-normal);
+  --line-height-relaxed: var(--ds-leading-relaxed);
+
+  /* Old z-index tokens */
+  --z-hide:         -1;
+  --z-base:          0;
+  --z-dropdown:     var(--ds-z-dropdown);
+  --z-sticky:       var(--ds-z-sticky);
+  --z-fixed:        var(--ds-z-dock);
+  --z-backdrop:     var(--ds-z-backdrop);
+  --z-modal:        var(--ds-z-modal);
+  --z-popover:      var(--ds-z-drawer);
+  --z-tooltip:      var(--ds-z-tooltip);
+  --z-notification: var(--ds-z-toast);
+
+  /* Component size aliases */
+  --navbar-height:      var(--ds-navbar-height);
+  --sidebar-width:      var(--ds-sidebar-width);
+  --max-content-width:  var(--ds-content-max);
+  --button-height:      var(--ds-btn-h-md);
+  --button-height-sm:   var(--ds-btn-h-sm);
+  --button-height-lg:   var(--ds-btn-h-lg);
+  --input-height:       var(--ds-input-h);
+  --input-height-sm:    var(--ds-input-h-sm);
+  --input-height-lg:    var(--ds-btn-h-lg);
+
+  /* ════════════════════════════════════════════════════════════════════════
+     MISC COMPAT — catch stale tokens from index.css that reference
+     undefined vars (--border-radius, --palette-ash-grey, etc.)
+     ════════════════════════════════════════════════════════════════════════ */
+  --border-radius:        var(--ds-radius-lg);
+  --palette-ash-grey:     var(--ds-border);
+  --palette-dark-slate:   var(--ds-forest-700);
+  --primary-color:        var(--ds-forest-900);
+  --color-gray-50:        var(--ds-surface-2);
+  --color-gray-100:       var(--ds-surface-2);
+  --color-gray-200:       rgba(23, 51, 40, 0.08);
+  --color-gray-300:       rgba(23, 51, 40, 0.12);
+  --color-gray-400:       var(--ds-text-tertiary);
+  --color-gray-500:       var(--ds-text-secondary);
+  --color-gray-600:       var(--ds-text-secondary);
+  --color-gray-700:       var(--ds-text-primary);
+  --color-gray-800:       var(--ds-forest-800);
+  --color-gray-900:       var(--ds-forest-900);
+  --color-white:          #ffffff;
+  --color-black:          #000000;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   GLOBAL RESET & BASE
+   Thin layer — sets up fonts, colours, and behaviours.
+   All component-level styles live in their own CSS files.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+body {
+  font-family: var(--ds-font-ui);
+  font-size: var(--ds-text-base);
+  font-weight: var(--ds-weight-regular);
+  line-height: var(--ds-leading-normal);
+  background-color: var(--ds-canvas);
+  color: var(--ds-text-primary);
+  min-height: 100vh;
+  min-width: 320px;
+  overflow-x: hidden;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  isolation: isolate;
+}
+
+/* ── Typography base ─────────────────────────────────────────────────────── */
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--ds-font-display);
+  font-weight: var(--ds-weight-bold);
+  line-height: var(--ds-leading-tight);
+  color: var(--ds-text-primary);
+  letter-spacing: var(--ds-tracking-tight);
+}
+
+/*
+  Fluid heading scale.
+  Display headings (h1, h2) use Playfair Display.
+  UI headings (h4, h5, h6) may override to Inter via component CSS.
+*/
+h1 { font-size: clamp(var(--ds-text-3xl), 5vw, var(--ds-text-5xl)); }
+h2 { font-size: clamp(var(--ds-text-2xl), 4vw, var(--ds-text-4xl)); }
+h3 { font-size: clamp(var(--ds-text-xl),  3vw, var(--ds-text-3xl)); }
+h4 { font-size: var(--ds-text-xl); }
+h5 { font-size: var(--ds-text-lg); }
+h6 { font-size: var(--ds-text-base); }
+
+p {
+  line-height: var(--ds-leading-relaxed);
+  color: var(--ds-text-secondary);
+}
+
+small {
+  font-size: var(--ds-text-sm);
+}
+
+/* ── Links ───────────────────────────────────────────────────────────────── */
+
+a {
+  color: var(--ds-color-brand);
+  text-decoration: none;
+  font-weight: var(--ds-weight-medium);
+  transition: color var(--ds-transition-feedback);
+}
+
+a:hover {
+  color: var(--ds-color-brand-light);
+}
+
+a:focus-visible {
+  outline: 2px solid var(--ds-color-brand);
+  outline-offset: 2px;
+  border-radius: var(--ds-radius-sm);
+}
+
+/* ── Interactive base ────────────────────────────────────────────────────── */
+
+button {
+  font-family: var(--ds-font-ui);
+  cursor: pointer;
+  border: none;
+  background: none;
+  transition: all var(--ds-transition-feedback);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--ds-color-brand);
+  outline-offset: 2px;
+  border-radius: var(--ds-radius-sm);
+}
+
+input,
+textarea,
+select {
+  font-family: var(--ds-font-ui);
+  font-size: var(--ds-text-base);
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--ds-color-brand);
+  outline-offset: 1px;
+}
+
+/* ── Images ──────────────────────────────────────────────────────────────── */
+
+img,
+video {
+  max-width: 100%;
+  display: block;
+}
+
+/* ── Scrollbar (Webkit) ──────────────────────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--ds-border-strong);
+  border-radius: var(--ds-radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ds-forest-400);
+}
+
+/* ── Accessibility utilities ─────────────────────────────────────────────── */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ── Reduced motion ──────────────────────────────────────────────────────── */
+/* Already in index.html critical CSS; repeated here for any styles
+   that load after React mounts and reference animation. */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

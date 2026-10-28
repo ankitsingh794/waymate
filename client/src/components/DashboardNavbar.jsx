@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, NavLink } from 'react-router-dom';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import {
   VscAccount,
   VscBell,
@@ -10,24 +10,29 @@ import {
   VscSettingsGear,
   VscSignOut,
 } from 'react-icons/vsc';
-import Logo from '../assets/logo.png';
+import Logo from '../assets/logo.svg';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/axiosInstance';
 import './DashboardNavbar.css';
 
 function buildAvatarFallback(name) {
   const initial = name?.trim()?.charAt(0)?.toUpperCase() || 'W';
-  return `https://placehold.co/80x80/0E3B4C/FFFFFF?text=${initial}`;
+  return `https://placehold.co/80x80/173328/FFFFFF?text=${initial}`;
 }
 
 export default function DashboardNavbar() {
   const { user, logout } = useAuth();
+  const location = useLocation();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  // JS-driven sliding indicator (plan spec)
+  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0, opacity: 0 });
+
   const navRootRef = useRef(null);
+  const navLinksRef = useRef(null);
 
   const navItems = useMemo(
     () => [
@@ -39,9 +44,25 @@ export default function DashboardNavbar() {
     []
   );
 
+  // Move the indicator to the active nav link on route change
+  useLayoutEffect(() => {
+    if (!navLinksRef.current) return;
+    const activeLink = navLinksRef.current.querySelector('.db-nav-link.is-active');
+    if (!activeLink) {
+      setIndicatorStyle((s) => ({ ...s, opacity: 0 }));
+      return;
+    }
+    const navRect = navLinksRef.current.getBoundingClientRect();
+    const linkRect = activeLink.getBoundingClientRect();
+    setIndicatorStyle({
+      left: linkRect.left - navRect.left,
+      width: linkRect.width,
+      opacity: 1,
+    });
+  }, [location.pathname]);
+
   const fetchUnreadNotifications = useCallback(async () => {
     if (!user) return;
-
     try {
       const response = await api.get('/notifications?limit=20');
       const list = response?.data?.data?.notifications || [];
@@ -61,17 +82,11 @@ export default function DashboardNavbar() {
       setMenuOpen(false);
       setProfileOpen(false);
     };
-
     const handleEscape = (event) => {
-      if (event.key === 'Escape') {
-        setMenuOpen(false);
-        setProfileOpen(false);
-      }
+      if (event.key === 'Escape') { setMenuOpen(false); setProfileOpen(false); }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('keydown', handleEscape);
-
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEscape);
@@ -80,27 +95,19 @@ export default function DashboardNavbar() {
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : '';
-    return () => {
-      document.body.style.overflow = '';
-    };
+    return () => { document.body.style.overflow = ''; };
   }, [menuOpen]);
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
-  const closeMenus = () => {
-    setMenuOpen(false);
-    setProfileOpen(false);
-  };
-
+  const closeMenus = () => { setMenuOpen(false); setProfileOpen(false); };
   const avatarUrl = user.profileImage || buildAvatarFallback(user.name);
 
   return (
     <header className="db-nav">
       <div className="db-nav-shell" ref={navRootRef}>
         <Link to="/dashboard" className="db-nav-logo" onClick={closeMenus}>
-          <img src={Logo} alt="WayMate" loading="lazy" decoding="async" />
+          <img src={Logo} alt="WayMate" width="120" height="32" loading="eager" decoding="async" />
         </Link>
 
         <button
@@ -114,7 +121,24 @@ export default function DashboardNavbar() {
           <VscMenu />
         </button>
 
-        <nav id="db-nav-links" className={`db-nav-links ${menuOpen ? 'is-open' : ''}`}>
+        {/* Nav links with JS-driven sliding indicator */}
+        <nav
+          id="db-nav-links"
+          className={`db-nav-links ${menuOpen ? 'is-open' : ''}`}
+          ref={navLinksRef}
+          aria-label="App navigation"
+        >
+          {/* Sliding sand underline indicator (plan spec) */}
+          <span
+            className="db-nav-indicator"
+            aria-hidden="true"
+            style={{
+              left: indicatorStyle.left,
+              width: indicatorStyle.width,
+              opacity: indicatorStyle.opacity,
+            }}
+          />
+
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -135,8 +159,9 @@ export default function DashboardNavbar() {
         </nav>
 
         <div className="db-nav-actions">
-          <Link to="/notifications" className="db-nav-icon-link" aria-label="Notifications">
+          <Link to="/notifications" className="db-nav-icon-link" aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}>
             <VscBell />
+            {/* Static dot — Rule 3: no pulse animation on notification dot */}
             {unreadCount > 0 && <span className="db-nav-notif-dot" />}
           </Link>
 
@@ -174,10 +199,7 @@ export default function DashboardNavbar() {
                   <button
                     type="button"
                     className="db-nav-profile-link is-logout"
-                    onClick={() => {
-                      closeMenus();
-                      logout();
-                    }}
+                    onClick={() => { closeMenus(); logout(); }}
                   >
                     <VscSignOut />
                     Log out

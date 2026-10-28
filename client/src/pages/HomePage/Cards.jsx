@@ -19,7 +19,7 @@ const CardItem = ({ index, icon, title, description, tag, callout }) => (
         <div className="home-feature-header-row">
             <h3>{title}</h3>
             <div className="home-feature-icon-wrap">
-                {createElement(icon, { className: 'home-feature-icon' })}
+                {createElement(icon, { className: 'home-feature-icon', 'aria-hidden': true })}
             </div>
         </div>
 
@@ -32,60 +32,60 @@ const cardsData = [
     {
         index: '01',
         icon: VscRobot,
-        tag: 'Narrative Engine',
-        title: 'Plan drafts that read like a city editor built them',
-        description: 'WayMate shapes recommendations into a coherent daily narrative so your itinerary flows with intention, not randomness.',
-        callout: 'Clear storyline from morning transit to evening plans.',
+        tag: 'AI Itinerary Co-pilot',
+        title: 'Multi-day narrative schedules with operational precision',
+        description: 'WayMate blends generative intelligence with curated neighborhood logic, weather forecasts, and day-by-day itineraries that flow with intention.',
+        callout: 'Clear storyline from morning transit to evening dining.',
     },
     {
         index: '02',
         icon: VscMap,
-        tag: 'Route Composition',
-        title: 'Daily movement that respects geography and energy',
-        description: 'Transport windows, neighborhood proximity, and walking load are balanced before a draft is ever approved.',
-        callout: 'No more beautiful plans that break in real movement.',
+        tag: 'Multimodal Routing',
+        title: 'Train schedules, live seat availability, and transit hub mapping',
+        description: 'Direct railway schedule lookups, station hub connections, and multimodal options scored for fastest versus cheapest travel paths.',
+        callout: 'No more switching between fragmented booking portals.',
     },
     {
         index: '03',
-        icon: VscLightbulb,
-        tag: 'Local Curation',
-        title: 'Discovery tuned to your travel personality',
-        description: 'From low-key cafe blocks to cultural anchors, recommendations align with the tone your group actually wants.',
-        callout: 'Distinctive local moments over generic listicle picks.',
+        icon: VscLightbulbSparkle,
+        tag: 'Live Disruption Radar',
+        title: 'Real-time regional alerts for weather, transit, and safety',
+        description: 'Continuously monitors regional RSS feeds and forecasts to detect rail delays, strikes, or sudden storms before they disrupt your day.',
+        callout: 'Resilience built in before disruption becomes stress.',
     },
     {
         index: '04',
-        icon: VscLightbulbSparkle,
-        tag: 'Live Signals',
-        title: 'Adaptive alternatives when conditions change',
-        description: 'When weather, queues, or travel timing shifts, the itinerary rebalances with practical fallback options instantly.',
-        callout: 'Resilience built in before disruption becomes stress.',
+        icon: VscCheck,
+        tag: 'Collaborative Squad Chat',
+        title: 'Shared live planning with instant AI group edits',
+        description: 'Invite friends, family, or colleagues with shareable links. Chat in real time over Socket.IO and trigger live itinerary edits visible to all.',
+        callout: 'Fast group consensus with zero planning chaos.',
     },
     {
         index: '05',
         icon: VscLocation,
-        tag: 'Map Studio',
-        title: 'Spatial previews before you commit to bookings',
-        description: 'Visualize each day as a geographic route so transfers, meals, and major stops stay tight and realistic.',
+        tag: 'Place Discovery',
+        title: 'Verified local gems, ratings, and direct navigation',
+        description: 'Filter workspace cafes, authentic local food, and cultural anchors powered by Google Places and verified geospatial coordinates.',
         callout: 'Geographic coherence before wallet commitment.',
     },
     {
         index: '06',
-        icon: VscCheck,
-        tag: 'Group Alignment',
-        title: 'Shared approvals without planning chaos',
-        description: 'Everyone can review the same itinerary draft, comment in context, and resolve trade-offs without losing momentum.',
-        callout: 'Fast consensus with transparent decisions.',
+        icon: VscLightbulb,
+        tag: 'Mobility Research Engine',
+        title: 'Passive sensor intelligence empowering civic transportation',
+        description: 'Opt-in sensor fusion classifies travel modes (walk, bike, metro, rail) to support agencies like NATPAC with anonymized urban mobility datasets.',
+        callout: 'Every journey helps design smarter, greener cities.',
     },
 ];
 
 export default function Cards() {
     return (
-        <section id="features" className="home-features-section">
+        <section id="features" className="home-features-section" aria-labelledby="features-title">
             <div className="home-features-shell">
                 <header className="home-features-header">
                     <span className="home-section-kicker">Capability Atlas</span>
-                    <h2>Every capability is designed to move a plan from idea to execution.</h2>
+                    <h2 id="features-title">Every capability is designed to move a plan from idea to execution.</h2>
                     <p>
                         This is a planning stack built for clarity, collaboration, and live adaptability, not just a
                         place list with a pretty map.

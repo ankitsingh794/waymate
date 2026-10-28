@@ -14,12 +14,15 @@ import {
   VscCreditCard,
   VscSplitHorizontal,
 } from 'react-icons/vsc';
-import { Card, CardHeader, CardBody, CardFooter, Button, Input, Alert, Badge } from '../../components/UI';
+import { Card, CardHeader, CardBody, CardFooter, Button, Input, Alert, Badge, useConfirm } from '../../components/UI';
+
 import DashboardNavbar from '../../components/DashboardNavbar';
 import './ExpensesPage.css';
 
 export default function ExpensesPage() {
   const { tripId } = useParams();
+  const confirm = useConfirm();
+
   const { user } = useAuth();
   const [expenses, setExpenses] = useState([]);
   const [budget, setBudget] = useState(null);
@@ -81,7 +84,8 @@ export default function ExpensesPage() {
   };
 
   const deleteExpense = async (expenseId) => {
-    if (!window.confirm('Are you sure?')) return;
+    if (!await confirm({ title: 'Delete expense', message: 'Remove this expense record?', confirmLabel: 'Delete', variant: 'error' })) return;
+
 
     try {
       const endpoint = tripId

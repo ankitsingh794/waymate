@@ -1,81 +1,74 @@
 /**
- * Alert Component Styles
+ * Alert.css — WayMate canonical alert system
+ * Alerts use tinted backgrounds matching the status colour family.
+ * Left border gives hierarchy without overwhelming the content area.
  */
+
+/* ── Base ─────────────────────────────────────────────────────────────────── */
 
 .alert {
   display: flex;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border-radius: var(--radius-lg);
-  border-left: 4px solid;
-  background-color: var(--color-gray-50);
+  gap: var(--ds-space-3);
+  padding: var(--ds-space-4) var(--ds-space-5);
+  border-radius: var(--ds-radius-lg);
+  border-left: 3px solid currentColor;
   align-items: flex-start;
+  font-family: var(--ds-font-ui);
 }
 
-/* ============================================
-   VARIANTS
-   ============================================ */
+/* ── Variants ─────────────────────────────────────────────────────────────── */
 
 .alert-info {
-  border-left-color: var(--color-info);
-  background-color: rgba(59, 130, 246, 0.05);
-  color: var(--color-info);
+  background-color: var(--ds-info-bg);
+  color: var(--ds-info);
 }
 
 .alert-success {
-  border-left-color: var(--color-success);
-  background-color: rgba(16, 185, 129, 0.05);
-  color: var(--color-success);
+  background-color: var(--ds-success-bg);
+  color: var(--ds-success);
 }
 
 .alert-warning {
-  border-left-color: var(--color-warning);
-  background-color: rgba(245, 158, 11, 0.05);
-  color: var(--color-warning);
+  background-color: var(--ds-warning-bg);
+  color: var(--ds-warning);
 }
 
 .alert-error {
-  border-left-color: var(--color-error);
-  background-color: rgba(239, 68, 68, 0.05);
-  color: var(--color-error);
+  background-color: var(--ds-error-bg);
+  color: var(--ds-error);
 }
 
-/* ============================================
-   CONTENT
-   ============================================ */
+/* ── Content ──────────────────────────────────────────────────────────────── */
 
 .alert-icon {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
   margin-top: 2px;
 }
 
 .alert-content {
   flex: 1;
+  min-width: 0;
 }
 
 .alert-title {
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-semibold);
-  margin: 0 0 var(--space-1) 0;
+  font-size: var(--ds-text-sm);
+  font-weight: var(--ds-weight-semibold);
+  margin: 0 0 var(--ds-space-1);
   color: currentColor;
+  font-family: var(--ds-font-ui);
 }
 
 .alert-message {
-  font-size: var(--font-size-sm);
+  font-size: var(--ds-text-sm);
   margin: 0;
   color: currentColor;
-  line-height: var(--line-height-relaxed);
+  line-height: var(--ds-leading-relaxed);
+  opacity: 0.9;
 }
 
-.alert-content:only-child .alert-message {
-  margin: 0;
-}
-
-/* ============================================
-   CLOSE BUTTON
-   ============================================ */
+/* ── Close button ─────────────────────────────────────────────────────────── */
 
 .alert-close {
   flex-shrink: 0;
@@ -89,30 +82,27 @@
   width: 24px;
   height: 24px;
   color: currentColor;
-  opacity: 0.7;
-  transition: opacity var(--transition-fast);
+  opacity: 0.6;
+  border-radius: var(--ds-radius-sm);
+  transition: opacity var(--ds-transition-feedback),
+              background-color var(--ds-transition-feedback);
 }
 
 .alert-close:hover {
   opacity: 1;
+  background-color: rgba(0, 0, 0, 0.06);
 }
 
 .alert-close svg {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
 }
 
-/* ============================================
-   RESPONSIVE
-   ============================================ */
+/* ── Responsive ───────────────────────────────────────────────────────────── */
 
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .alert {
-    flex-direction: column;
-    gap: var(--space-2);
-  }
-
-  .alert-icon {
-    margin-top: 0;
+    padding: var(--ds-space-3) var(--ds-space-4);
+    gap: var(--ds-space-2);
   }
 }

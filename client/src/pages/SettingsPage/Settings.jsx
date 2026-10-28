@@ -5,7 +5,9 @@ import {
     VscPaintcan, VscBell, VscCreditCard, VscShield, VscTrash, VscChevronRight 
 } from "react-icons/vsc";
 import DashboardNavbar from '../../components/DashboardNavbar';
+import { useConfirm } from '../../components/UI';
 import api from '../../utils/axiosInstance';
+
 import './Settings.css';
 
 const ToggleSwitch = ({ label, enabled, setEnabled, disabled = false }) => (
@@ -25,6 +27,8 @@ const ToggleSwitch = ({ label, enabled, setEnabled, disabled = false }) => (
 export default function Settings() {
     const { t } = useTranslation(['settings', 'common']);
     const navigate = useNavigate();
+    const confirm = useConfirm();
+
 
     const [isNightMode, setIsNightMode] = useState(() => localStorage.getItem('nightMode') === 'true');
     const [settings, setSettings] = useState({
@@ -91,13 +95,19 @@ export default function Settings() {
         }
     };
     
-    const handleDeleteAccount = () => {
-        if (window.confirm(t('settings:dangerZone.confirmDelete'))) {
-            // There is no backend route for this yet.
-            // When available, an API call would be made here.
-            alert("This feature is not yet implemented.");
+    const handleDeleteAccount = async () => {
+        const confirmed = await confirm({
+          title: t('settings:dangerZone.confirmDelete') || 'Delete account?',
+          message: 'This action is permanent. All your data will be removed.',
+          confirmLabel: 'Delete account',
+          variant: 'error',
+        });
+        if (confirmed) {
+            // Backend route not yet implemented.
+            setMessage('Account deletion is not yet available.');
         }
     };
+
 
     if (loading) {
         return <div>Loading settings...</div>;

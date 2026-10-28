@@ -3,37 +3,35 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../../utils/axiosInstance';
 import { useAuth } from '../../context/AuthContext';
+import AuthLayout from './AuthLayout';
 import './Register.css';
-import AuthAmbientDecor from './AuthAmbientDecor';
 
 export default function Register() {
     const { t } = useTranslation('auth');
     const [formData, setFormData] = useState({ name: '', email: '', password: '' });
     const [message, setMessage] = useState('');
+    const [isSuccess, setIsSuccess] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const navigate = useNavigate();
     const { user } = useAuth();
 
     useEffect(() => {
-        if (user) {
-            navigate('/dashboard', { replace: true });
-        }
+        if (user) navigate('/dashboard', { replace: true });
     }, [user, navigate]);
 
-    const handleChange = (e) => {
+    const handleChange = (e) =>
         setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setMessage('');
+        setIsSuccess(false);
         setIsSubmitting(true);
         try {
             await api.post('/auth/register', formData);
-            setMessage('✅ Registration successful! Please check your email to verify your account. Redirecting to login...');
-            setTimeout(() => {
-                navigate('/login');
-            }, 3000);
+            setIsSuccess(true);
+            setMessage('Registration successful! Please check your email to verify your account. Redirecting…');
+            setTimeout(() => navigate('/login'), 3000);
         } catch (err) {
             setMessage(err.response?.data?.message || 'Something went wrong during registration.');
         } finally {
@@ -42,43 +40,93 @@ export default function Register() {
     };
 
     return (
-        <div className="register-container">
-            <AuthAmbientDecor />
-            <div className="register-title">{t('register.title')}</div>
-            <form className="register-form" onSubmit={handleSubmit}>
-                <h3>{t('register.nameLabel')}</h3>
-                <input
-                    type="text"
-                    name="name"
-                    placeholder={t('register.nameLabel')}
-                    onChange={handleChange}
-                    required
-                />
-                <h3>{t('register.emailLabel')}</h3>
-                <input
-                    type="email"
-                    name="email"
-                    placeholder={t('register.emailLabel')}
-                    onChange={handleChange}
-                    required
-                />
-                <h3>{t('register.passwordLabel')}</h3>
-                <input
-                    type="password"
-                    name="password"
-                    placeholder={t('register.passwordLabel')}
-                    onChange={handleChange}
-                    required
-                />
-                <button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? 'Registering...' : t('register.button')}
-                </button>
+        <AuthLayout>
+            <div className="auth-form-card">
+                <div className="auth-form-header">
+                    <h1 className="auth-form-title">{t('register.title')}</h1>
+                    <p className="auth-form-subtitle">
+                        Already have an account?{' '}
+                        <Link to="/login">{t('register.loginLink')}</Link>
+                    </p>
+                </div>
 
-                <h6>
-                    {t('register.hasAccount')} <Link to="/login">{t('register.loginLink')}</Link>
-                </h6>
-            </form>
-            {message && <p className="message">{message}</p>}
-        </div>
+                <form onSubmit={handleSubmit} noValidate>
+                    <div style={{ display: 'grid', gap: '1rem' }}>
+                        <div className="auth-field">
+                            <label htmlFor="reg-name" className="auth-field-label">
+                                {t('register.nameLabel')}
+                            </label>
+                            <input
+                                id="reg-name"
+                                name="name"
+                                type="text"
+                                className="auth-field-input"
+                                placeholder="Your full name"
+                                autoComplete="name"
+                                onChange={handleChange}
+                                required
+                            />
+                        </div>
+
+                        <div className="auth-field">
+                            <label htmlFor="reg-email" className="auth-field-label">
+                                {t('register.emailLabel')}
+                            </label>
+                            <input
+                                id="reg-email"
+                                name="email"
+                                type="email"
+                                className="auth-field-input"
+                                placeholder="you@example.com"
+                                autoComplete="email"
+                                onChange={handleChange}
+                                required
+                            />
+                        </div>
+
+                        <div className="auth-field">
+                            <label htmlFor="reg-password" className="auth-field-label">
+                                {t('register.passwordLabel')}
+                            </label>
+                            <input
+                                id="reg-password"
+                                name="password"
+                                type="password"
+                                className="auth-field-input"
+                                placeholder="At least 8 characters"
+                                autoComplete="new-password"
+                                onChange={handleChange}
+                                required
+                            />
+                        </div>
+
+                        {message && (
+                            <p
+                                className={`auth-message ${isSuccess ? 'is-success' : 'is-error'}`}
+                                role={isSuccess ? 'status' : 'alert'}
+                            >
+                                {message}
+                            </p>
+                        )}
+
+                        <button
+                            type="submit"
+                            className="auth-submit-btn"
+                            disabled={isSubmitting}
+                        >
+                            {isSubmitting && <span className="auth-submit-spinner" aria-hidden="true" />}
+                            {isSubmitting ? 'Creating account…' : t('register.button')}
+                        </button>
+                    </div>
+                </form>
+
+                <div className="auth-form-footer">
+                    <p>
+                        {t('register.hasAccount')}{' '}
+                        <Link to="/login">{t('register.loginLink')}</Link>
+                    </p>
+                </div>
+            </div>
+        </AuthLayout>
     );
 }

@@ -15,12 +15,15 @@ import {
   VscEdit,
   VscArrowRight,
 } from 'react-icons/vsc';
-import { Card, CardHeader, CardBody, CardFooter, Button, Input, Alert, Badge } from '../../components/UI';
+import { Card, CardHeader, CardBody, CardFooter, Button, Input, Alert, Badge, useConfirm } from '../../components/UI';
+
 import DashboardNavbar from '../../components/DashboardNavbar';
 import './HouseholdsPage.css';
 
 export default function HouseholdsPage() {
   const { user } = useAuth();
+  const confirm = useConfirm();
+
   const [household, setHousehold] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -85,7 +88,8 @@ export default function HouseholdsPage() {
   };
 
   const removeMember = async (memberId) => {
-    if (!window.confirm('Are you sure you want to remove this member?')) return;
+    if (!await confirm({ title: 'Remove member', message: 'Are you sure you want to remove this member?', confirmLabel: 'Remove', variant: 'error' })) return;
+
 
     try {
       await api.delete(`/households/${household._id}/members/${memberId}`);
@@ -99,7 +103,8 @@ export default function HouseholdsPage() {
   };
 
   const leaveHousehold = async () => {
-    if (!window.confirm('Are you sure you want to leave this household?')) return;
+    if (!await confirm({ title: 'Leave household', message: 'Are you sure you want to leave this household?', confirmLabel: 'Leave', variant: 'warning' })) return;
+
 
     try {
       await api.post(`/households/${household._id}/leave`);
