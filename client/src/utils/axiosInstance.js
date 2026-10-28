@@ -11,7 +11,8 @@ const api = axios.create({
   withCredentials: true,
 });
 
-// Dedicated unintercepted instance for refresh token calls to avoid recursive interceptor loops
+// Dedicated unintercepted instance for refresh token calls
+// Having NO response interceptors prevents any recursive refresh loops if refresh itself fails.
 export const refreshClient = axios.create({
   baseURL,
   withCredentials: true,
@@ -19,18 +20,20 @@ export const refreshClient = axios.create({
 
 // Routes that should NEVER trigger automatic token refresh on 401
 const AUTH_EXEMPT_ROUTES = [
-  '/auth/login',
-  '/auth/register',
-  '/auth/logout',
-  '/auth/refresh-token',
-  '/auth/forgot-password',
-  '/auth/reset-password',
-  '/auth/verify-email',
-  '/auth/resend-verification',
+  'auth/login',
+  'auth/register',
+  'auth/logout',
+  'auth/refresh-token',
+  'auth/forgot-password',
+  'auth/reset-password',
+  'auth/verify-email',
+  'auth/resend-verification',
 ];
 
 const isAuthRequest = (url = '') => {
-  return AUTH_EXEMPT_ROUTES.some((route) => url.includes(route));
+  if (!url || typeof url !== 'string') return false;
+  const cleanUrl = url.toLowerCase();
+  return AUTH_EXEMPT_ROUTES.some((route) => cleanUrl.includes(route));
 };
 
 /**
@@ -80,13 +83,19 @@ api.interceptors.response.use(
     }
 
     // Do NOT trigger refresh for authentication endpoints (login, register, refresh itself, etc.)
-    // If user enters incorrect password on /auth/login, reject so the login form displays the error.
+    // If user enters incorrect password on auth/login, reject directly so login UI displays the error.
     if (isAuthRequest(originalRequest.url)) {
       return Promise.reject(error);
     }
 
     // If this request already attempted a retry, don't loop again
     if (originalRequest._retry) {
+      return Promise.reject(error);
+    }
+
+    // Defense-in-depth: if there is no accessToken in storage, user is a guest; don't spam refresh
+    const existingToken = localStorage.getItem('accessToken');
+    if (!existingToken) {
       return Promise.reject(error);
     }
 
