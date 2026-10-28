@@ -27,18 +27,13 @@ const ProtectedRoute = ({ children }) => {
               border: '2.5px solid rgba(138, 171, 143, 0.2)',
               borderTopColor: '#8aab8f',
               borderRadius: '50%',
-              animation: 'authSpin 0.75s cubic-bezier(0.4, 0, 0.2, 1) infinite',
+              animation: 'btn-spin 0.75s linear infinite',
             }}
           />
           <span style={{ fontSize: '0.85rem', letterSpacing: '0.04em', opacity: 0.75 }}>
             WayMate
           </span>
         </div>
-        <style>{`
-          @keyframes authSpin {
-            to { transform: rotate(360deg); }
-          }
-        `}</style>
       </div>
     );
   }
