@@ -33,7 +33,7 @@ import { FaTrainSubway } from 'react-icons/fa6';
 import api from '../../utils/axiosInstance';
 import { useAuth } from '../../context/AuthContext';
 import { Toast, useConfirm } from '../../components/UI';
-import './details.css';
+import './Details.css';
 
 /* ─── Constants ────────────────────────────────────────────────────────────── */
 
