@@ -5,9 +5,9 @@
 
 .settings-page {
   min-height: 100vh;
-  background: var(--ds-canvas, #f8f5ee);
+  background-color: #0b1712;
   font-family: var(--ds-font-ui, Inter, sans-serif);
-  color: var(--ds-forest-900, #173328);
+  color: #fffdf8;
   padding-top: 2rem;
   padding-bottom: 4rem;
 }
@@ -18,20 +18,21 @@
 }
 
 .settings-header {
-  margin-bottom: 2.5rem;
+  margin-bottom: 2.25rem;
 }
 
 .settings-header h1 {
   font-family: var(--ds-font-display, 'Playfair Display', serif);
-  font-size: clamp(1.85rem, 4.5vw, 2.75rem);
-  color: var(--ds-forest-900, #173328);
+  font-size: clamp(2rem, 4.5vw, 2.75rem);
+  color: #fffdf8;
   margin: 0 0 0.5rem;
   line-height: 1.15;
+  letter-spacing: -0.02em;
 }
 
 .settings-header p {
   font-size: 1rem;
-  color: var(--ds-text-secondary, #4a5e57);
+  color: #9fb3a8;
   margin: 0;
   line-height: 1.5;
 }
@@ -43,11 +44,14 @@
 }
 
 .settings-card {
-  background: var(--ds-surface, #ffffff);
-  border-radius: var(--ds-radius-xl, 1rem);
+  background: rgba(23, 51, 40, 0.55);
+  border-radius: 1.25rem;
   padding: 1.5rem 1.75rem;
-  box-shadow: 0 2px 8px rgba(23, 51, 40, 0.04);
-  border: 1px solid var(--ds-border, rgba(23, 51, 40, 0.08));
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 8px 32px rgba(7, 16, 12, 0.4);
+  border: 1px solid rgba(215, 188, 156, 0.2);
+  color: #fffdf8;
 }
 
 .card-title {
@@ -56,16 +60,16 @@
   font-weight: 700;
   margin: 0 0 1rem 0;
   padding-bottom: 0.85rem;
-  border-bottom: 1px solid var(--ds-border, rgba(23, 51, 40, 0.08));
+  border-bottom: 1px solid rgba(215, 188, 156, 0.15);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  color: var(--ds-forest-900, #173328);
+  gap: 0.65rem;
+  color: #fffdf8;
 }
 
 .card-title svg {
   font-size: 1.35rem;
-  color: var(--ds-forest-700, #2a5a46);
+  color: var(--ds-sand-300, #d7bc9c);
 }
 
 /* Settings Item */
@@ -75,7 +79,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem 0;
-  border-bottom: 1px solid var(--ds-border, rgba(23, 51, 40, 0.06));
+  border-bottom: 1px solid rgba(215, 188, 156, 0.12);
 }
 
 .setting-item:last-child,
@@ -85,13 +89,13 @@
 
 .setting-label {
   font-weight: 600;
-  color: var(--ds-forest-900, #173328);
+  color: #fffdf8;
   font-size: 0.95rem;
 }
 
 .setting-description {
-  font-size: 0.82rem;
-  color: var(--ds-text-secondary, #4a5e57);
+  font-size: 0.84rem;
+  color: #9fb3a8;
   margin-top: 0.25rem;
   line-height: 1.45;
   max-width: 60ch;
@@ -99,14 +103,14 @@
 
 .setting-item-link {
   text-decoration: none;
-  color: var(--ds-forest-900, #173328);
+  color: #fffdf8;
   cursor: pointer;
   flex-direction: column;
   align-items: flex-start;
 }
 
 .setting-item-link:hover .setting-label {
-  color: var(--ds-forest-700, #2a5a46);
+  color: var(--ds-sand-300, #d7bc9c);
 }
 
 /* Toggle Switch (Apple-style) */
@@ -114,11 +118,11 @@
   position: relative;
   width: 50px;
   height: 28px;
-  background: rgba(23, 51, 40, 0.14);
-  border: none;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(215, 188, 156, 0.25);
   border-radius: var(--ds-radius-full, 9999px);
   cursor: pointer;
-  transition: background-color 200ms ease;
+  transition: background-color 200ms ease, border-color 200ms ease;
   padding: 2px;
   display: flex;
   align-items: center;
@@ -131,57 +135,60 @@
 }
 
 .toggle-switch.enabled {
-  background: var(--ds-forest-900, #173328);
+  background: linear-gradient(135deg, #d7bc9c, #c9a87e);
+  border-color: #d7bc9c;
 }
 
 .toggle-handle {
   display: block;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   background: #ffffff;
   border-radius: 50%;
   transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.35);
 }
 
 .toggle-switch.enabled .toggle-handle {
   transform: translateX(22px);
+  background: #0b1712;
 }
 
 /* Subscription Card */
 .subscription-info {
   text-align: center;
   padding: 1.25rem 0;
-  border-top: 1px solid var(--ds-border, rgba(23, 51, 40, 0.08));
+  border-top: 1px solid rgba(215, 188, 156, 0.15);
   margin-top: 1rem;
 }
 
 .subscription-plan {
-  font-size: 1.25rem;
+  font-size: 1.35rem;
   font-weight: 700;
-  color: var(--ds-forest-900, #173328);
+  color: #fffdf8;
   margin: 0 0 0.35rem 0;
+  font-family: var(--ds-font-display, 'Playfair Display', serif);
 }
 
 .subscription-status {
   font-size: 0.85rem;
-  color: var(--ds-text-secondary, #4a5e57);
+  color: var(--ds-sand-200, #eadac4);
   margin: 0;
 }
 
 /* Danger Zone */
 .danger-zone {
-  border-color: rgba(220, 38, 38, 0.25);
-  background: #fff8f8;
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(45, 14, 18, 0.55);
 }
 
 .danger-zone .card-title {
-  color: #dc2626;
-  border-bottom-color: rgba(220, 38, 38, 0.15);
+  color: #fca5a5;
+  border-bottom-color: rgba(239, 68, 68, 0.25);
 }
 
 .danger-zone .card-title svg {
-  color: #dc2626;
+  color: #f87171;
 }
 
 .danger-actions {
@@ -200,12 +207,12 @@
 
 .danger-label {
   font-weight: 600;
-  color: var(--ds-forest-900, #173328);
+  color: #fffdf8;
   font-size: 0.92rem;
 }
 
 .danger-description {
   font-size: 0.82rem;
-  color: var(--ds-text-secondary, #4a5e57);
+  color: #fca5a5;
   margin-top: 0.2rem;
 }

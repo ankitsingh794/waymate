@@ -96,6 +96,16 @@
   padding-right: calc(var(--ds-space-4) + 20px);
 }
 
+.input-select option {
+  background-color: var(--ds-surface, #ffffff);
+  color: var(--ds-text-primary, #173328);
+}
+
+.input-select option:checked {
+  background-color: var(--ds-forest-900, #173328);
+  color: #fffdf8;
+}
+
 /* ── Textarea ─────────────────────────────────────────────────────────────── */
 
 .input-textarea {

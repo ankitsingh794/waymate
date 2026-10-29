@@ -84,7 +84,7 @@ export default function SurveysPage() {
   const formatLabel = (text) => {
     return text
       .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   };
 
@@ -95,21 +95,25 @@ export default function SurveysPage() {
       <div className="surveys-body">
         <div className="page-header">
           <h1>Survey Data</h1>
-          <p>Help us understand your travel patterns</p>
+          <p>Help us understand your travel patterns and mobility profile</p>
         </div>
 
-        {error && <Alert variant="error" closable onClose={() => setError(null)}>{error}</Alert>}
+        {error && (
+          <Alert variant="error" closable onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
 
         <div className="surveys-container">
           {loading ? (
             <Card padding="lg">
-              <p style={{ textAlign: 'center' }}>Loading...</p>
+              <p style={{ textAlign: 'center', color: '#9fb3a8' }}>Loading survey profile...</p>
             </Card>
           ) : (
             <Card padding="lg">
               <CardHeader
                 title="Your Information"
-                subtitle="This information helps us improve our service"
+                subtitle="This information helps us optimize route efficiency and transport recommendations"
               />
 
               <CardBody>
@@ -130,43 +134,28 @@ export default function SurveysPage() {
                       <p>{formatLabel(surveyData.primaryTransportModeToWork || 'Not provided')}</p>
                     </div>
 
-                    <div
-                      style={{
-                        padding: 'var(--space-md)',
-                        backgroundColor: 'var(--color-success)',
-                        color: 'white',
-                        borderRadius: 'var(--radius-lg)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 'var(--space-md)',
-                        marginTop: 'var(--space-lg)',
-                      }}
-                    >
+                    <div className="survey-success-banner">
                       <VscCheckAll />
-                      <span>Thank you for completing the survey!</span>
+                      <span>Thank you for completing your socio-economic survey!</span>
                     </div>
                   </div>
                 ) : (
                   <div className="survey-form">
                     <div className="form-group">
-                      <label>Household Income</label>
+                      <label htmlFor="survey-household-income">Household Income</label>
                       <select
+                        id="survey-household-income"
+                        className="survey-select"
                         value={formData.householdIncome}
-                        onChange={e => setFormData({
-                          ...formData,
-                          householdIncome: e.target.value
-                        })}
-                        style={{
-                          width: '100%',
-                          padding: 'var(--space-3) var(--space-4)',
-                          border: '1px solid var(--color-border)',
-                          borderRadius: 'var(--radius-lg)',
-                          fontFamily: 'var(--font-primary)',
-                          fontSize: 'var(--font-size-base)',
-                        }}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            householdIncome: e.target.value,
+                          })
+                        }
                       >
                         <option value="">Select income range</option>
-                        {incomeOptions.map(option => (
+                        {incomeOptions.map((option) => (
                           <option key={option} value={option}>
                             {formatLabel(option)}
                           </option>
@@ -175,39 +164,38 @@ export default function SurveysPage() {
                     </div>
 
                     <div className="form-group">
-                      <label>Number of Vehicles</label>
+                      <label htmlFor="survey-vehicle-count">Number of Vehicles</label>
                       <Input
+                        id="survey-vehicle-count"
                         type="number"
                         min="0"
                         max="10"
                         value={formData.vehicleCount}
-                        onChange={e => setFormData({
-                          ...formData,
-                          vehicleCount: parseInt(e.target.value) || 0
-                        })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            vehicleCount: parseInt(e.target.value, 10) || 0,
+                          })
+                        }
                         fullWidth
                       />
                     </div>
 
                     <div className="form-group">
-                      <label>Primary Transport Mode to Work</label>
+                      <label htmlFor="survey-transport-mode">Primary Transport Mode to Work</label>
                       <select
+                        id="survey-transport-mode"
+                        className="survey-select"
                         value={formData.primaryTransportModeToWork}
-                        onChange={e => setFormData({
-                          ...formData,
-                          primaryTransportModeToWork: e.target.value
-                        })}
-                        style={{
-                          width: '100%',
-                          padding: 'var(--space-3) var(--space-4)',
-                          border: '1px solid var(--color-border)',
-                          borderRadius: 'var(--radius-lg)',
-                          fontFamily: 'var(--font-primary)',
-                          fontSize: 'var(--font-size-base)',
-                        }}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            primaryTransportModeToWork: e.target.value,
+                          })
+                        }
                       >
                         <option value="">Select transport mode</option>
-                        {transportModes.map(mode => (
+                        {transportModes.map((mode) => (
                           <option key={mode} value={mode}>
                             {formatLabel(mode)}
                           </option>
@@ -230,10 +218,7 @@ export default function SurveysPage() {
                 ) : (
                   <>
                     {surveyData && (
-                      <Button
-                        variant="ghost"
-                        onClick={() => setEditing(false)}
-                      >
+                      <Button variant="ghost" onClick={() => setEditing(false)}>
                         Cancel
                       </Button>
                     )}
@@ -251,16 +236,15 @@ export default function SurveysPage() {
           )}
 
           {/* Survey Info */}
-          <Card padding="lg">
-            <CardHeader title="Why We Ask" subtitle="About this survey" />
+          <Card padding="lg" className="survey-info-card">
+            <CardHeader title="Why We Ask" subtitle="About this NATPAC mobility survey" />
             <CardBody>
               <p>
                 This information helps us understand travel and transportation patterns. We use this data
-                to improve our recommendations and understand how different types of users plan their trips.
+                to improve our route intelligence, model local transit demand, and understand how different user segments plan their journeys.
               </p>
-              <p style={{ marginTop: 'var(--space-lg)', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
-                Your data is private and protected. It will only be used for research and improvement
-                purposes in accordance with our privacy policy.
+              <p className="privacy-note">
+                Your data is private, strictly aggregated, and protected. It is only utilized for mobility optimization and research in accordance with our privacy policy.
               </p>
             </CardBody>
           </Card>

@@ -24,6 +24,18 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid var(--ds-forest-900);
+  outline: 2px solid var(--ds-sand-300, #d7bc9c);
   outline-offset: 2px;
+}
+
+/* ── High-Contrast Form Control Reset ─────────────────────────────────────── */
+
+select option {
+  background-color: #0b1712;
+  color: #fffdf8;
+}
+
+select option:checked {
+  background-color: #1a382b;
+  color: #fffdf8;
 }

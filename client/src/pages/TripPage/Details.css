@@ -447,7 +447,19 @@
   font-size: 0.85rem;
   font-family: inherit;
   outline: none;
+  color-scheme: dark;
   transition: border-color var(--td-dur-s);
+}
+
+.td-select option {
+  background-color: #0b1712 !important;
+  color: #fffdf8 !important;
+  padding: 0.5rem;
+}
+
+.td-select option:checked {
+  background-color: #1a382b !important;
+  color: #fffdf8 !important;
 }
 
 .td-select:focus {

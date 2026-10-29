@@ -601,7 +601,19 @@
   font-family: inherit;
   outline: none;
   box-sizing: border-box;
+  color-scheme: dark;
   transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.form-group select option {
+  background-color: #0b1712 !important;
+  color: #fffdf8 !important;
+  padding: 0.5rem;
+}
+
+.form-group select option:checked {
+  background-color: #1a382b !important;
+  color: #fffdf8 !important;
 }
 
 .form-group input:focus,

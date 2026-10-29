@@ -520,10 +520,47 @@ select {
   font-size: var(--ds-text-base);
 }
 
+select {
+  cursor: pointer;
+}
+
+/* Ensure native select dropdown options have strict contrasting colors across all platforms */
+select option {
+  background-color: #0b1712;
+  color: #fffdf8;
+  padding: 8px 12px;
+}
+
+select option:checked {
+  background-color: #1a382b;
+  color: #fffdf8;
+}
+
+/* Light container override for select options */
+[data-theme='light'] select,
+.theme-light select,
+.input-light select {
+  color-scheme: light;
+}
+
+[data-theme='light'] select option,
+.theme-light select option,
+.input-light select option {
+  background-color: #ffffff;
+  color: #173328;
+}
+
+[data-theme='light'] select option:checked,
+.theme-light select option:checked,
+.input-light select option:checked {
+  background-color: #173328;
+  color: #ffffff;
+}
+
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
-  outline: 2px solid var(--ds-color-brand);
+  outline: 2px solid var(--ds-sand-300, #d7bc9c);
   outline-offset: 1px;
 }
 
