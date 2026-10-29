@@ -15,7 +15,14 @@ import { getSocket, disconnectSocket, setTokenRefreshCallback, reconnectSocket }
 const AuthContext = createContext();
 
 export default function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    try {
+      const stored = localStorage.getItem('user');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
   const [loading, setLoading] = useState(true);
   const [upcomingTrips, setUpcomingTrips] = useState([]); 
   const navigate = useNavigate();
@@ -44,12 +51,14 @@ export default function AuthProvider({ children }) {
     clearInterval(tokenRefreshIntervalRef.current);
 
     try {
-      await api.post('/auth/logout');
+      const refreshToken = localStorage.getItem('refreshToken');
+      await api.post('/auth/logout', { refreshToken: refreshToken || undefined });
     } catch (error) {
       console.warn("Logout API call failed, proceeding with client cleanup:", error?.message);
     } finally {
       setUser(null);
       localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
       delete api.defaults.headers.common['Authorization'];
       disconnectSocket();
@@ -59,18 +68,25 @@ export default function AuthProvider({ children }) {
 
   /**
    * Refreshes the access token and reconnects the socket.
-   * Uses unintercepted refreshClient to guarantee no interceptor recursion.
+   * Uses unintercepted refreshClient with explicit fallback body for cross-site cookie blocking.
    */
   const handleTokenRefresh = useCallback(async () => {
     try {
-      const { data } = await refreshClient.post('/auth/refresh-token');
+      const storedRefreshToken = localStorage.getItem('refreshToken');
+      const { data } = await refreshClient.post('/auth/refresh-token', {
+        refreshToken: storedRefreshToken || undefined,
+      });
       const newAccessToken = data?.data?.accessToken;
+      const newRefreshToken = data?.data?.refreshToken;
       
       if (!newAccessToken) {
         throw new Error('Refresh response missing access token');
       }
 
       localStorage.setItem('accessToken', newAccessToken);
+      if (newRefreshToken) {
+        localStorage.setItem('refreshToken', newRefreshToken);
+      }
       api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
       
       reconnectSocket(newAccessToken);
@@ -91,21 +107,28 @@ export default function AuthProvider({ children }) {
     const REFRESH_INTERVAL = 14 * 60 * 1000;
 
     const refreshToken = async () => {
-      // If token was removed, stop interval
-      if (!localStorage.getItem('accessToken')) {
+      // If no token exists, stop interval
+      if (!localStorage.getItem('accessToken') && !localStorage.getItem('refreshToken')) {
         clearInterval(tokenRefreshIntervalRef.current);
         return;
       }
 
       try {
-        const { data } = await refreshClient.post('/auth/refresh-token');
+        const storedRefreshToken = localStorage.getItem('refreshToken');
+        const { data } = await refreshClient.post('/auth/refresh-token', {
+          refreshToken: storedRefreshToken || undefined,
+        });
         const newAccessToken = data?.data?.accessToken;
+        const newRefreshToken = data?.data?.refreshToken;
         
         if (!newAccessToken) {
           throw new Error('Missing access token');
         }
 
         localStorage.setItem('accessToken', newAccessToken);
+        if (newRefreshToken) {
+          localStorage.setItem('refreshToken', newRefreshToken);
+        }
         api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
         
         connectSocket(newAccessToken);
@@ -128,6 +151,10 @@ export default function AuthProvider({ children }) {
     const handleSessionExpired = () => {
       clearInterval(tokenRefreshIntervalRef.current);
       setUser(null);
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      delete api.defaults.headers.common['Authorization'];
       disconnectSocket();
     };
 
@@ -138,9 +165,8 @@ export default function AuthProvider({ children }) {
   // Multi-tab synchronization: sync logout and login events across tabs
   useEffect(() => {
     const handleStorageChange = (e) => {
-      if (e.key === 'accessToken') {
-        if (!e.newValue) {
-          // Token removed in another tab -> sync logout immediately
+      if (e.key === 'accessToken' || e.key === 'refreshToken') {
+        if (!localStorage.getItem('accessToken') && !localStorage.getItem('refreshToken')) {
           clearInterval(tokenRefreshIntervalRef.current);
           setUser(null);
           disconnectSocket();
@@ -157,9 +183,13 @@ export default function AuthProvider({ children }) {
   /**
    * Logs in the user, sets state, and navigates seamlessly.
    */
-  const login = useCallback(async (userData, accessToken, redirectTo = '/dashboard') => {
+  const login = useCallback(async (userData, accessToken, redirectTo = '/dashboard', refreshToken = null) => {
     setUser(userData);
     localStorage.setItem('accessToken', accessToken);
+    if (refreshToken) {
+      localStorage.setItem('refreshToken', refreshToken);
+    }
+    localStorage.setItem('user', JSON.stringify(userData));
     api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
     
     connectSocket(accessToken);
@@ -171,22 +201,29 @@ export default function AuthProvider({ children }) {
   /**
    * Restores session on initial app mount:
    * Only calls refresh-token if a prior session token exists in localStorage.
-   * If user is unauthenticated or a guest, finishes loading immediately without spamming network requests.
+   * Passes refreshToken in body for cross-site cookie compatibility (Vercel <-> Render).
    */
   useEffect(() => {
     const restoreSession = async () => {
       const storedToken = localStorage.getItem('accessToken');
-      if (!storedToken) {
+      const storedRefreshToken = localStorage.getItem('refreshToken');
+      if (!storedToken && !storedRefreshToken) {
         setLoading(false);
         return;
       }
 
       try {
-        const res = await refreshClient.post('/auth/refresh-token');
-        const { accessToken, user: restoredUser } = res.data.data;
+        const res = await refreshClient.post('/auth/refresh-token', {
+          refreshToken: storedRefreshToken || undefined,
+        });
+        const { accessToken, refreshToken: newRefreshToken, user: restoredUser } = res.data.data;
         
         setUser(restoredUser);
         localStorage.setItem('accessToken', accessToken);
+        if (newRefreshToken) {
+          localStorage.setItem('refreshToken', newRefreshToken);
+        }
+        localStorage.setItem('user', JSON.stringify(restoredUser));
         api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
         
         connectSocket(accessToken);
@@ -195,6 +232,7 @@ export default function AuthProvider({ children }) {
         // Stale or invalid session - silently clean up
         setUser(null);
         localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
         delete api.defaults.headers.common['Authorization'];
       } finally {

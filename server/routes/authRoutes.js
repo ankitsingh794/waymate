@@ -17,7 +17,7 @@ const registerValidation = [
 ];
 
 const loginValidation = [
-  body('email').isEmail().withMessage('Please provide a valid email.'),
+  body('email').trim().isEmail().withMessage('Please provide a valid email.').normalizeEmail(),
   body('password').notEmpty().withMessage('Password is required.'),
 ];
 
@@ -51,7 +51,7 @@ router.post(
     authController.refreshToken
 );
 
-router.post('/forgot-password', generalLimiter, [body('email').isEmail()], validate, authController.forgotPassword);
+router.post('/forgot-password', generalLimiter, [body('email').trim().isEmail().normalizeEmail()], validate, authController.forgotPassword);
 
 router.post('/reset-password', generalLimiter, resetPasswordValidation, validate, authController.resetPassword);
 

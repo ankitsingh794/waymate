@@ -93,9 +93,10 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Defense-in-depth: if there is no accessToken in storage, user is a guest; don't spam refresh
+    // Defense-in-depth: if there is no token in storage, user is a guest; don't spam refresh
     const existingToken = localStorage.getItem('accessToken');
-    if (!existingToken) {
+    const existingRefreshToken = localStorage.getItem('refreshToken');
+    if (!existingToken && !existingRefreshToken) {
       return Promise.reject(error);
     }
 
@@ -116,14 +117,21 @@ api.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      const { data } = await refreshClient.post('/auth/refresh-token');
+      const storedRefreshToken = localStorage.getItem('refreshToken');
+      const { data } = await refreshClient.post('/auth/refresh-token', {
+        refreshToken: storedRefreshToken || undefined,
+      });
       const newAccessToken = data?.data?.accessToken;
+      const newRefreshToken = data?.data?.refreshToken;
 
       if (!newAccessToken) {
         throw new Error('Refresh response missing access token.');
       }
 
       localStorage.setItem('accessToken', newAccessToken);
+      if (newRefreshToken) {
+        localStorage.setItem('refreshToken', newRefreshToken);
+      }
       api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
       originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
 
@@ -132,10 +140,11 @@ api.interceptors.response.use(
 
       return api(originalRequest);
     } catch (refreshError) {
-      // Refresh failed (cookie expired, invalid, rate limited, etc.)
+      // Refresh failed (cookie/token expired, invalid, rate limited, etc.)
       processQueue(refreshError, null);
 
       localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
       delete api.defaults.headers.common['Authorization'];
 

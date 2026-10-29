@@ -22,8 +22,8 @@ export default function VerifyEmail() {
         if (token) {
             api.post('/auth/verify-email', { token })
                 .then((res) => {
-                    const { user, accessToken } = res.data.data;
-                    setUserInfo({ user, accessToken });
+                    const { user, accessToken, refreshToken } = res.data.data;
+                    setUserInfo({ user, accessToken, refreshToken });
                     setStatus('Email verified successfully!');
                     setVerified(true);
                     setHasError(false);
@@ -40,14 +40,13 @@ export default function VerifyEmail() {
 
     const continueOnWeb = () => {
         if (userInfo) {
-            login(userInfo.user, userInfo.accessToken);
-            navigate('/dashboard');
+            login(userInfo.user, userInfo.accessToken, '/dashboard', userInfo.refreshToken);
         }
     };
 
     const continueOnMobile = () => {
         if (userInfo) {
-            login(userInfo.user, userInfo.accessToken);
+            login(userInfo.user, userInfo.accessToken, '/dashboard', userInfo.refreshToken);
             setStatus('Please close this browser and open the WayMate mobile app to login.');
         }
     };
@@ -59,54 +58,60 @@ export default function VerifyEmail() {
                 : <>Verifying<br />your email.</>
             }
             subline={verified
-                ? 'Your account is ready. Choose how to continue.'
-                : 'Just a moment while we confirm your address.'
+                ? 'Your email has been confirmed. You are ready to explore.'
+                : 'Confirming your credentials with the server…'
             }
         >
             <div className="auth-form-card">
                 <div className="auth-form-header">
-                    <h1 className="auth-form-title">{status}</h1>
+                    <h1 className="auth-form-title">{t('verifyEmail.title')}</h1>
+                    <p className={`auth-message ${hasError ? 'is-error' : verified ? 'is-success' : ''}`}>
+                        {status}
+                    </p>
                 </div>
 
-                {verified && (
-                    <div className="auth-verify-actions">
-                        <p className="auth-verify-heading">
-                            How would you like to continue using WayMate?
-                        </p>
-
-                        <div className="auth-verify-buttons">
+                <div style={{ display: 'grid', gap: '0.85rem' }}>
+                    {verified && (
+                        <>
                             <button
+                                type="button"
+                                className="auth-submit-btn"
                                 onClick={continueOnWeb}
-                                className="cta-button cta-button-web"
                             >
-                                🌐 Continue on Web Browser
+                                Continue to Dashboard
                             </button>
                             <button
+                                type="button"
+                                className="auth-submit-btn"
+                                style={{
+                                    background: 'transparent',
+                                    border: '1px solid var(--auth-border, rgba(255,255,255,0.15))',
+                                    color: 'var(--auth-text-subtle, #a0a0a0)'
+                                }}
                                 onClick={continueOnMobile}
-                                className="cta-button cta-button-mobile"
                             >
-                                📱 Continue on Mobile App
+                                Open Mobile App
                             </button>
-                        </div>
+                        </>
+                    )}
 
-                        <p className="auth-verify-note">
-                            Choose "Mobile App" if you have the WayMate app installed on your device.
-                            Otherwise, continue on the web for the full experience.
-                        </p>
-                    </div>
-                )}
+                    {hasError && (
+                        <Link
+                            to="/login"
+                            className="auth-submit-btn"
+                            style={{ textAlign: 'center', textDecoration: 'none' }}
+                        >
+                            Return to Sign In
+                        </Link>
+                    )}
+                </div>
 
-                {!verified && hasError && (
-                    <div className="auth-form-footer">
-                        <Link to="/login" className="auth-back-link">← Back to Login</Link>
-                    </div>
-                )}
-
-                {!verified && !hasError && (
-                    <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem 0' }}>
-                        <span className="auth-submit-spinner" style={{ width: '1.5rem', height: '1.5rem', borderWidth: '2.5px' }} aria-label="Verifying" />
-                    </div>
-                )}
+                <div className="auth-form-footer">
+                    <p>
+                        Need assistance?{' '}
+                        <a href="mailto:support@waymate.com">Contact Support</a>
+                    </p>
+                </div>
             </div>
         </AuthLayout>
     );

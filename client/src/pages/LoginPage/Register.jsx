@@ -28,7 +28,11 @@ export default function Register() {
         setIsSuccess(false);
         setIsSubmitting(true);
         try {
-            await api.post('/auth/register', formData);
+            await api.post('/auth/register', {
+                name: formData.name.trim(),
+                email: formData.email.trim().toLowerCase(),
+                password: formData.password,
+            });
             setIsSuccess(true);
             setMessage('Registration successful! Please check your email to verify your account. Redirecting…');
             setTimeout(() => navigate('/login'), 3000);
@@ -103,7 +107,7 @@ export default function Register() {
                         {message && (
                             <p
                                 className={`auth-message ${isSuccess ? 'is-success' : 'is-error'}`}
-                                role={isSuccess ? 'status' : 'alert'}
+                                role="alert"
                             >
                                 {message}
                             </p>
@@ -112,7 +116,7 @@ export default function Register() {
                         <button
                             type="submit"
                             className="auth-submit-btn"
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || isSuccess}
                         >
                             {isSubmitting && <span className="auth-submit-spinner" aria-hidden="true" />}
                             {isSubmitting ? 'Creating account…' : t('register.button')}
@@ -122,8 +126,7 @@ export default function Register() {
 
                 <div className="auth-form-footer">
                     <p>
-                        {t('register.hasAccount')}{' '}
-                        <Link to="/login">{t('register.loginLink')}</Link>
+                        By continuing, you agree to WayMate's terms and privacy policy.
                     </p>
                 </div>
             </div>

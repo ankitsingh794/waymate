@@ -29,9 +29,11 @@ const issueTokensAndRespond = (res, user, statusCode, message) => {
 exports.registerUser = async (req, res, next) => {
     try {
         const { name, email, password, role } = req.body;
+        const cleanEmail = email ? email.trim().toLowerCase() : '';
+        const cleanName = name ? name.trim() : '';
         const assignedRole = role === 'researcher' ? 'researcher' : 'user';
 
-        let user = await User.findOne({ email });
+        let user = await User.findOne({ email: cleanEmail });
 
         if (user && user.isEmailVerified) {
             return next(new AppError('An account with this email already exists.', 409));
@@ -53,7 +55,7 @@ exports.registerUser = async (req, res, next) => {
             return sendSuccess(res, 200, 'An unverified account exists. A new verification email has been sent.');
         }
         
-        user = new User({ name, email, password, role: assignedRole });
+        user = new User({ name: cleanName, email: cleanEmail, password, role: assignedRole });
         
         const verificationToken = user.createEmailVerifyToken();
         await user.save();
@@ -106,7 +108,8 @@ exports.loginUser = async (req, res, next) => {
             return next(new AppError('Please provide email and password.', 400));
         }
         
-        const user = await User.findOne({ email }).select('+password');
+        const cleanEmail = email.trim().toLowerCase();
+        const user = await User.findOne({ email: cleanEmail }).select('+password');
 
         if (!user || !(await user.matchPassword(password))) {
             return next(new AppError('Invalid email or password.', 401));
@@ -127,7 +130,8 @@ exports.loginUser = async (req, res, next) => {
 exports.resendVerificationEmail = async (req, res, next) => {
     try {
         const { email } = req.body;
-        const user = await User.findOne({ email });
+        const cleanEmail = email ? email.trim().toLowerCase() : '';
+        const user = await User.findOne({ email: cleanEmail });
 
         if (!user) {
             logger.warn(`Verification resend requested for non-existent email: ${email}`);
@@ -245,7 +249,8 @@ exports.updatePassword = async (req, res, next) => {
 
 exports.forgotPassword = async (req, res, next) => {
     try {
-        const user = await User.findOne({ email: req.body.email });
+        const cleanEmail = req.body.email ? req.body.email.trim().toLowerCase() : '';
+        const user = await User.findOne({ email: cleanEmail });
         if (user) {
             const resetToken = user.createPasswordResetToken();
             await user.save({ validateBeforeSave: false });

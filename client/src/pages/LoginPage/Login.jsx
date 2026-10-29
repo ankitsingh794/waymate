@@ -30,9 +30,13 @@ export default function Login() {
         setMessage('');
         setIsSubmitting(true);
         try {
-            const res = await api.post('/auth/login', formData);
-            const { accessToken, user } = res.data.data;
-            login(user, accessToken, destination);
+            const cleanEmail = formData.email.trim().toLowerCase();
+            const res = await api.post('/auth/login', {
+                email: cleanEmail,
+                password: formData.password,
+            });
+            const { accessToken, refreshToken, user: authUser } = res.data.data;
+            login(authUser, accessToken, destination, refreshToken);
         } catch (err) {
             const status = err.response?.status;
             let displayMsg = err.response?.data?.message;

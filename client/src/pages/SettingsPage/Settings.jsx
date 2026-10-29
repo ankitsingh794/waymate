@@ -7,6 +7,7 @@ import {
 import DashboardNavbar from '../../components/DashboardNavbar';
 import { useConfirm } from '../../components/UI';
 import api from '../../utils/axiosInstance';
+import { useAuth } from '../../context/AuthContext';
 
 import './Settings.css';
 
@@ -28,6 +29,7 @@ export default function Settings() {
     const { t } = useTranslation(['settings', 'common']);
     const navigate = useNavigate();
     const confirm = useConfirm();
+    const { logout } = useAuth();
 
 
     const [isNightMode, setIsNightMode] = useState(() => localStorage.getItem('nightMode') === 'true');
@@ -87,9 +89,7 @@ export default function Settings() {
     
     const handleLogout = async () => {
         try {
-            await api.post('/auth/logout');
-            localStorage.removeItem('accessToken');
-            navigate('/login');
+            await logout();
         } catch (error) {
             setMessage('Logout failed. Please try again.');
         }

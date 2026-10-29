@@ -6,13 +6,25 @@ import { throttle } from 'lodash';
 const LOCATION_UPDATE_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
 const useLocationTracker = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const intervalRef = useRef(null);
 
   useEffect(() => {
-    // This function sends the location to the backend.
-    // We use 'throttle' to ensure we don't send updates too frequently.
+    // Only track when authenticated with an active session token
+    const token = localStorage.getItem('accessToken');
+    if (!isAuthenticated || !user || !token) {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      return;
+    }
+
+    // Sends coordinates to the backend; throttled to at most once per minute
     const sendLocationUpdate = throttle(async (position) => {
+      const activeToken = localStorage.getItem('accessToken');
+      if (!activeToken) return;
+
       try {
         const { latitude, longitude } = position.coords;
         await api.patch('/users/profile/location', {
@@ -20,9 +32,12 @@ const useLocationTracker = () => {
           lon: longitude,
         });
       } catch (error) {
-        console.error('Failed to send location update:', error);
+        // Suppress 401s — handled centrally by axios response interceptor
+        if (error.response?.status !== 401) {
+          console.error('Failed to send location update:', error);
+        }
       }
-    }, 60 * 1000); // Throttle to once per minute at most
+    }, 60 * 1000);
 
     const startTracking = () => {
       if (!navigator.geolocation) {
@@ -30,15 +45,12 @@ const useLocationTracker = () => {
         return;
       }
       
-      // Clear any existing interval to prevent duplicates
       if (intervalRef.current) clearInterval(intervalRef.current);
       
-      // Get an immediate first location update
       navigator.geolocation.getCurrentPosition(sendLocationUpdate, (err) => {
         console.warn(`Could not get initial location: ${err.message}`);
       });
       
-      // Then, set an interval to update the location periodically
       intervalRef.current = setInterval(() => {
         navigator.geolocation.getCurrentPosition(sendLocationUpdate, (err) => {
           console.warn(`Could not get periodic location: ${err.message}`);
@@ -46,24 +58,15 @@ const useLocationTracker = () => {
       }, LOCATION_UPDATE_INTERVAL);
     };
 
-    const stopTracking = () => {
+    startTracking();
+
+    return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
     };
-
-    // Start tracking when the user is authenticated, stop when they are not.
-    if (isAuthenticated) {
-      startTracking();
-    } else {
-      stopTracking();
-    }
-
-    // Cleanup function to stop tracking when the component unmounts
-    return () => stopTracking();
-
-  }, [isAuthenticated]); // This effect re-runs only when the user's auth state changes
+  }, [isAuthenticated, user]);
 };
 
 export default useLocationTracker;

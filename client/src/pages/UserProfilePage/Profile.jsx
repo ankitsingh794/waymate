@@ -16,6 +16,7 @@ import {
   VscSignOut,
 } from 'react-icons/vsc';
 import api from '../../utils/axiosInstance';
+import { useAuth } from '../../context/AuthContext';
 import { Toast } from '../../components/UI';
 import './Profile.css';
 
@@ -288,15 +289,12 @@ export default function UserProfile() {
 
   const handleLogout = async () => {
     setBusy((prev) => ({ ...prev, loggingOut: true }));
-
     try {
-      await api.post('/auth/logout');
+      await logout();
     } catch {
-      // continue with local cleanup even if API logout fails
+      // continue with cleanup
     } finally {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('user');
-      navigate('/login');
+      setBusy((prev) => ({ ...prev, loggingOut: false }));
     }
   };
 

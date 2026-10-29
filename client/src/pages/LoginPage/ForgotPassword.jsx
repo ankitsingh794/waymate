@@ -26,7 +26,7 @@ export default function ForgotPassword() {
         setError('');
         setIsSubmitting(true);
         try {
-            await api.post('/auth/forgot-password', { email });
+            await api.post('/auth/forgot-password', { email: email.trim().toLowerCase() });
             setMessage(t('forgotPassword.successMessage'));
         } catch {
             setError(t('forgotPassword.errorMessage'));
@@ -51,23 +51,24 @@ export default function ForgotPassword() {
                 <form onSubmit={handleSubmit} noValidate>
                     <div style={{ display: 'grid', gap: '1rem' }}>
                         <div className="auth-field">
-                            <label htmlFor="fp-email" className="auth-field-label">
+                            <label htmlFor="forgot-email" className="auth-field-label">
                                 {t('forgotPassword.emailLabel')}
                             </label>
                             <input
-                                id="fp-email"
+                                id="forgot-email"
+                                name="email"
                                 type="email"
                                 className="auth-field-input"
                                 placeholder="you@example.com"
+                                autoComplete="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                autoComplete="email"
                                 required
                             />
                         </div>
 
                         {message && (
-                            <p className="auth-message is-success" role="status">{message}</p>
+                            <p className="auth-message is-success" role="alert">{message}</p>
                         )}
                         {error && (
                             <p className="auth-message is-error" role="alert">{error}</p>
@@ -79,16 +80,15 @@ export default function ForgotPassword() {
                             disabled={isSubmitting}
                         >
                             {isSubmitting && <span className="auth-submit-spinner" aria-hidden="true" />}
-                            {isSubmitting
-                                ? t('forgotPassword.sendingText') || 'Sending…'
-                                : t('forgotPassword.button')}
+                            {isSubmitting ? 'Sending link…' : t('forgotPassword.button')}
                         </button>
                     </div>
                 </form>
 
                 <div className="auth-form-footer">
                     <p>
-                        Remembered it? <a href="/login">Back to login</a>
+                        Remember your password?{' '}
+                        <a href="/login">{t('forgotPassword.backToLogin')}</a>
                     </p>
                 </div>
             </div>
