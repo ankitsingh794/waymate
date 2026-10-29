@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom';
 import './App.css';
 import ProtectedRoute from './components/ProtectedRoute';
 import useLocationTracker from './utils/useLocationTracker';
+import { Loading } from './components/UI';
 
 // ─── Entry routes — eagerly loaded (always needed on first paint) ──────────
 import Home from './pages/HomePage/Home';
@@ -40,14 +41,21 @@ const InviteLandingPage = lazy(() => import('./pages/InvitePage/InviteLandingPag
 // ─── Page-level skeleton shown while a lazy route chunk downloads ────────────
 function PageSkeleton() {
   return (
-    <div className="page-skeleton" aria-hidden="true">
-      <div className="page-skeleton__nav" />
-      <div className="page-skeleton__body">
-        <div className="page-skeleton__block page-skeleton__block--hero" />
-        <div className="page-skeleton__block page-skeleton__block--wide" />
-        <div className="page-skeleton__block page-skeleton__block--half" />
-        <div className="page-skeleton__block page-skeleton__block--half" />
-      </div>
+    <div
+      style={{
+        minHeight: '75vh',
+        display: 'grid',
+        placeItems: 'center',
+        padding: '2rem',
+      }}
+      aria-busy="true"
+      aria-label="Loading page"
+    >
+      <Loading
+        size="lg"
+        label="WayMate Atelier"
+        sublabel="Curating journey view and route intelligence..."
+      />
     </div>
   );
 }

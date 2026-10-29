@@ -62,10 +62,22 @@
       #app-loader {
         position: fixed;
         inset: 0;
-        display: grid;
-        place-items: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
         background: #f8f5ee;
         z-index: 9999;
+      }
+
+      .app-loader-brand {
+        font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 0.85rem;
+        font-weight: 550;
+        letter-spacing: 0.04em;
+        color: #173328;
+        opacity: 0.85;
       }
 
       /* Compass ring spinner — matches Rule 4 brand motif */
@@ -196,6 +208,7 @@
         <div class="app-loader-compass__inner"></div>
         <div class="app-loader-compass__needle"></div>
       </div>
+      <span class="app-loader-brand">WayMate Atelier</span>
     </div>
 
     <div id="root"></div>

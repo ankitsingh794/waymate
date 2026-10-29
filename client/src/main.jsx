@@ -30,11 +30,25 @@ function GlobalSuspenseFallback() {
         backgroundColor: '#f8f5ee',
       }}
     >
-      {/* Compass-ring spinner — matches the brand motif, pure CSS */}
-      <div className="app-compass-loader" aria-label="Loading…" role="status">
-        <div className="app-compass-loader__outer" />
-        <div className="app-compass-loader__inner" />
-        <div className="app-compass-loader__needle" />
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.85rem' }}>
+        {/* Compass-ring spinner — matches the brand motif, pure CSS */}
+        <div className="app-compass-loader" aria-label="Loading…" role="status">
+          <div className="app-compass-loader__outer" />
+          <div className="app-compass-loader__inner" />
+          <div className="app-compass-loader__needle" />
+        </div>
+        <span
+          style={{
+            fontFamily: 'Inter, -apple-system, sans-serif',
+            fontSize: '0.85rem',
+            fontWeight: 550,
+            letterSpacing: '0.04em',
+            color: '#173328',
+            opacity: 0.85,
+          }}
+        >
+          WayMate Atelier
+        </span>
       </div>
     </div>
   );
