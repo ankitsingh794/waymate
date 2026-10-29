@@ -809,11 +809,14 @@ export default function Dashboard() {
 
                         <div className="dashboard-focus-actions">
                           <Link to={`/trip/${focusTripId}`} className="dashboard-btn-expedition-primary">
-                            <span>Open Itinerary Studio</span>
+                            <span>Expedition Overview</span>
                             <VscArrowRight />
                           </Link>
-                          <Link to={`/trip/${focusTripId}/edit`} className="dashboard-btn-expedition-ghost">
-                            Edit Route
+                          <Link to={`/trip/${focusTripId}/itinerary`} className="dashboard-btn-expedition-ghost">
+                            Itinerary Studio
+                          </Link>
+                          <Link to={`/trip/${focusTripId}/settings`} className="dashboard-btn-expedition-ghost">
+                            Trip Settings
                           </Link>
                           <Link to={`/trip/${focusTripId}/expenses`} className="dashboard-btn-expedition-ghost">
                             Expense Ledger

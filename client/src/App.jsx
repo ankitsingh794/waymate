@@ -155,6 +155,16 @@ function App() {
         }
       />
       <Route
+        path="/trip/:id/settings"
+        element={
+          <ProtectedRoute>
+            <Suspense fallback={<PageSkeleton />}>
+              <EditTrip />
+            </Suspense>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/trip/:id/edit"
         element={
           <ProtectedRoute>

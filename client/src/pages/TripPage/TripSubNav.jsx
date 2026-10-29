@@ -22,7 +22,7 @@ export default function TripSubNav({ activeTab }) {
     { to: `/trip/${effectiveId}/places`, label: 'Curated Places', icon: VscLocation },
     { to: `/trip/${effectiveId}/expenses`, label: 'Expense Ledger', icon: GiTakeMyMoney },
     { to: `/trip/${effectiveId}/members`, label: 'Squad & Roles', icon: VscOrganization },
-    { to: `/trip/${effectiveId}/edit`, label: 'Settings', icon: VscSettingsGear },
+    { to: `/trip/${effectiveId}/settings`, label: 'Settings', icon: VscSettingsGear },
   ];
 
   return (
