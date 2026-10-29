@@ -14,17 +14,28 @@ import ResetPassword from './pages/LoginPage/ResetPassword';
 
 // ─── Protected routes — lazy loaded (only download when navigated to) ───────
 const Dashboard       = lazy(() => import('./pages/DashboardPage/Dashboard'));
+const TripsLibraryPage = lazy(() => import('./pages/TripPage/TripsLibraryPage'));
+const TripCreateWizard = lazy(() => import('./pages/TripPage/TripCreateWizard'));
 const TripDetails     = lazy(() => import('./pages/TripPage/Details'));
+const TripItineraryStudio = lazy(() => import('./pages/TripPage/TripItineraryStudio'));
+const TripTransitSchedule = lazy(() => import('./pages/TripPage/TripTransitSchedule'));
+const TripPlacesRecommendations = lazy(() => import('./pages/TripPage/TripPlacesRecommendations'));
+const TripMembersManage = lazy(() => import('./pages/TripPage/TripMembersManage'));
 const EditTrip        = lazy(() => import('./pages/TripPage/EditTrip'));
 const GroupMessenger  = lazy(() => import('./pages/ChatAssistantPage/GroupMessenger'));
+const MessagesInbox   = lazy(() => import('./pages/ChatAssistantPage/MessagesInbox'));
 const ExpensesPage    = lazy(() => import('./pages/ExpensesPage/ExpensesPage'));
 const AIAssistant     = lazy(() => import('./pages/ChatAssistantPage/AIAssistant'));
+const TrackingCockpit = lazy(() => import('./pages/TrackingPage/TrackingCockpit'));
+const ModeConfirmationStudio = lazy(() => import('./pages/TrackingPage/ModeConfirmationStudio'));
+const ResearcherPortal = lazy(() => import('./pages/AnalyticsPage/ResearcherPortal'));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage/NotificationsPage'));
 const HouseholdsPage  = lazy(() => import('./pages/HouseholdsPage/HouseholdsPage'));
 const SurveysPage     = lazy(() => import('./pages/SurveysPage/SurveysPage'));
 const Profile         = lazy(() => import('./pages/UserProfilePage/Profile'));
 const Settings        = lazy(() => import('./pages/SettingsPage/Settings'));
 const ExplorePage     = lazy(() => import('./pages/DashboardPage/ExplorePage'));
+const InviteLandingPage = lazy(() => import('./pages/InvitePage/InviteLandingPage'));
 
 // ─── Page-level skeleton shown while a lazy route chunk downloads ────────────
 function PageSkeleton() {
@@ -66,11 +77,71 @@ function App() {
         }
       />
       <Route
+        path="/trips"
+        element={
+          <ProtectedRoute>
+            <Suspense fallback={<PageSkeleton />}>
+              <TripsLibraryPage />
+            </Suspense>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/trips/new"
+        element={
+          <ProtectedRoute>
+            <Suspense fallback={<PageSkeleton />}>
+              <TripCreateWizard />
+            </Suspense>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/trip/:id"
         element={
           <ProtectedRoute>
             <Suspense fallback={<PageSkeleton />}>
               <TripDetails />
+            </Suspense>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/trip/:id/itinerary"
+        element={
+          <ProtectedRoute>
+            <Suspense fallback={<PageSkeleton />}>
+              <TripItineraryStudio />
+            </Suspense>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/trip/:id/transit"
+        element={
+          <ProtectedRoute>
+            <Suspense fallback={<PageSkeleton />}>
+              <TripTransitSchedule />
+            </Suspense>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/trip/:id/places"
+        element={
+          <ProtectedRoute>
+            <Suspense fallback={<PageSkeleton />}>
+              <TripPlacesRecommendations />
+            </Suspense>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/trip/:id/members"
+        element={
+          <ProtectedRoute>
+            <Suspense fallback={<PageSkeleton />}>
+              <TripMembersManage />
             </Suspense>
           </ProtectedRoute>
         }
@@ -171,6 +242,66 @@ function App() {
           <ProtectedRoute>
             <Suspense fallback={<PageSkeleton />}>
               <ExplorePage />
+            </Suspense>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/messages"
+        element={
+          <ProtectedRoute>
+            <Suspense fallback={<PageSkeleton />}>
+              <MessagesInbox />
+            </Suspense>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tracking"
+        element={
+          <ProtectedRoute>
+            <Suspense fallback={<PageSkeleton />}>
+              <TrackingCockpit />
+            </Suspense>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tracking/history"
+        element={
+          <ProtectedRoute>
+            <Suspense fallback={<PageSkeleton />}>
+              <ModeConfirmationStudio />
+            </Suspense>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/analytics"
+        element={
+          <ProtectedRoute>
+            <Suspense fallback={<PageSkeleton />}>
+              <ResearcherPortal />
+            </Suspense>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/invite/:type/:token"
+        element={
+          <ProtectedRoute>
+            <Suspense fallback={<PageSkeleton />}>
+              <InviteLandingPage />
+            </Suspense>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/app/invite/:type/:token"
+        element={
+          <ProtectedRoute>
+            <Suspense fallback={<PageSkeleton />}>
+              <InviteLandingPage />
             </Suspense>
           </ProtectedRoute>
         }

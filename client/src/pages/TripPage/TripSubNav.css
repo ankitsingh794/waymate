@@ -1,0 +1,70 @@
+/* ══════════════════════════════════════════════════════════════════════════════
+   TripSubNav.css — WayMate Atelier Trip Expedition Sub-Navigation
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.trip-subnav-bar {
+  position: sticky;
+  top: 72px;
+  z-index: 40;
+  margin: 0.5rem 0 1.25rem;
+  padding: 0.25rem 0;
+}
+
+.trip-subnav-shell {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(14, 30, 23, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 0.3rem 0.4rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(215, 188, 156, 0.18);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
+  overflow-x: auto;
+  scrollbar-width: none;
+  max-width: 100%;
+}
+
+.trip-subnav-shell::-webkit-scrollbar {
+  display: none;
+}
+
+.trip-subnav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.95rem;
+  border-radius: 9999px;
+  color: rgba(215, 188, 156, 0.72);
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 0.82rem;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.18s ease, background 0.18s ease;
+}
+
+.trip-subnav-link:hover {
+  color: #fffdf8;
+  background: rgba(215, 188, 156, 0.08);
+  text-decoration: none;
+}
+
+.trip-subnav-link.is-active {
+  color: #fffdf8;
+  background: rgba(215, 188, 156, 0.16);
+  border: 1px solid rgba(215, 188, 156, 0.28);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  font-weight: 600;
+}
+
+.trip-subnav-icon {
+  font-size: 1rem;
+  opacity: 0.85;
+}
+
+.trip-subnav-link.is-active .trip-subnav-icon {
+  opacity: 1;
+  color: var(--ds-sand-300, #d7bc9c);
+}

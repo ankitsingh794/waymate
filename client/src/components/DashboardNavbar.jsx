@@ -3,10 +3,15 @@ import { Link, NavLink, useLocation } from 'react-router-dom';
 import {
   VscAccount,
   VscBell,
+  VscCommentDiscussion,
+  VscCompass,
   VscGraph,
   VscHome,
+  VscLocation,
   VscMenu,
+  VscOrganization,
   VscRobot,
+  VscSearch,
   VscSettingsGear,
   VscSignOut,
 } from 'react-icons/vsc';
@@ -37,9 +42,11 @@ export default function DashboardNavbar() {
   const navItems = useMemo(
     () => [
       { path: '/dashboard', label: 'Dashboard', icon: VscHome },
-      { path: '/assistant', label: 'AI Assistant', icon: VscRobot },
-      { path: '/households', label: 'Groups', icon: VscAccount },
-      { path: '/notifications', label: 'Notifications', icon: VscBell },
+      { path: '/trips', label: 'Journeys', icon: VscCompass },
+      { path: '/assistant', label: 'AI Planner', icon: VscRobot },
+      { path: '/explore', label: 'Explore', icon: VscSearch },
+      { path: '/tracking', label: 'Mobility', icon: VscLocation },
+      { path: '/messages', label: 'Messages', icon: VscCommentDiscussion },
     ],
     []
   );
@@ -188,9 +195,17 @@ export default function DashboardNavbar() {
                     <VscAccount />
                     Profile
                   </Link>
+                  <Link to="/households" className="db-nav-profile-link" onClick={closeMenus}>
+                    <VscOrganization />
+                    Household Hub
+                  </Link>
                   <Link to="/surveys" className="db-nav-profile-link" onClick={closeMenus}>
                     <VscGraph />
-                    Survey data
+                    Survey Telemetry
+                  </Link>
+                  <Link to="/analytics" className="db-nav-profile-link" onClick={closeMenus}>
+                    <VscGraph />
+                    NATPAC Analytics
                   </Link>
                   <Link to="/settings" className="db-nav-profile-link" onClick={closeMenus}>
                     <VscSettingsGear />

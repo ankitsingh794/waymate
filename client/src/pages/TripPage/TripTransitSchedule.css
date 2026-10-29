@@ -1,0 +1,374 @@
+/* ══════════════════════════════════════════════════════════════════════════════
+   TripTransitSchedule.css — WayMate Atelier Smart Transit & Rail Engine
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.transit-sched-page {
+  min-height: 100vh;
+  background-color: #0b1712;
+  color: #fffdf8;
+  font-family: 'Inter', -apple-system, sans-serif;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.transit-sched-ambient {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.transit-sched-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.55;
+}
+
+.transit-sched-orb-1 {
+  width: 600px;
+  height: 600px;
+  top: -100px;
+  right: -50px;
+  background: radial-gradient(circle, rgba(23, 51, 40, 0.85) 0%, rgba(15, 32, 24, 0) 70%);
+}
+
+.transit-sched-orb-2 {
+  width: 500px;
+  height: 500px;
+  bottom: 0;
+  left: -100px;
+  background: radial-gradient(circle, rgba(215, 188, 156, 0.12) 0%, rgba(11, 23, 18, 0) 70%);
+}
+
+.transit-sched-shell {
+  position: relative;
+  z-index: 1;
+  width: min(1200px, calc(100% - 3rem));
+  margin-inline: auto;
+  padding: clamp(1.8rem, 3.5vw, 2.8rem) 0 clamp(3rem, 5vw, 4.5rem);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.transit-sched-top-nav {
+  margin-bottom: -0.5rem;
+}
+
+.transit-sched-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--ds-sand-300, #d7bc9c);
+  font-size: 0.82rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.transit-sched-back-link:hover {
+  color: #fffdf8;
+  text-decoration: underline;
+}
+
+.transit-sched-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+}
+
+.transit-sched-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--ds-sand-300, #d7bc9c);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.transit-sched-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+}
+
+.transit-sched-header h1 {
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(2rem, 3.8vw, 2.6rem);
+  color: #fffdf8;
+  line-height: 1.15;
+}
+
+.transit-sched-header p {
+  margin: 0.45rem 0 0;
+  color: #9fb3a8;
+  font-size: 0.95rem;
+}
+
+.transit-sched-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Corridor Banner Card */
+.transit-corridor-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  background: linear-gradient(145deg, rgba(23, 51, 40, 0.45) 0%, rgba(11, 23, 18, 0.75) 100%);
+  border: 1px solid rgba(215, 188, 156, 0.16);
+  border-radius: 1.15rem;
+  padding: 1.25rem 2rem;
+  backdrop-filter: blur(16px);
+}
+
+.corridor-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.corridor-stat .label {
+  font-size: 0.75rem;
+  color: var(--ds-sand-300, #d7bc9c);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.corridor-stat strong {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.25rem;
+  color: #fffdf8;
+}
+
+.corridor-arrow span {
+  font-size: 1.5rem;
+  color: rgba(215, 188, 156, 0.5);
+}
+
+/* Options Grid */
+.transit-options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 1.35rem;
+}
+
+.transit-train-card {
+  background: linear-gradient(145deg, rgba(23, 51, 40, 0.45) 0%, rgba(11, 23, 18, 0.8) 100%);
+  border: 1px solid rgba(215, 188, 156, 0.16);
+  border-radius: 1.15rem;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(16px);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.transit-train-card:hover {
+  border-color: rgba(215, 188, 156, 0.35);
+  transform: translateY(-2px);
+}
+
+.train-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.train-number {
+  font-size: 0.75rem;
+  color: var(--ds-sand-300, #d7bc9c);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: block;
+  margin-bottom: 0.15rem;
+}
+
+.train-card-header h3 {
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.25rem;
+  color: #fffdf8;
+}
+
+.train-timings-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(11, 23, 18, 0.6);
+  border: 1px solid rgba(215, 188, 156, 0.12);
+  border-radius: 0.85rem;
+  padding: 0.85rem 1rem;
+}
+
+.timing-box {
+  display: flex;
+  flex-direction: column;
+}
+
+.timing-box .time {
+  font-family: 'Inter', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fffdf8;
+}
+
+.timing-box .city {
+  font-size: 0.72rem;
+  color: #9fb3a8;
+  margin-top: 0.15rem;
+}
+
+.duration-line {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  flex: 1;
+  padding: 0 1rem;
+}
+
+.duration-line span {
+  font-size: 0.72rem;
+  color: var(--ds-sand-300, #d7bc9c);
+  font-weight: 500;
+}
+
+.duration-line .line {
+  width: 100%;
+  height: 2px;
+  background: rgba(215, 188, 156, 0.2);
+  border-radius: 9999px;
+}
+
+.train-classes-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.classes-label {
+  font-size: 0.78rem;
+  color: #9fb3a8;
+}
+
+.classes-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.class-pill {
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  background: rgba(215, 188, 156, 0.12);
+  border: 1px solid rgba(215, 188, 156, 0.22);
+  font-size: 0.72rem;
+  color: var(--ds-sand-200, #eadac4);
+  font-weight: 600;
+}
+
+.train-ai-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  background: rgba(23, 51, 40, 0.5);
+  border: 1px solid rgba(215, 188, 156, 0.15);
+  border-radius: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.82rem;
+  color: var(--ds-sand-200, #eadac4);
+  line-height: 1.45;
+}
+
+.train-ai-note svg {
+  color: var(--ds-sand-300, #d7bc9c);
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+
+.train-ai-note p {
+  margin: 0;
+}
+
+.train-card-footer {
+  border-top: 1px solid rgba(215, 188, 156, 0.1);
+  padding-top: 0.75rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.train-book-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--ds-sand-300, #d7bc9c);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.train-book-link:hover {
+  color: #fffdf8;
+  text-decoration: underline;
+}
+
+.transit-empty-card {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 4rem 1.5rem;
+  background: linear-gradient(145deg, rgba(23, 51, 40, 0.35) 0%, rgba(11, 23, 18, 0.7) 100%);
+  border: 1px dashed rgba(215, 188, 156, 0.2);
+  border-radius: 1.25rem;
+  gap: 1rem;
+}
+
+.transit-empty-card .empty-icon {
+  font-size: 2.8rem;
+  color: var(--ds-sand-300, #d7bc9c);
+}
+
+.transit-empty-card h3 {
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.5rem;
+  color: #fffdf8;
+}
+
+.transit-empty-card p {
+  margin: 0;
+  color: #9fb3a8;
+  max-width: 50ch;
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+.transit-sched-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  gap: 1rem;
+  color: var(--ds-sand-300, #d7bc9c);
+}

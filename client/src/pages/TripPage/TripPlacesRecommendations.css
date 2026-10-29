@@ -1,0 +1,320 @@
+/* ══════════════════════════════════════════════════════════════════════════════
+   TripPlacesRecommendations.css — WayMate Atelier Local Intelligence
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.places-rec-page {
+  min-height: 100vh;
+  background-color: #0b1712;
+  color: #fffdf8;
+  font-family: 'Inter', -apple-system, sans-serif;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.places-rec-ambient {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.places-rec-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.55;
+}
+
+.places-rec-orb-1 {
+  width: 600px;
+  height: 600px;
+  top: -100px;
+  right: -50px;
+  background: radial-gradient(circle, rgba(23, 51, 40, 0.85) 0%, rgba(15, 32, 24, 0) 70%);
+}
+
+.places-rec-orb-2 {
+  width: 500px;
+  height: 500px;
+  bottom: 0;
+  left: -100px;
+  background: radial-gradient(circle, rgba(215, 188, 156, 0.12) 0%, rgba(11, 23, 18, 0) 70%);
+}
+
+.places-rec-shell {
+  position: relative;
+  z-index: 1;
+  width: min(1200px, calc(100% - 3rem));
+  margin-inline: auto;
+  padding: clamp(1.8rem, 3.5vw, 2.8rem) 0 clamp(3rem, 5vw, 4.5rem);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.places-rec-top-nav {
+  margin-bottom: -0.5rem;
+}
+
+.places-rec-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--ds-sand-300, #d7bc9c);
+  font-size: 0.82rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.places-rec-back-link:hover {
+  color: #fffdf8;
+  text-decoration: underline;
+}
+
+.places-rec-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+}
+
+.places-rec-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--ds-sand-300, #d7bc9c);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.places-rec-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+}
+
+.places-rec-header h1 {
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(2rem, 3.8vw, 2.6rem);
+  color: #fffdf8;
+  line-height: 1.15;
+}
+
+.places-rec-header p {
+  margin: 0.45rem 0 0;
+  color: #9fb3a8;
+  font-size: 0.95rem;
+}
+
+.places-rec-header-actions {
+  display: flex;
+  align-items: center;
+}
+
+/* Category Segmented Navigation */
+.places-category-nav {
+  display: flex;
+  gap: 0.5rem;
+  background: linear-gradient(145deg, rgba(23, 51, 40, 0.45) 0%, rgba(11, 23, 18, 0.75) 100%);
+  border: 1px solid rgba(215, 188, 156, 0.16);
+  border-radius: 9999px;
+  padding: 0.3rem;
+  backdrop-filter: blur(16px);
+  width: fit-content;
+}
+
+.places-cat-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1.15rem;
+  border-radius: 9999px;
+  border: none;
+  background: transparent;
+  color: rgba(215, 188, 156, 0.75);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.places-cat-btn:hover {
+  color: #fffdf8;
+}
+
+.places-cat-btn.is-active {
+  background: var(--ds-sand-300, #d7bc9c);
+  color: #0b1712;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(215, 188, 156, 0.25);
+}
+
+/* Places Grid */
+.places-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.35rem;
+}
+
+.place-item-card {
+  background: linear-gradient(145deg, rgba(23, 51, 40, 0.45) 0%, rgba(11, 23, 18, 0.8) 100%);
+  border: 1px solid rgba(215, 188, 156, 0.16);
+  border-radius: 1.15rem;
+  overflow: hidden;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(16px);
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.place-item-card:hover {
+  border-color: rgba(215, 188, 156, 0.35);
+  transform: translateY(-2px);
+}
+
+.place-item-media {
+  position: relative;
+  width: 100%;
+  height: 180px;
+  overflow: hidden;
+}
+
+.place-item-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.place-item-card:hover .place-item-media img {
+  transform: scale(1.05);
+}
+
+.place-item-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(11, 23, 18, 0.1) 0%, rgba(11, 23, 18, 0.75) 100%);
+}
+
+.place-rating-badge {
+  position: absolute;
+  bottom: 0.75rem;
+  left: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: rgba(11, 23, 18, 0.8);
+  border: 1px solid rgba(215, 188, 156, 0.25);
+  color: #fbbf24;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  backdrop-filter: blur(8px);
+}
+
+.place-item-content {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  justify-content: space-between;
+}
+
+.place-item-content h3 {
+  margin: 0 0 0.35rem;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.25rem;
+  color: #fffdf8;
+}
+
+.place-vicinity {
+  margin: 0 0 0.65rem;
+  font-size: 0.8rem;
+  color: #9fb3a8;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.place-desc {
+  margin: 0 0 1rem;
+  font-size: 0.82rem;
+  color: var(--ds-sand-200, #eadac4);
+  line-height: 1.45;
+}
+
+.place-item-footer {
+  border-top: 1px solid rgba(215, 188, 156, 0.1);
+  padding-top: 0.75rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.place-map-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--ds-sand-300, #d7bc9c);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.place-map-link:hover {
+  color: #fffdf8;
+  text-decoration: underline;
+}
+
+.places-empty-card {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 4rem 1.5rem;
+  background: linear-gradient(145deg, rgba(23, 51, 40, 0.35) 0%, rgba(11, 23, 18, 0.7) 100%);
+  border: 1px dashed rgba(215, 188, 156, 0.2);
+  border-radius: 1.25rem;
+  gap: 1rem;
+}
+
+.places-empty-card .empty-icon {
+  font-size: 2.8rem;
+  color: var(--ds-sand-300, #d7bc9c);
+}
+
+.places-empty-card h3 {
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.5rem;
+  color: #fffdf8;
+}
+
+.places-empty-card p {
+  margin: 0;
+  color: #9fb3a8;
+  max-width: 50ch;
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+.places-rec-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  gap: 1rem;
+  color: var(--ds-sand-300, #d7bc9c);
+}

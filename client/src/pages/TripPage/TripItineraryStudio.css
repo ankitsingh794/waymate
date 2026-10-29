@@ -1,0 +1,335 @@
+/* ══════════════════════════════════════════════════════════════════════════════
+   TripItineraryStudio.css — WayMate Atelier Day Itinerary Studio
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.itin-studio-page {
+  min-height: 100vh;
+  background-color: #0b1712;
+  color: #fffdf8;
+  font-family: 'Inter', -apple-system, sans-serif;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.itin-studio-ambient {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.itin-studio-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.55;
+}
+
+.itin-studio-orb-1 {
+  width: 600px;
+  height: 600px;
+  top: -100px;
+  right: -50px;
+  background: radial-gradient(circle, rgba(23, 51, 40, 0.85) 0%, rgba(15, 32, 24, 0) 70%);
+}
+
+.itin-studio-orb-2 {
+  width: 500px;
+  height: 500px;
+  bottom: 0;
+  left: -100px;
+  background: radial-gradient(circle, rgba(215, 188, 156, 0.12) 0%, rgba(11, 23, 18, 0) 70%);
+}
+
+.itin-studio-shell {
+  position: relative;
+  z-index: 1;
+  width: min(1200px, calc(100% - 3rem));
+  margin-inline: auto;
+  padding: clamp(1.8rem, 3.5vw, 2.8rem) 0 clamp(3rem, 5vw, 4.5rem);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.itin-studio-top-nav {
+  margin-bottom: -0.5rem;
+}
+
+.itin-studio-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--ds-sand-300, #d7bc9c);
+  font-size: 0.82rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.itin-studio-back-link:hover {
+  color: #fffdf8;
+  text-decoration: underline;
+}
+
+.itin-studio-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+}
+
+.itin-studio-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--ds-sand-300, #d7bc9c);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.itin-studio-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+}
+
+.itin-studio-header h1 {
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(2rem, 3.8vw, 2.6rem);
+  color: #fffdf8;
+  line-height: 1.15;
+}
+
+.itin-studio-header p {
+  margin: 0.45rem 0 0;
+  color: #9fb3a8;
+  font-size: 0.95rem;
+}
+
+.itin-studio-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Day Selector */
+.itin-day-selector {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.4rem;
+  scrollbar-width: none;
+}
+
+.itin-day-selector::-webkit-scrollbar {
+  display: none;
+}
+
+.itin-day-btn {
+  background: rgba(23, 51, 40, 0.45);
+  border: 1px solid rgba(215, 188, 156, 0.18);
+  border-radius: 9999px;
+  color: rgba(215, 188, 156, 0.75);
+  padding: 0.5rem 1.25rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.18s ease;
+}
+
+.itin-day-btn:hover {
+  color: #fffdf8;
+  border-color: rgba(215, 188, 156, 0.35);
+}
+
+.itin-day-btn.is-active {
+  background: var(--ds-sand-300, #d7bc9c);
+  color: #0b1712;
+  font-weight: 700;
+  border-color: var(--ds-sand-300, #d7bc9c);
+  box-shadow: 0 4px 14px rgba(215, 188, 156, 0.25);
+}
+
+/* Day Card */
+.itin-day-card {
+  background: linear-gradient(145deg, rgba(23, 51, 40, 0.45) 0%, rgba(11, 23, 18, 0.8) 100%);
+  border: 1px solid rgba(215, 188, 156, 0.16);
+  border-radius: 1.25rem;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(16px);
+  padding: 1.75rem 2rem;
+}
+
+.itin-day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(215, 188, 156, 0.12);
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.itin-day-header h2 {
+  margin: 0 0 0.2rem;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.45rem;
+  color: #fffdf8;
+}
+
+.itin-day-subtitle {
+  margin: 0;
+  color: #9fb3a8;
+  font-size: 0.85rem;
+}
+
+/* Activities Timeline */
+.itin-activities-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.itin-timeline-item {
+  display: flex;
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+.itin-timeline-marker {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: rgba(215, 188, 156, 0.12);
+  border: 1px solid rgba(215, 188, 156, 0.3);
+  color: var(--ds-sand-300, #d7bc9c);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.itin-timeline-card {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(11, 23, 18, 0.55);
+  border: 1px solid rgba(215, 188, 156, 0.14);
+  border-radius: 0.95rem;
+  padding: 1rem 1.25rem;
+  transition: border-color 0.18s ease;
+}
+
+.itin-timeline-card:hover {
+  border-color: rgba(215, 188, 156, 0.32);
+}
+
+.itin-timeline-text p {
+  margin: 0;
+  font-size: 0.92rem;
+  color: #fffdf8;
+  line-height: 1.5;
+}
+
+.itin-delete-btn {
+  border: none;
+  background: transparent;
+  color: #9fb3a8;
+  cursor: pointer;
+  padding: 0.4rem;
+  border-radius: 0.4rem;
+  display: grid;
+  place-items: center;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.itin-delete-btn:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.itin-activities-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 3rem 1rem;
+  gap: 0.85rem;
+}
+
+.itin-activities-empty .empty-icon {
+  font-size: 2.2rem;
+  color: var(--ds-sand-300, #d7bc9c);
+}
+
+.itin-activities-empty h4 {
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.3rem;
+  color: #fffdf8;
+}
+
+.itin-activities-empty p {
+  margin: 0;
+  color: #9fb3a8;
+  font-size: 0.88rem;
+  max-width: 45ch;
+  line-height: 1.5;
+}
+
+/* Modal Form */
+.itin-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-top: 0.5rem;
+}
+
+.itin-modal-form label {
+  font-size: 0.82rem;
+  color: var(--ds-sand-200, #eadac4);
+  font-weight: 500;
+}
+
+.itin-modal-form textarea {
+  background: rgba(11, 23, 18, 0.7);
+  border: 1px solid rgba(215, 188, 156, 0.25);
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  color: #fffdf8;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.88rem;
+  outline: none;
+  resize: vertical;
+}
+
+.itin-modal-form textarea:focus {
+  border-color: var(--ds-sand-300, #d7bc9c);
+}
+
+.itin-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.itin-studio-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  gap: 1rem;
+  color: var(--ds-sand-300, #d7bc9c);
+}

@@ -1,0 +1,328 @@
+/* ══════════════════════════════════════════════════════════════════════════════
+   TripMembersManage.css — WayMate Atelier Squad & Role Management
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.members-mgt-page {
+  min-height: 100vh;
+  background-color: #0b1712;
+  color: #fffdf8;
+  font-family: 'Inter', -apple-system, sans-serif;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.members-mgt-ambient {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.members-mgt-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.55;
+}
+
+.members-mgt-orb-1 {
+  width: 600px;
+  height: 600px;
+  top: -100px;
+  right: -50px;
+  background: radial-gradient(circle, rgba(23, 51, 40, 0.85) 0%, rgba(15, 32, 24, 0) 70%);
+}
+
+.members-mgt-orb-2 {
+  width: 500px;
+  height: 500px;
+  bottom: 0;
+  left: -100px;
+  background: radial-gradient(circle, rgba(215, 188, 156, 0.12) 0%, rgba(11, 23, 18, 0) 70%);
+}
+
+.members-mgt-shell {
+  position: relative;
+  z-index: 1;
+  width: min(1200px, calc(100% - 3rem));
+  margin-inline: auto;
+  padding: clamp(1.8rem, 3.5vw, 2.8rem) 0 clamp(3rem, 5vw, 4.5rem);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.members-mgt-top-nav {
+  margin-bottom: -0.5rem;
+}
+
+.members-mgt-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--ds-sand-300, #d7bc9c);
+  font-size: 0.82rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.members-mgt-back-link:hover {
+  color: #fffdf8;
+  text-decoration: underline;
+}
+
+.members-mgt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+}
+
+.members-mgt-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--ds-sand-300, #d7bc9c);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.members-mgt-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+}
+
+.members-mgt-header h1 {
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(2rem, 3.8vw, 2.6rem);
+  color: #fffdf8;
+  line-height: 1.15;
+}
+
+.members-mgt-header p {
+  margin: 0.45rem 0 0;
+  color: #9fb3a8;
+  font-size: 0.95rem;
+}
+
+.members-mgt-header-actions {
+  display: flex;
+  align-items: center;
+}
+
+/* Two-Column Grid */
+.members-mgt-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.members-roster-card,
+.members-demographics-card {
+  background: linear-gradient(145deg, rgba(23, 51, 40, 0.45) 0%, rgba(11, 23, 18, 0.8) 100%);
+  border: 1px solid rgba(215, 188, 156, 0.16);
+  border-radius: 1.25rem;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(16px);
+  padding: 1.75rem 2rem;
+}
+
+.members-roster-card h2,
+.members-demographics-card h2 {
+  margin: 0 0 1.25rem;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.4rem;
+  color: #fffdf8;
+  border-bottom: 1px solid rgba(215, 188, 156, 0.12);
+  padding-bottom: 0.75rem;
+}
+
+.members-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.member-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: rgba(11, 23, 18, 0.55);
+  border: 1px solid rgba(215, 188, 156, 0.14);
+  border-radius: 0.95rem;
+  padding: 0.85rem 1rem;
+}
+
+.member-avatar {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  background: rgba(215, 188, 156, 0.1);
+  border: 1px solid rgba(215, 188, 156, 0.25);
+  color: var(--ds-sand-300, #d7bc9c);
+  display: grid;
+  place-items: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.member-info {
+  flex: 1;
+}
+
+.member-info h4 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #fffdf8;
+  font-weight: 600;
+}
+
+.member-email {
+  font-size: 0.76rem;
+  color: #9fb3a8;
+  display: block;
+}
+
+.member-relation {
+  font-size: 0.72rem;
+  color: var(--ds-sand-300, #d7bc9c);
+  display: block;
+  margin-top: 0.15rem;
+}
+
+.member-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.role-select {
+  background: rgba(11, 23, 18, 0.8);
+  border: 1px solid rgba(215, 188, 156, 0.25);
+  border-radius: 9999px;
+  color: #fffdf8;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.65rem;
+  outline: none;
+}
+
+.member-remove-btn {
+  border: none;
+  background: transparent;
+  color: #9fb3a8;
+  cursor: pointer;
+  padding: 0.4rem;
+  border-radius: 0.4rem;
+  display: grid;
+  place-items: center;
+  transition: all 0.15s ease;
+}
+
+.member-remove-btn:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.15);
+}
+
+/* Demographics Form */
+.demographics-note {
+  margin: 0 0 1.25rem;
+  color: #9fb3a8;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.demographics-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.form-group label {
+  font-size: 0.8rem;
+  color: var(--ds-sand-200, #eadac4);
+  font-weight: 500;
+}
+
+.form-group select,
+.form-group input {
+  background: rgba(11, 23, 18, 0.65);
+  border: 1px solid rgba(215, 188, 156, 0.22);
+  border-radius: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  color: #fffdf8;
+  font-size: 0.88rem;
+  outline: none;
+}
+
+.form-group select option {
+  background: #0b1712;
+  color: #fffdf8;
+}
+
+/* Invite Modal */
+.invite-modal-body p {
+  margin: 0 0 1rem;
+  color: #9fb3a8;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.invite-link-row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.invite-link-row input {
+  flex: 1;
+  background: rgba(11, 23, 18, 0.8);
+  border: 1px solid rgba(215, 188, 156, 0.25);
+  border-radius: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  color: #fffdf8;
+  font-size: 0.82rem;
+  outline: none;
+}
+
+.invite-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.5rem 0;
+  color: var(--ds-sand-300, #d7bc9c);
+  font-size: 0.85rem;
+}
+
+.members-mgt-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  gap: 1rem;
+  color: var(--ds-sand-300, #d7bc9c);
+}
+
+@media (max-width: 900px) {
+  .members-mgt-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -33,6 +33,7 @@ import { FaTrainSubway } from 'react-icons/fa6';
 import api from '../../utils/axiosInstance';
 import { useAuth } from '../../context/AuthContext';
 import { Toast, useConfirm } from '../../components/UI';
+import TripSubNav from './TripSubNav';
 import './Details.css';
 
 /* ─── Constants ────────────────────────────────────────────────────────────── */
@@ -1061,6 +1062,11 @@ export default function TripDetails() {
           </button>
         </div>
       )}
+
+      {/* ── EXPEDITION SUB-NAV ── */}
+      <div style={{ maxWidth: '1200px', margin: '0.5rem auto 1rem', width: 'calc(100% - 3rem)' }}>
+        <TripSubNav />
+      </div>
 
       {/* ── TAB BAR ── */}
       <nav className="td-tab-nav" aria-label="Trip sections">

@@ -1,0 +1,144 @@
+/* ══════════════════════════════════════════════════════════════════════════════
+   InviteLandingPage.css — WayMate Atelier Shared Onboarding
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.invite-landing-page {
+  min-height: 100vh;
+  background-color: #0b1712;
+  color: #fffdf8;
+  font-family: 'Inter', -apple-system, sans-serif;
+  position: relative;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.invite-ambient {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.invite-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.55;
+}
+
+.invite-orb-1 {
+  width: 600px;
+  height: 600px;
+  top: -100px;
+  right: -50px;
+  background: radial-gradient(circle, rgba(23, 51, 40, 0.85) 0%, rgba(15, 32, 24, 0) 70%);
+}
+
+.invite-orb-2 {
+  width: 500px;
+  height: 500px;
+  bottom: 0;
+  left: -100px;
+  background: radial-gradient(circle, rgba(215, 188, 156, 0.12) 0%, rgba(11, 23, 18, 0) 70%);
+}
+
+.invite-shell {
+  position: relative;
+  z-index: 1;
+  width: min(650px, calc(100% - 2.5rem));
+  margin: auto;
+  padding: 3rem 0;
+}
+
+.invite-card {
+  background: linear-gradient(145deg, rgba(23, 51, 40, 0.55) 0%, rgba(11, 23, 18, 0.88) 100%);
+  border: 1px solid rgba(215, 188, 156, 0.2);
+  border-radius: 1.4rem;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(20px);
+  padding: clamp(2rem, 4vw, 3rem);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.invite-badge-icon {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 1.15rem;
+  background: rgba(215, 188, 156, 0.1);
+  border: 1px solid rgba(215, 188, 156, 0.25);
+  color: var(--ds-sand-300, #d7bc9c);
+  display: grid;
+  place-items: center;
+  font-size: 1.8rem;
+}
+
+.invite-header-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.invite-tag {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ds-sand-300, #d7bc9c);
+  font-weight: 600;
+}
+
+.invite-header-copy h1 {
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(1.8rem, 3.5vw, 2.3rem);
+  color: #fffdf8;
+  line-height: 1.2;
+}
+
+.invite-header-copy p {
+  margin: 0;
+  color: #9fb3a8;
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+.invite-token-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: rgba(11, 23, 18, 0.6);
+  border: 1px solid rgba(215, 188, 156, 0.14);
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.78rem;
+}
+
+.token-label {
+  color: #9fb3a8;
+}
+
+.invite-token-preview code {
+  color: var(--ds-sand-200, #eadac4);
+  font-family: monospace;
+}
+
+.invite-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.85rem;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 540px) {
+  .invite-actions {
+    flex-direction: column-reverse;
+  }
+  .invite-actions .btn {
+    width: 100%;
+  }
+}
