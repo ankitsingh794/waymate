@@ -799,6 +799,14 @@ export default function Dashboard() {
 
                         <h2 className="dashboard-focus-title">{focusTrip.destination || 'Untitled trip'}</h2>
 
+                        <div className="dashboard-focus-meta-row">
+                          <span><VscCalendar /> {formatDateRange(focusTrip.startDate, focusTrip.endDate)}</span>
+                          <span><VscAccount /> {focusTrip.travelers || 1} Traveler{focusTrip.travelers !== 1 ? 's' : ''}</span>
+                          {focusTripExpenseSummary?.totalSpent > 0 && (
+                            <span><VscGraph /> ₹{compactNumber(focusTripExpenseSummary.totalSpent)} spent</span>
+                          )}
+                        </div>
+
                         <p className="dashboard-focus-copy">
                           {getDaysUntil(focusTrip.startDate) > 0
                             ? `${getDaysUntil(focusTrip.startDate)} day(s) left to kickoff. Ensure accommodations, transport, and group members are aligned.`
