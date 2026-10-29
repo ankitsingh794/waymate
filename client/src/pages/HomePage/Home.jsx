@@ -122,6 +122,9 @@ export default function Home() {
                     {/* Noise texture overlay for premium feel */}
                     <div className="home-hero-noise" aria-hidden="true" />
 
+                    {/* Ambient Bouncing Bubbles floating continuously in the hero background */}
+                    <BouncingBubbles />
+
                     <div className="home-shell home-hero-grid">
                         {/* Left — copy */}
                         <div className="home-hero-copy">
@@ -157,9 +160,27 @@ export default function Home() {
                             </div>
                         </div>
 
-                        {/* Right — Interactive Bouncing Bubbles Arena (Matches reference screenshot) */}
-                        <div className="home-hero-right">
-                            <BouncingBubbles heroHighlights={heroHighlights} />
+                        {/* Right — Frosted Editorial Note floating over the hero surface */}
+                        <div className="home-hero-right" aria-hidden="true">
+                            <article className="home-editorial-note">
+                                <div className="home-editorial-note-header">
+                                    <span className="home-editorial-note-tag">Trip Draft 05</span>
+                                    <span className="home-editorial-note-status">Live</span>
+                                </div>
+                                <h3>"Lisbon + Porto, six days, coastal mornings and late food scenes."</h3>
+                                <p>
+                                    WayMate converts this into a living itinerary with timing logic, local flavor, and
+                                    shared approval flow.
+                                </p>
+                                <ul>
+                                    {heroHighlights.map((item) => (
+                                        <li key={item}>
+                                            <VscCheck aria-hidden="true" />
+                                            <span>{item}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </article>
                         </div>
                     </div>
 
@@ -181,103 +202,124 @@ export default function Home() {
 
                         <div className="home-proof-grid">
                             {proof.map((item) => (
-                                <ProofCard key={item.title} {...item} />
+                                <ProofCard
+                                    key={item.title}
+                                    icon={item.icon}
+                                    signal={item.signal}
+                                    title={item.title}
+                                    body={item.body}
+                                />
                             ))}
                         </div>
                     </div>
                 </section>
 
-                {/* ── Section 3: Feature Atlas (Cards) ── */}
-                <Cards />
+                {/* ── Section 3: Feature Architecture / Cards ── */}
+                <section id="features" aria-label="Feature Architecture">
+                    <Cards />
+                </section>
 
-                {/* ── Section 4: Globe / Coverage Studio ── */}
-                <Globe />
-
-                {/* ── Section 5: How It Works ── */}
+                {/* ── Section 4: Process / How It Works ── */}
                 <section className="home-how" aria-labelledby="home-how-title">
                     <div className="home-shell home-how-layout">
                         <div className="home-how-intro">
-                            <span className="home-section-kicker">Process Confidence</span>
-                            <h2 id="home-how-title">
-                                A planning rhythm built for decisions, not chaos.
-                            </h2>
+                            <span>Process</span>
+                            <h2>A planning rhythm that feels intentional.</h2>
                             <p>
-                                The workflow balances exploration and execution, giving you enough
-                                context to move quickly without sacrificing quality.
+                                This is not a checklist machine. It is a guided narrative flow that helps you decide
+                                faster and travel better.
                             </p>
                         </div>
 
                         <div className="home-steps-grid">
                             {steps.map((step) => (
-                                <StepCard key={step.number} {...step} />
+                                <StepCard
+                                    key={step.number}
+                                    number={step.number}
+                                    signal={step.signal}
+                                    title={step.title}
+                                    description={step.description}
+                                    outcome={step.outcome}
+                                />
                             ))}
                         </div>
                     </div>
                 </section>
 
-                {/* ── Section 6: Testimonials (infinite marquee) ── */}
+                {/* ── Section 5: Global Reach / Globe ── */}
+                <Globe />
+
+                {/* ── Section 6: Traveler Feedback ── */}
                 <Feedback />
 
-                {/* ── Section 7: CTA — dark forest-900, grain texture ── */}
-                <section className="home-cta" aria-labelledby="home-cta-title">
-                    <div className="home-cta-noise" aria-hidden="true" />
+                {/* ── Section 7: Editorial CTA ── */}
+                <section className="home-cta">
                     <div className="home-shell">
-                        <div className="home-cta-inner">
-                            <span className="home-cta-kicker">Ready for your next route draft</span>
-                            <h2 id="home-cta-title">
-                                Bring your next trip from<br />concept to confident execution.
-                            </h2>
+                        <article className="home-cta-card">
+                            <span className="home-cta-kicker">Now boarding thoughtful travel</span>
+                            <h2>Build your next route with taste and confidence.</h2>
                             <p>
-                                From fast weekend escapes to long multi-city journeys, build a plan
-                                that your group can approve, understand, and follow.
+                                Whether it is a long-weekend reset or a month abroad, WayMate gives you a plan that
+                                feels curated, realistic, and ready to move.
                             </p>
                             <Link to={startPath} className="home-btn home-btn-sand">
-                                Open WayMate <VscArrowRight aria-hidden="true" />
+                                Enter WayMate <VscArrowRight aria-hidden="true" />
                             </Link>
-                        </div>
+                        </article>
                     </div>
                 </section>
             </main>
 
-            {/* ── Section 8: Footer — dark editorial 3-col ── */}
-            <footer className="home-footer" role="contentinfo">
+            {/* ── Section 8: Editorial Footer ── */}
+            <footer className="home-footer">
                 <div className="home-shell">
                     <div className="home-footer-grid">
-                        <section className="home-footer-brand">
+                        <section className="home-footer-column home-footer-brand">
                             <h4>WayMate</h4>
                             <p>
-                                A collaborative trip planning studio where editorial storytelling
-                                meets practical route operations.
+                                The editorial trip studio for modern travelers who want beautiful planning and reliable
+                                execution.
                             </p>
-                            <span className="home-footer-tagline">WayMate Atelier ©&nbsp;{year}</span>
                         </section>
 
                         <section className="home-footer-column">
-                            <h5>Product</h5>
+                            <h4>Product</h4>
                             <ul>
-                                <li><a href="#features">Capability Atlas</a></li>
-                                <li><a href="#proof">Trust Architecture</a></li>
-                                <li><Link to={plannerPath}>Plan with AI</Link></li>
-                                <li><Link to="/login">Sign in</Link></li>
+                                <li>
+                                    <a href="#features">Feature Story</a>
+                                </li>
+                                <li>
+                                    <a href="#proof">Trust Signals</a>
+                                </li>
+                                <li>
+                                    <Link to={plannerPath}>AI Assistant</Link>
+                                </li>
+                                <li>
+                                    <Link to="/login">Sign In</Link>
+                                </li>
                             </ul>
                         </section>
 
                         <section className="home-footer-column">
-                            <h5>Company</h5>
+                            <h4>Company</h4>
                             <ul>
-                                <li><a href="mailto:support@waymate.app">Contact support</a></li>
+                                <li>
+                                    <a href="mailto:support@waymate.app">Contact Support</a>
+                                </li>
                                 <li>
                                     <a href="https://github.com/ankitsingh794/waymate" target="_blank" rel="noreferrer">
                                         Open Source
                                     </a>
                                 </li>
-                                <li><Link to="/register">Create account</Link></li>
+                                <li>
+                                    <Link to="/register">Create Account</Link>
+                                </li>
                             </ul>
                         </section>
                     </div>
 
                     <div className="home-footer-bottom">
-                        <p>Designed for better travel decisions.</p>
+                        <p>{year} WayMate. Crafted for better journeys.</p>
                     </div>
                 </div>
             </footer>
