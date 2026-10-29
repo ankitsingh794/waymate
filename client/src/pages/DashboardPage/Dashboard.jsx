@@ -162,26 +162,39 @@ function compactNumber(value) {
   return new Intl.NumberFormat(undefined, { notation: 'compact' }).format(value || 0);
 }
 
-function TripRail({ title, subtitle, trips }) {
+function TripRail({ title, subtitle, trips, onEmptyAction }) {
   const railRef = useRef(null);
 
   const scrollByDirection = useCallback((direction) => {
     if (!railRef.current) return;
 
     railRef.current.scrollBy({
-      left: direction === 'right' ? 320 : -320,
+      left: direction === 'right' ? 340 : -340,
       behavior: 'smooth',
     });
   }, []);
 
   if (!trips.length) {
     return (
-      <Card className="dashboard-empty-card" padding="lg">
-        <CardHeader title={title} subtitle={subtitle} />
-        <CardBody>
-          <p className="dashboard-empty-text">No trips found in this section.</p>
-        </CardBody>
-      </Card>
+      <div className="dashboard-rail-empty-card">
+        <div className="dashboard-rail-empty-icon">
+          <VscCompass />
+        </div>
+        <div className="dashboard-rail-empty-text-wrap">
+          <h4>{title}</h4>
+          <p>{subtitle} — no expeditions currently recorded in this lifecycle.</p>
+        </div>
+        {onEmptyAction && (
+          <button
+            type="button"
+            className="dashboard-rail-empty-btn"
+            onClick={onEmptyAction}
+          >
+            <span>Plan with AI</span>
+            <VscArrowRight />
+          </button>
+        )}
+      </div>
     );
   }
 
@@ -189,6 +202,7 @@ function TripRail({ title, subtitle, trips }) {
     <section className="dashboard-trip-rail">
       <header className="dashboard-rail-header">
         <div>
+          <span className="dashboard-rail-eyebrow">Expedition Archive</span>
           <h3>{title}</h3>
           <p>{subtitle}</p>
         </div>
@@ -209,33 +223,37 @@ function TripRail({ title, subtitle, trips }) {
             <article
               className="dashboard-trip-card"
               key={trip._id || trip.tripId}
-              // Prefetch the TripDetails chunk when the user hovers a card.
-              // Vite caches the import — by the time they click, it's ready.
               onMouseEnter={() => import('../TripPage/Details')}
             >
-              <img
-                src={trip.coverImage || FALLBACK_TRIP_IMAGE}
-                alt={trip.destination || 'Trip destination'}
-                loading="lazy"
-                decoding="async"
-              />
-
-              <div className="dashboard-trip-card-body">
-                <div className="dashboard-trip-card-meta">
+              <div className="dashboard-trip-card-media">
+                <img
+                  src={trip.coverImage || FALLBACK_TRIP_IMAGE}
+                  alt={trip.destination || 'Trip destination'}
+                  loading="lazy"
+                  decoding="async"
+                />
+                <div className="dashboard-trip-card-scrim" />
+                <div className="dashboard-trip-card-top-pills">
                   <Badge variant={getStatusVariant(state)} size="sm">
                     {state}
                   </Badge>
-                  <span>{formatDateRange(trip.startDate, trip.endDate)}</span>
+                  <span className="dashboard-trip-card-dates">
+                    <VscCalendar /> {formatDateRange(trip.startDate, trip.endDate)}
+                  </span>
                 </div>
+              </div>
 
+              <div className="dashboard-trip-card-content">
                 <h4>{trip.destination || 'Untitled trip'}</h4>
                 <p>
                   <VscLocation /> {trip.destination || 'Unknown location'}
                 </p>
-              </div>
-
-              <div className="dashboard-trip-card-footer">
-                <Link to={`/trip/${trip._id || trip.tripId}`}>Open details</Link>
+                <div className="dashboard-trip-card-footer">
+                  <Link to={`/trip/${trip._id || trip.tripId}`}>
+                    <span>View Expedition</span>
+                    <VscArrowRight />
+                  </Link>
+                </div>
               </div>
             </article>
           );
@@ -621,14 +639,24 @@ export default function Dashboard() {
     <div className="dashboard-page">
       <DashboardNavbar />
 
+      <div className="dashboard-ambient-mesh" aria-hidden="true">
+        <div className="dashboard-ambient-orb dashboard-ambient-orb-1" />
+        <div className="dashboard-ambient-orb dashboard-ambient-orb-2" />
+        <div className="dashboard-ambient-orb dashboard-ambient-orb-3" />
+      </div>
+
       <div className="dashboard-shell">
         <header className="dashboard-hero">
           <div className="dashboard-hero-copy">
-            <span className="dashboard-eyebrow">Control Center</span>
-            <h1>Welcome back, {user?.name || 'Traveler'}.</h1>
+            <div className="dashboard-eyebrow">
+              <span className="dashboard-live-dot" />
+              <span>WayMate Atelier · Command Center</span>
+            </div>
+            <h1>
+              Welcome back, <em>{profileData?.name || user?.name || 'Explorer'}</em>.
+            </h1>
             <p>
-              Track trip progress, monitor alerts, use AI planning, and act quickly with live data from all key
-              backend services.
+              Orchestrate live journeys, monitor expedition telemetry, and design intelligent itineraries with continuous operational precision.
             </p>
           </div>
 
@@ -639,7 +667,7 @@ export default function Dashboard() {
               onClick={handleLaunchAssistant}
               loading={actionBusy.ai}
             >
-              Open AI assistant
+              Start planning with AI
             </Button>
             <Button
               variant="outline"
@@ -647,7 +675,7 @@ export default function Dashboard() {
               onClick={() => fetchDashboardData({ isRefresh: true })}
               loading={refreshing}
             >
-              Refresh data
+              Refresh telemetry
             </Button>
           </div>
         </header>
@@ -728,115 +756,148 @@ export default function Dashboard() {
           <div id="pane-journeys" role="tabpanel" aria-labelledby="tab-journeys" className="dashboard-tab-pane">
             <div className="dashboard-layout-grid">
               <main className="dashboard-main-column">
-                <Card className="dashboard-focus-card" padding="lg">
-                  <CardHeader
-                    title="Priority trip"
-                    subtitle={focusTrip ? 'Most relevant trip based on current timeline.' : 'Create a trip to unlock operational insights.'}
-                  />
-                  <CardBody>
-                    {!focusTrip ? (
-                      <div className="dashboard-empty-state">
-                        <p>You do not have active trips yet. Start with the AI assistant and create one in seconds.</p>
-                        <Button variant="secondary" icon={VscArrowRight} onClick={handleLaunchAssistant}>
-                          Plan first trip
-                        </Button>
+                <div className="dashboard-focus-card">
+                  <div className="dashboard-focus-header">
+                    <div className="dashboard-focus-eyebrow-row">
+                      <span className="dashboard-focus-eyebrow">
+                        <span className="dashboard-live-dot" /> Priority Expedition
+                      </span>
+                      {focusTrip && (
+                        <span className="dashboard-focus-dates">
+                          <VscCalendar /> {formatDateRange(focusTrip.startDate, focusTrip.endDate)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {!focusTrip ? (
+                    <div className="dashboard-empty-state">
+                      <div className="dashboard-empty-icon-wrap">
+                        <VscCompass />
                       </div>
-                    ) : (
-                      <>
-                        <div className="dashboard-focus-grid">
-                          <div>
-                            <div className="dashboard-focus-meta">
-                              <Badge variant={getStatusVariant(inferTripState(focusTrip))}>
-                                {inferTripState(focusTrip)}
-                              </Badge>
-                              <span>{formatDateRange(focusTrip.startDate, focusTrip.endDate)}</span>
-                            </div>
-
-                            <h2>{focusTrip.destination || 'Untitled trip'}</h2>
-
-                            <p className="dashboard-focus-copy">
-                              {getDaysUntil(focusTrip.startDate) > 0
-                                ? `${getDaysUntil(focusTrip.startDate)} day(s) left to kickoff.`
-                                : inferTripState(focusTrip) === 'ongoing'
-                                  ? 'Trip is currently running. Keep plans and spend in sync.'
-                                  : 'Trip timeline is complete. Review and reuse insights for the next plan.'}
-                            </p>
-
-                            <div className="dashboard-focus-actions">
-                              <Link to={`/trip/${focusTripId}`} className="dashboard-inline-link">
-                                View trip details <VscArrowRight />
-                              </Link>
-                              <Link to={`/trip/${focusTripId}/edit`} className="dashboard-inline-link">
-                                Edit trip
-                              </Link>
-                              <Link to={`/trip/${focusTripId}/expenses`} className="dashboard-inline-link">
-                                Open expenses
-                              </Link>
-                            </div>
-                          </div>
-
-                          <div className="dashboard-focus-stats">
-                            <article>
-                              <strong>{focusTrip.travelers || 1}</strong>
-                              <span>Travelers</span>
-                            </article>
-                            <article>
-                              <strong>{focusTripExpenseSummary?.totalSpent ? compactNumber(focusTripExpenseSummary.totalSpent) : '0'}</strong>
-                              <span>Spent so far</span>
-                            </article>
-                            <article>
-                              <strong>{focusTripExpenseSummary?.settlements?.length || 0}</strong>
-                              <span>Settlements</span>
-                            </article>
-                          </div>
+                      <h3>No Active Expedition</h3>
+                      <p>You do not have any active or upcoming journeys scheduled. Ignite the AI engine to curate your next bespoke itinerary in seconds.</p>
+                      <Button variant="primary" icon={VscArrowRight} onClick={handleLaunchAssistant}>
+                        Plan first trip with AI
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="dashboard-focus-cinematic-grid">
+                      <div className="dashboard-focus-editorial">
+                        <div className="dashboard-focus-badges">
+                          <Badge variant={getStatusVariant(inferTripState(focusTrip))}>
+                            {inferTripState(focusTrip)}
+                          </Badge>
+                          <span className="dashboard-focus-countdown">
+                            {getDaysUntil(focusTrip.startDate) > 0
+                              ? `${getDaysUntil(focusTrip.startDate)} days until departure`
+                              : inferTripState(focusTrip) === 'ongoing'
+                                ? 'Expedition in motion'
+                                : 'Expedition archived'}
+                          </span>
                         </div>
 
-                        {!!focusTrip.coverImage && (
+                        <h2 className="dashboard-focus-title">{focusTrip.destination || 'Untitled trip'}</h2>
+
+                        <p className="dashboard-focus-copy">
+                          {getDaysUntil(focusTrip.startDate) > 0
+                            ? `${getDaysUntil(focusTrip.startDate)} day(s) left to kickoff. Ensure accommodations, transport, and group members are aligned.`
+                            : inferTripState(focusTrip) === 'ongoing'
+                              ? 'Trip is currently running. Keep routes, expenses, and schedule synchronized in real time.'
+                              : 'Trip timeline is complete. Review financial reconciliations and reuse itinerary insights for your next journey.'}
+                        </p>
+
+                        <div className="dashboard-focus-actions">
+                          <Link to={`/trip/${focusTripId}`} className="dashboard-btn-expedition-primary">
+                            <span>Open Itinerary Studio</span>
+                            <VscArrowRight />
+                          </Link>
+                          <Link to={`/trip/${focusTripId}/edit`} className="dashboard-btn-expedition-ghost">
+                            Edit Route
+                          </Link>
+                          <Link to={`/trip/${focusTripId}/expenses`} className="dashboard-btn-expedition-ghost">
+                            Expense Ledger
+                          </Link>
+                        </div>
+                      </div>
+
+                      <div className="dashboard-focus-showcase">
+                        <div className="dashboard-focus-image-frame">
                           <img
-                            className="dashboard-focus-cover"
-                            src={focusTrip.coverImage}
+                            src={focusTrip.coverImage || FALLBACK_TRIP_IMAGE}
                             alt={focusTrip.destination || 'Trip destination'}
                             loading="lazy"
                             decoding="async"
                           />
-                        )}
-                      </>
-                    )}
-                  </CardBody>
-                </Card>
-
-                <Card padding="md" className="dashboard-search-card">
-                  <CardBody>
-                    <label htmlFor="dashboardTripSearch">Search trip destinations</label>
-                    <div className="dashboard-search-row">
-                      <VscSearch />
-                      <input
-                        id="dashboardTripSearch"
-                        type="search"
-                        placeholder="Filter by destination"
-                        value={searchQuery}
-                        onChange={(event) => setSearchQuery(event.target.value)}
-                      />
+                          <div className="dashboard-focus-image-scrim" />
+                          <div className="dashboard-focus-telemetry-hud">
+                            <div className="dashboard-hud-stat">
+                              <span className="hud-val">{focusTrip.travelers || 1}</span>
+                              <span className="hud-label">Travelers</span>
+                            </div>
+                            <div className="dashboard-hud-stat">
+                              <span className="hud-val">
+                                {focusTripExpenseSummary?.totalSpent
+                                  ? `₹${compactNumber(focusTripExpenseSummary.totalSpent)}`
+                                  : '₹0'}
+                              </span>
+                              <span className="hud-label">Spend to Date</span>
+                            </div>
+                            <div className="dashboard-hud-stat">
+                              <span className="hud-val">
+                                {focusTripExpenseSummary?.settlements?.length || 0}
+                              </span>
+                              <span className="hud-label">Settlements</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </CardBody>
-                </Card>
+                  )}
+                </div>
+
+                <div className="dashboard-search-card">
+                  <div className="dashboard-search-inner">
+                    <VscSearch className="dashboard-search-icon" />
+                    <input
+                      id="dashboardTripSearch"
+                      type="search"
+                      placeholder="Search across all destinations, itineraries & routes..."
+                      value={searchQuery}
+                      onChange={(event) => setSearchQuery(event.target.value)}
+                    />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        className="dashboard-search-clear"
+                        onClick={() => setSearchQuery('')}
+                        aria-label="Clear search"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                </div>
 
                 <TripRail
                   title="Ongoing adventures"
                   subtitle="Trips currently in motion"
                   trips={filteredOngoingTrips}
+                  onEmptyAction={handleLaunchAssistant}
                 />
 
                 <TripRail
                   title="Upcoming trips"
                   subtitle="Trips you should prepare for next"
                   trips={filteredUpcomingTrips}
+                  onEmptyAction={handleLaunchAssistant}
                 />
 
                 <TripRail
                   title="Completed trips"
                   subtitle="Past journeys and reusable inspiration"
                   trips={filteredCompletedTrips}
+                  onEmptyAction={handleLaunchAssistant}
                 />
               </main>
 
