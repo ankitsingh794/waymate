@@ -12,16 +12,17 @@ import { FaTrainSubway } from 'react-icons/fa6';
 import './TripSubNav.css';
 
 export default function TripSubNav({ activeTab }) {
-  const { id } = useParams();
+  const { id, tripId } = useParams();
+  const effectiveId = id || tripId;
 
   const links = [
-    { to: `/trip/${id}`, label: 'Overview', icon: VscCompass, end: true },
-    { to: `/trip/${id}/itinerary`, label: 'Itinerary', icon: VscCalendar },
-    { to: `/trip/${id}/transit`, label: 'Smart Transit', icon: FaTrainSubway },
-    { to: `/trip/${id}/places`, label: 'Curated Places', icon: VscLocation },
-    { to: `/trip/${id}/expenses`, label: 'Expense Ledger', icon: GiTakeMyMoney },
-    { to: `/trip/${id}/members`, label: 'Squad & Roles', icon: VscOrganization },
-    { to: `/trip/${id}/edit`, label: 'Settings', icon: VscSettingsGear },
+    { to: `/trip/${effectiveId}`, label: 'Overview', icon: VscCompass, end: true },
+    { to: `/trip/${effectiveId}/itinerary`, label: 'Itinerary', icon: VscCalendar },
+    { to: `/trip/${effectiveId}/transit`, label: 'Smart Transit', icon: FaTrainSubway },
+    { to: `/trip/${effectiveId}/places`, label: 'Curated Places', icon: VscLocation },
+    { to: `/trip/${effectiveId}/expenses`, label: 'Expense Ledger', icon: GiTakeMyMoney },
+    { to: `/trip/${effectiveId}/members`, label: 'Squad & Roles', icon: VscOrganization },
+    { to: `/trip/${effectiveId}/edit`, label: 'Settings', icon: VscSettingsGear },
   ];
 
   return (

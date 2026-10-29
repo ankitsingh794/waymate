@@ -1,287 +1,596 @@
-/**
- * Expenses Page
- * Manage and split trip expenses
- */
-
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { useParams } from 'react-router-dom';
-import api from '../../utils/axiosInstance';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import {
   VscAdd,
-  VscTrash,
-  VscEdit,
+  VscArrowLeft,
+  VscCheck,
+  VscClose,
   VscCreditCard,
+  VscPieChart,
   VscSplitHorizontal,
+  VscTrash,
 } from 'react-icons/vsc';
-import { Card, CardHeader, CardBody, CardFooter, Button, Input, Alert, Badge, useConfirm } from '../../components/UI';
-
+import {
+  FaBed,
+  FaCar,
+  FaCartShopping,
+  FaMoneyBillTransfer,
+  FaTicket,
+  FaUtensils,
+} from 'react-icons/fa6';
 import DashboardNavbar from '../../components/DashboardNavbar';
+import TripSubNav from '../TripPage/TripSubNav';
+import { Alert, Badge, Button, Loading, useConfirm } from '../../components/UI';
+import api from '../../utils/axiosInstance';
+import { useAuth } from '../../context/AuthContext';
 import './ExpensesPage.css';
 
+const CATEGORIES = [
+  { id: 'Food', label: 'Food & Dining', icon: FaUtensils },
+  { id: 'Transport', label: 'Transit & Rides', icon: FaCar },
+  { id: 'Accommodation', label: 'Stays & Hotels', icon: FaBed },
+  { id: 'Activities', label: 'Tours & Sights', icon: FaTicket },
+  { id: 'Shopping', label: 'Shopping', icon: FaCartShopping },
+  { id: 'Other', label: 'Miscellaneous', icon: FaMoneyBillTransfer },
+];
+
+function getCategoryIcon(catName) {
+  const matched = CATEGORIES.find(
+    (c) => c.id.toLowerCase() === (catName || '').toLowerCase()
+  );
+  if (matched) return matched.icon;
+  return FaMoneyBillTransfer;
+}
+
 export default function ExpensesPage() {
-  const { tripId } = useParams();
+  const { id, tripId } = useParams();
+  const effectiveTripId = id || tripId;
+  const { user } = useAuth();
   const confirm = useConfirm();
 
-  const { user } = useAuth();
+  const [trip, setTrip] = useState(null);
   const [expenses, setExpenses] = useState([]);
   const [budget, setBudget] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showForm, setShowForm] = useState(false);
+  const [successMsg, setSuccessMsg] = useState('');
+  const [showFormModal, setShowFormModal] = useState(false);
+  const [filterCategory, setFilterCategory] = useState('All');
+
+  // Form State
   const [formData, setFormData] = useState({
     description: '',
     amount: '',
-    category: 'Other',
-    paidBy: user?._id,
+    category: 'Food',
+    paidBy: user?._id || '',
     participants: [],
   });
+  const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetchExpenses();
-  }, [tripId]);
-
-  const fetchExpenses = async () => {
+  const fetchExpensesAndTrip = useCallback(async () => {
     try {
       setLoading(true);
-      if (tripId) {
-        const response = await api.get(`/trips/${tripId}/expenses`);
-        setExpenses(response.data.expenses || []);
-        setBudget(response.data.budget);
+      setError(null);
+
+      if (effectiveTripId) {
+        const [expRes, tripRes] = await Promise.all([
+          api.get(`/trips/${effectiveTripId}/expenses`),
+          api.get(`/trips/${effectiveTripId}`).catch(() => null),
+        ]);
+
+        const list = expRes?.data?.expenses || expRes?.data?.data?.expenses || [];
+        setExpenses(Array.isArray(list) ? list : []);
+        setBudget(expRes?.data?.budget || expRes?.data?.data?.budget || null);
+
+        const tripData = tripRes?.data?.data?.trip || tripRes?.data?.trip || null;
+        if (tripData) {
+          setTrip(tripData);
+        }
+      } else {
+        const response = await api.get('/expenses');
+        const list = response?.data?.expenses || response?.data?.data || [];
+        setExpenses(Array.isArray(list) ? list : []);
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load expenses');
+      setError(err?.response?.data?.message || 'Failed to load expense ledger.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [effectiveTripId]);
 
-  const addExpense = async () => {
-    if (!formData.description || !formData.amount) {
-      setError('Please fill in all required fields');
+  useEffect(() => {
+    fetchExpensesAndTrip();
+  }, [fetchExpensesAndTrip]);
+
+  // Squad members from trip group
+  const members = useMemo(() => {
+    const list = trip?.group?.members;
+    if (Array.isArray(list) && list.length > 0) return list;
+    return [];
+  }, [trip?.group?.members]);
+
+  const totalExpenses = useMemo(() => {
+    return expenses.reduce((sum, exp) => sum + (Number(exp.amount) || 0), 0);
+  }, [expenses]);
+
+  const totalBudget = useMemo(() => {
+    if (budget?.totalBudget) return Number(budget.totalBudget);
+    if (trip?.budget?.estimatedTotal) return Number(trip.budget.estimatedTotal);
+    if (typeof trip?.budget === 'number') return trip.budget;
+    return 0;
+  }, [budget, trip]);
+
+  const remainingBudget = totalBudget > 0 ? totalBudget - totalExpenses : null;
+  const burnPercent = totalBudget > 0 ? Math.min((totalExpenses / totalBudget) * 100, 100) : 0;
+
+  // Filtered expenses
+  const filteredExpenses = useMemo(() => {
+    if (filterCategory === 'All') return expenses;
+    return expenses.filter(
+      (e) => (e.category || '').toLowerCase() === filterCategory.toLowerCase()
+    );
+  }, [expenses, filterCategory]);
+
+  const handleAddExpense = async (e) => {
+    e.preventDefault();
+    if (!formData.description.trim() || !formData.amount) {
+      setError('Please provide a description and an amount.');
       return;
     }
 
     try {
-      const endpoint = tripId
-        ? `/trips/${tripId}/expenses`
+      setSubmitting(true);
+      setError(null);
+
+      const endpoint = effectiveTripId
+        ? `/trips/${effectiveTripId}/expenses`
         : '/expenses';
 
-      const response = await api.post(endpoint, formData);
-      setExpenses([...expenses, response.data.expense]);
+      const payload = {
+        description: formData.description.trim(),
+        amount: parseFloat(formData.amount),
+        category: formData.category,
+        paidBy: formData.paidBy || user?._id,
+        participants: formData.participants,
+      };
+
+      const response = await api.post(endpoint, payload);
+      const saved = response?.data?.expense || response?.data?.data?.expense;
+
+      if (saved) {
+        setExpenses((prev) => [saved, ...prev]);
+      } else {
+        fetchExpensesAndTrip();
+      }
+
       setFormData({
         description: '',
         amount: '',
-        category: 'Other',
-        paidBy: user?._id,
+        category: 'Food',
+        paidBy: user?._id || '',
         participants: [],
       });
-      setShowForm(false);
-      setError(null);
+      setShowFormModal(false);
+      setSuccessMsg('Expense logged successfully.');
+      setTimeout(() => setSuccessMsg(''), 3500);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to add expense');
+      setError(err?.response?.data?.message || 'Failed to record expense.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const deleteExpense = async (expenseId) => {
-    if (!await confirm({ title: 'Delete expense', message: 'Remove this expense record?', confirmLabel: 'Delete', variant: 'error' })) return;
+  const handleDeleteExpense = async (expenseId) => {
+    const isConfirmed = await confirm({
+      title: 'Remove Expense',
+      message: 'Are you sure you want to delete this expense record from the trip ledger?',
+      confirmLabel: 'Delete Expense',
+      variant: 'error',
+    });
 
+    if (!isConfirmed) return;
 
     try {
-      const endpoint = tripId
-        ? `/trips/${tripId}/expenses/${expenseId}`
+      const endpoint = effectiveTripId
+        ? `/trips/${effectiveTripId}/expenses/${expenseId}`
         : `/expenses/${expenseId}`;
 
       await api.delete(endpoint);
-      setExpenses(expenses.filter(e => e._id !== expenseId));
+      setExpenses((prev) => prev.filter((item) => item._id !== expenseId));
+      setSuccessMsg('Expense removed from ledger.');
+      setTimeout(() => setSuccessMsg(''), 3000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to delete expense');
+      setError(err?.response?.data?.message || 'Failed to delete expense.');
     }
   };
-
-  const categories = ['Food', 'Transport', 'Accommodation', 'Activities', 'Shopping', 'Other'];
-  const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
-  const remaining = budget ? budget.totalBudget - totalExpenses : null;
 
   return (
     <div className="expenses-page">
       <DashboardNavbar />
 
-      <div className="expenses-body">
-        <div className="page-header">
-          <h1>Expenses</h1>
-          <p>Track and split trip costs</p>
-        </div>
+      {/* Atmospheric Ambient Glow */}
+      <div className="expenses-ambient" aria-hidden="true">
+        <div className="expenses-orb expenses-orb-1" />
+        <div className="expenses-orb expenses-orb-2" />
+      </div>
 
-        {error && <Alert variant="error" closable onClose={() => setError(null)}>{error}</Alert>}
+      <main className="expenses-shell">
+        {/* Top Breadcrumb Link (if inside a trip) */}
+        {effectiveTripId && (
+          <div className="expenses-top-nav">
+            <Link to={`/trip/${effectiveTripId}`} className="expenses-back-link">
+              <VscArrowLeft />
+              <span>Back to {trip?.destination || 'Trip'} Overview</span>
+            </Link>
+          </div>
+        )}
 
-        <div className="expenses-container">
-          {/* Budget Overview */}
-          {budget && (
-            <Card padding="lg" className="budget-card">
-              <div className="budget-grid">
-                <div className="budget-item">
-                  <span className="budget-label">Total Budget</span>
-                  <strong className="budget-amount">${budget.totalBudget.toFixed(2)}</strong>
-                </div>
-                <div className="budget-item">
-                  <span className="budget-label">Spent</span>
-                  <strong className="budget-amount" style={{ color: 'var(--color-error)' }}>
-                    ${totalExpenses.toFixed(2)}
-                  </strong>
-                </div>
-                <div className="budget-item">
-                  <span className="budget-label">Remaining</span>
-                  <strong className="budget-amount" style={{
-                    color: remaining >= 0 ? 'var(--color-success)' : 'var(--color-error)'
-                  }}>
-                    ${remaining.toFixed(2)}
-                  </strong>
+        {/* Trip Sub Navigation Dock */}
+        {effectiveTripId && <TripSubNav activeTab="expenses" />}
+
+        {/* Page Header */}
+        <header className="expenses-hero-header">
+          <div className="expenses-title-group">
+            <div className="expenses-eyebrow">
+              <span className="live-pulse-dot" />
+              <span>FINANCIAL LEDGER & SQUAD BUDGET</span>
+            </div>
+            <h1>
+              {trip?.destination ? `${trip.destination} Expense Ledger` : 'Trip Expense Ledger'}
+            </h1>
+            <p>
+              Real-time expenditure tracking, squad cost splitting, and automated budget burn rate for{' '}
+              {trip?.destination || 'your journey'}.
+            </p>
+          </div>
+
+          <div className="expenses-hero-actions">
+            <button
+              type="button"
+              className="btn-log-expense"
+              onClick={() => setShowFormModal(true)}
+            >
+              <VscAdd className="btn-icon" />
+              <span>Log Expense</span>
+            </button>
+          </div>
+        </header>
+
+        {/* Banners */}
+        {error && (
+          <Alert variant="error" closable onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
+        {successMsg && (
+          <Alert variant="success" closable onClose={() => setSuccessMsg('')}>
+            {successMsg}
+          </Alert>
+        )}
+
+        {/* Budget Telemetry HUD Card */}
+        {totalBudget > 0 && (
+          <section className="expenses-budget-card">
+            <div className="budget-metrics-grid">
+              <div className="budget-metric">
+                <span className="metric-label">Allocated Budget</span>
+                <strong className="metric-val metric-val--gold">
+                  ${totalBudget.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </strong>
+                <span className="metric-sub">Trip Estimate</span>
+              </div>
+
+              <div className="budget-metric">
+                <span className="metric-label">Cumulative Spend</span>
+                <strong className="metric-val metric-val--spent">
+                  ${totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </strong>
+                <span className="metric-sub">{expenses.length} recorded items</span>
+              </div>
+
+              <div className="budget-metric">
+                <span className="metric-label">Remaining Balance</span>
+                <strong
+                  className={`metric-val ${
+                    remainingBudget !== null && remainingBudget >= 0
+                      ? 'metric-val--positive'
+                      : 'metric-val--negative'
+                  }`}
+                >
+                  ${(remainingBudget || 0).toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </strong>
+                <span className="metric-sub">
+                  {remainingBudget !== null && remainingBudget >= 0
+                    ? `${(100 - burnPercent).toFixed(0)}% available`
+                    : 'Over budget'}
+                </span>
+              </div>
+
+              <div className="budget-metric budget-metric--status">
+                <span className="metric-label">Burn Telemetry</span>
+                <div className="burn-badge">
+                  <VscPieChart />
+                  <span>{burnPercent.toFixed(0)}% Burned</span>
                 </div>
               </div>
-              <div className="budget-bar">
-                <div
-                  className="budget-progress"
-                  style={{
-                    width: `${Math.min((totalExpenses / budget.totalBudget) * 100, 100)}%`
-                  }}
-                />
-              </div>
-            </Card>
-          )}
-
-          {/* Expenses List */}
-          <div className="expenses-section">
-            <div className="section-header">
-              <h2>Expenses</h2>
-              <Button variant="primary" icon={VscAdd} onClick={() => setShowForm(!showForm)}>
-                Add Expense
-              </Button>
             </div>
 
-            {loading ? (
-              <Card padding="lg">
-                <p style={{ textAlign: 'center' }}>Loading expenses...</p>
-              </Card>
-            ) : expenses.length === 0 ? (
-              <Card padding="lg" className="empty-state">
-                <VscCreditCard className="empty-icon" />
-                <h3>No Expenses Yet</h3>
-                <p>Add expenses to track your spending</p>
-              </Card>
-            ) : (
-              <div className="expenses-list">
-                {expenses.map(expense => (
-                  <Card key={expense._id} padding="md" className="expense-item">
-                    <div className="expense-row">
-                      <div className="expense-info">
-                        <Badge variant="primary" size="sm">
-                          {expense.category}
-                        </Badge>
-                        <div className="expense-details">
-                          <strong>{expense.description}</strong>
-                          <span className="expense-date">
-                            {new Date(expense.createdAt).toLocaleDateString()}
-                          </span>
+            {/* Glowing Multi-segment Progress Bar */}
+            <div className="budget-track-wrap">
+              <div
+                className={`budget-track-fill ${
+                  burnPercent > 90 ? 'is-danger' : burnPercent > 70 ? 'is-warning' : ''
+                }`}
+                style={{ width: `${burnPercent}%` }}
+              />
+            </div>
+          </section>
+        )}
+
+        {/* Filter Chips Bar */}
+        <div className="expenses-filter-bar">
+          <div className="filter-chips-list">
+            <button
+              type="button"
+              className={`filter-chip ${filterCategory === 'All' ? 'is-active' : ''}`}
+              onClick={() => setFilterCategory('All')}
+            >
+              All Categories ({expenses.length})
+            </button>
+            {CATEGORIES.map((cat) => {
+              const count = expenses.filter(
+                (e) => (e.category || '').toLowerCase() === cat.id.toLowerCase()
+              ).length;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  className={`filter-chip ${filterCategory === cat.id ? 'is-active' : ''}`}
+                  onClick={() => setFilterCategory(cat.id)}
+                >
+                  <cat.icon className="chip-icon" />
+                  <span>
+                    {cat.label} ({count})
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Expense Items List */}
+        <section className="expenses-feed">
+          {loading ? (
+            <div className="expenses-loading-state">
+              <Loading
+                size="lg"
+                label="Calculating squad financials..."
+                sublabel="Syncing live expense ledger and split settlements"
+                dark
+              />
+            </div>
+          ) : filteredExpenses.length === 0 ? (
+            <div className="expenses-empty-card">
+              <div className="empty-icon-wrap">
+                <VscCreditCard />
+              </div>
+              <h3>No Expenses Recorded Yet</h3>
+              <p>
+                Keep your squad on budget. Log fuel, dining, accommodation, or tour passes and
+                split costs automatically.
+              </p>
+              <button
+                type="button"
+                className="btn-log-expense"
+                onClick={() => setShowFormModal(true)}
+              >
+                <VscAdd />
+                <span>Log First Expense</span>
+              </button>
+            </div>
+          ) : (
+            <div className="expenses-grid">
+              {filteredExpenses.map((expense) => {
+                const CatIcon = getCategoryIcon(expense.category);
+                const dateStr = new Date(expense.createdAt || Date.now()).toLocaleDateString(
+                  undefined,
+                  {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  }
+                );
+
+                return (
+                  <article key={expense._id} className="expense-card">
+                    <div className="expense-card-left">
+                      <div className="expense-cat-badge">
+                        <CatIcon />
+                      </div>
+                      <div className="expense-details">
+                        <h4 className="expense-desc">{expense.description}</h4>
+                        <div className="expense-meta-row">
+                          <span className="expense-cat-name">{expense.category}</span>
+                          <span className="expense-meta-dot">·</span>
+                          <span className="expense-date">{dateStr}</span>
+                          {expense.paidBy && (
+                            <>
+                              <span className="expense-meta-dot">·</span>
+                              <span className="expense-payer">
+                                Paid by{' '}
+                                {typeof expense.paidBy === 'object'
+                                  ? expense.paidBy.name || 'Traveler'
+                                  : 'Squad Member'}
+                              </span>
+                            </>
+                          )}
                         </div>
-                      </div>
-
-                      <div className="expense-amount">
-                        <strong>${expense.amount.toFixed(2)}</strong>
-                      </div>
-
-                      <div className="expense-actions">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          icon={VscTrash}
-                          onClick={() => deleteExpense(expense._id)}
-                          style={{ color: 'var(--color-error)' }}
-                        />
                       </div>
                     </div>
 
-                    {expense.participants && expense.participants.length > 0 && (
-                      <div className="expense-split">
-                        <VscSplitHorizontal className="split-icon" />
-                        <span>Split between {expense.participants.length} people</span>
+                    <div className="expense-card-right">
+                      <div className="expense-price-wrap">
+                        <strong className="expense-price">
+                          ${Number(expense.amount).toFixed(2)}
+                        </strong>
+                        {expense.participants && expense.participants.length > 0 && (
+                          <span className="expense-split-tag">
+                            <VscSplitHorizontal /> Split by {expense.participants.length}
+                          </span>
+                        )}
                       </div>
-                    )}
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
 
-          {/* Add Expense Form */}
-          {showForm && (
-            <Card padding="lg">
-              <CardHeader title="Add New Expense" />
-              <CardBody>
-                <div className="form-grid">
-                  <Input
-                    label="Description"
-                    placeholder="e.g., Dinner at restaurant"
+                      <button
+                        type="button"
+                        className="btn-expense-delete"
+                        onClick={() => handleDeleteExpense(expense._id)}
+                        title="Delete expense"
+                        aria-label="Delete expense"
+                      >
+                        <VscTrash />
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* Modal: Log New Expense */}
+        {showFormModal && (
+          <div
+            className="expense-modal-backdrop"
+            onClick={() => setShowFormModal(false)}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div
+              className="expense-modal-card"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <header className="expense-modal-header">
+                <div className="modal-title-group">
+                  <VscCreditCard className="modal-title-icon" />
+                  <h3>Log Squad Expense</h3>
+                </div>
+                <button
+                  type="button"
+                  className="modal-close-btn"
+                  onClick={() => setShowFormModal(false)}
+                >
+                  <VscClose />
+                </button>
+              </header>
+
+              <form onSubmit={handleAddExpense} className="expense-modal-form">
+                <div className="form-group">
+                  <label htmlFor="exp-desc">Expense Description</label>
+                  <input
+                    id="exp-desc"
+                    type="text"
+                    required
+                    placeholder="e.g. Seafood Dinner at Fisherman's Wharf"
                     value={formData.description}
-                    onChange={e => setFormData({
-                      ...formData,
-                      description: e.target.value
-                    })}
-                    fullWidth
+                    onChange={(e) =>
+                      setFormData({ ...formData, description: e.target.value })
+                    }
                   />
-                  <Input
-                    label="Amount"
-                    type="number"
-                    placeholder="0.00"
-                    value={formData.amount}
-                    onChange={e => setFormData({
-                      ...formData,
-                      amount: parseFloat(e.target.value) || ''
-                    })}
-                    fullWidth
-                  />
-                  <div style={{ gridColumn: '1 / -1' }}>
-                    <label style={{
-                      display: 'block',
-                      marginBottom: 'var(--space-2)',
-                      fontSize: 'var(--font-size-sm)',
-                      fontWeight: 'var(--font-weight-medium)',
-                    }}>
-                      Category
-                    </label>
+                </div>
+
+                <div className="form-row-2">
+                  <div className="form-group">
+                    <label htmlFor="exp-amount">Amount (USD $)</label>
+                    <input
+                      id="exp-amount"
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      required
+                      placeholder="0.00"
+                      value={formData.amount}
+                      onChange={(e) =>
+                        setFormData({ ...formData, amount: e.target.value })
+                      }
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="exp-category">Expense Category</label>
                     <select
+                      id="exp-category"
                       value={formData.category}
-                      onChange={e => setFormData({
-                        ...formData,
-                        category: e.target.value
-                      })}
-                      style={{
-                        width: '100%',
-                        padding: 'var(--space-3) var(--space-4)',
-                        border: '1px solid var(--color-border)',
-                        borderRadius: 'var(--radius-lg)',
-                        fontFamily: 'var(--font-primary)',
-                      }}
+                      onChange={(e) =>
+                        setFormData({ ...formData, category: e.target.value })
+                      }
                     >
-                      {categories.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
+                      {CATEGORIES.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.label}
+                        </option>
                       ))}
                     </select>
                   </div>
                 </div>
-              </CardBody>
-              <CardFooter>
-                <Button variant="ghost" onClick={() => setShowForm(false)}>
-                  Cancel
-                </Button>
-                <Button variant="primary" onClick={addExpense}>
-                  Add Expense
-                </Button>
-              </CardFooter>
-            </Card>
-          )}
-        </div>
-      </div>
+
+                {members.length > 0 && (
+                  <div className="form-group">
+                    <label>Split between Squad Members</label>
+                    <div className="squad-split-chips">
+                      {members.map((m, idx) => {
+                        const mId = m.userId?._id || m.userId || String(idx);
+                        const mName = m.userId?.name || m.name || `Traveler #${idx + 1}`;
+                        const isSelected = formData.participants.includes(mId);
+
+                        return (
+                          <button
+                            key={mId}
+                            type="button"
+                            className={`split-member-chip ${isSelected ? 'is-selected' : ''}`}
+                            onClick={() => {
+                              setFormData((prev) => ({
+                                ...prev,
+                                participants: isSelected
+                                  ? prev.participants.filter((p) => p !== mId)
+                                  : [...prev.participants, mId],
+                              }));
+                            }}
+                          >
+                            <span className="chip-check">
+                              {isSelected ? <VscCheck /> : null}
+                            </span>
+                            <span>{mName}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <footer className="expense-modal-footer">
+                  <button
+                    type="button"
+                    className="btn-cancel"
+                    onClick={() => setShowFormModal(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn-submit"
+                    disabled={submitting}
+                  >
+                    {submitting ? 'Recording...' : 'Add to Ledger'}
+                  </button>
+                </footer>
+              </form>
+            </div>
+          </div>
+        )}
+      </main>
     </div>
   );
 }

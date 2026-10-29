@@ -20,6 +20,7 @@ import { IoPeopleSharp } from 'react-icons/io5';
 import api from '../../utils/axiosInstance';
 import { useAuth } from '../../context/AuthContext';
 import { Toast, useConfirm } from '../../components/UI';
+import TripSubNav from './TripSubNav';
 
 import './EditTrip.css';
 
@@ -858,6 +859,10 @@ export default function EditTrip() {
             </div>
           </div>
         </header>
+
+        <div style={{ margin: '0.75rem 0 1.25rem' }}>
+          <TripSubNav activeTab="settings" />
+        </div>
 
         <Toast
           variant={feedback.type}

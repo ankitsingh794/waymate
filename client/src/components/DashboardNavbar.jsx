@@ -113,8 +113,34 @@ export default function DashboardNavbar() {
   return (
     <header className="db-nav">
       <div className="db-nav-shell" ref={navRootRef}>
-        <Link to="/dashboard" className="db-nav-logo" onClick={closeMenus}>
-          <img src={Logo} alt="WayMate" width="120" height="32" loading="eager" decoding="async" />
+        <Link to="/dashboard" className="db-nav-logo" onClick={closeMenus} aria-label="WayMate Home">
+          <svg width="126" height="34" viewBox="0 0 120 32" fill="none" role="img" aria-label="WayMate">
+            {/* Outer Compass Ring */}
+            <circle cx="16" cy="16" r="10" stroke="#d7bc9c" strokeWidth="1.6" fill="none" />
+            {/* Cardinal Ticks */}
+            <line x1="16" y1="5.5" x2="16" y2="8.5" stroke="#d7bc9c" strokeWidth="1.6" strokeLinecap="round" />
+            <line x1="16" y1="23.5" x2="16" y2="26.5" stroke="#d7bc9c" strokeWidth="1.6" strokeLinecap="round" />
+            <line x1="5.5" y1="16" x2="8.5" y2="16" stroke="#d7bc9c" strokeWidth="1.6" strokeLinecap="round" />
+            <line x1="23.5" y1="16" x2="26.5" y2="16" stroke="#d7bc9c" strokeWidth="1.6" strokeLinecap="round" />
+            {/* Needle North (Gold-Sand) */}
+            <polygon points="16,8 13.5,17 16,15.5 18.5,17" fill="#d7bc9c" />
+            {/* Needle South (Emerald-Accent) */}
+            <polygon points="16,24 13.5,15 16,16.5 18.5,15" fill="#52a380" opacity="0.75" />
+            {/* Center Pivot */}
+            <circle cx="16" cy="16" r="1.5" fill="#fffdf8" />
+            {/* Brand Wordmark */}
+            <text
+              x="34"
+              y="22"
+              fontFamily="'Playfair Display', Georgia, serif"
+              fontSize="16"
+              fontWeight="700"
+              letterSpacing="-0.01em"
+              fill="#fffdf8"
+            >
+              WayMate
+            </text>
+          </svg>
         </Link>
 
         <button

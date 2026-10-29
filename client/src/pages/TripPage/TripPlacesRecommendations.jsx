@@ -16,8 +16,22 @@ import { Badge, Button, Loading } from '../../components/UI';
 import api from '../../utils/axiosInstance';
 import './TripPlacesRecommendations.css';
 
-const FALLBACK_PLACE_IMG =
-  'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=640&q=80';
+const CATEGORY_FALLBACK_IMAGES = {
+  attractions:
+    'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=800&q=80',
+  food:
+    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80',
+  stays:
+    'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80',
+};
+
+function getPlaceImage(place, category) {
+  if (place.image && typeof place.image === 'string' && place.image.startsWith('http')) return place.image;
+  if (place.photoUrl && typeof place.photoUrl === 'string' && place.photoUrl.startsWith('http')) return place.photoUrl;
+  if (Array.isArray(place.photos) && place.photos[0] && typeof place.photos[0] === 'string') return place.photos[0];
+  if (Array.isArray(place.photos) && place.photos[0]?.url) return place.photos[0].url;
+  return CATEGORY_FALLBACK_IMAGES[category] || CATEGORY_FALLBACK_IMAGES.attractions;
+}
 
 export default function TripPlacesRecommendations() {
   const { id } = useParams();
@@ -48,20 +62,24 @@ export default function TripPlacesRecommendations() {
   const food = trip?.foodRecommendations || [];
   const stays = trip?.accommodationSuggestions || [];
 
-  const currentList =
-    activeCategory === 'attractions'
-      ? attractions
-      : activeCategory === 'food'
-        ? food
-        : stays;
+  let currentList = attractions;
+  if (activeCategory === 'food') currentList = food;
+  if (activeCategory === 'stays') currentList = stays;
 
   if (loading) {
     return (
       <div className="places-rec-page">
         <DashboardNavbar />
-        <div className="places-rec-loading">
-          <Loading size="lg" />
-          <p>Curating local intelligence and sights...</p>
+        <div className="places-rec-shell">
+          <TripSubNav />
+          <div className="places-loading">
+            <Loading
+              size="lg"
+              label={`Curating places in ${trip?.destination || 'your destination'}...`}
+              sublabel="Accessing verified sights, local dining, and boutique stays"
+              dark
+            />
+          </div>
         </div>
       </div>
     );
@@ -76,24 +94,29 @@ export default function TripPlacesRecommendations() {
         <div className="places-rec-orb places-rec-orb-2" />
       </div>
 
-      <main className="places-rec-shell">
+      <div className="places-rec-shell">
+        {/* Top Back Link */}
         <div className="places-rec-top-nav">
           <Link to={`/trip/${id}`} className="places-rec-back-link">
-            <VscArrowLeft /> Back to {trip?.destination || 'Trip'} Overview
+            <VscArrowLeft />
+            <span>Back to {trip?.destination || 'Trip'} Overview</span>
           </Link>
         </div>
 
+        {/* Expedition Sub-nav */}
         <TripSubNav />
 
+        {/* Header */}
         <header className="places-rec-header">
           <div>
             <div className="places-rec-eyebrow">
-              <span className="places-rec-live-dot" />
-              <span>Area Intelligence</span>
+              <span className="places-live-dot" />
+              <span>AREA INTELLIGENCE</span>
             </div>
             <h1>Curated Points of Interest</h1>
             <p>
-              High-confidence attractions, authentic dining, and verified stays recommended for {trip?.destination || 'your destination'}.
+              High-confidence attractions, authentic dining, and verified stays recommended for{' '}
+              {trip?.destination || 'your destination'}.
             </p>
           </div>
 
@@ -155,14 +178,23 @@ export default function TripPlacesRecommendations() {
                 place.website ||
                 `https://www.google.com/maps/search/?api=1&query=${mapQuery}`;
 
+              const imgSrc = getPlaceImage(place, activeCategory);
+
               return (
                 <article key={idx} className="place-item-card">
                   <div className="place-item-media">
                     <img
-                      src={place.image || FALLBACK_PLACE_IMG}
+                      src={imgSrc}
                       alt={place.name || 'Place photo'}
                       loading="lazy"
                       decoding="async"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        const fallback = CATEGORY_FALLBACK_IMAGES[activeCategory] || CATEGORY_FALLBACK_IMAGES.attractions;
+                        if (e.currentTarget.src !== fallback) {
+                          e.currentTarget.src = fallback;
+                        }
+                      }}
                     />
                     <div className="place-item-scrim" />
                     {place.rating && (
@@ -199,7 +231,7 @@ export default function TripPlacesRecommendations() {
             })
           )}
         </section>
-      </main>
+      </div>
     </div>
   );
 }

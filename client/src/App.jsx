@@ -175,7 +175,27 @@ function App() {
         }
       />
       <Route
+        path="/trip/:id/expenses"
+        element={
+          <ProtectedRoute>
+            <Suspense fallback={<PageSkeleton />}>
+              <ExpensesPage />
+            </Suspense>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/trip/:tripId/expenses"
+        element={
+          <ProtectedRoute>
+            <Suspense fallback={<PageSkeleton />}>
+              <ExpensesPage />
+            </Suspense>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/expenses"
         element={
           <ProtectedRoute>
             <Suspense fallback={<PageSkeleton />}>
