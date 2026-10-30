@@ -25,6 +25,7 @@ exports.createHousehold = async (req, res, next) => {
     try {
         const user = await User.findById(req.user._id).session(session);
         if (user.householdId) {
+            await session.abortTransaction();
             return next(new AppError('You are already a member of a household.', 400));
         }
 

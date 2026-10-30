@@ -14,6 +14,7 @@ const smartSeatScheduleService = require('../services/smartSeatScheduleService')
 const AppError = require('../utils/AppError');
 const User = require('../models/User');
 const tripService = require('../services/tripService');
+const { escapeRegex } = require('../utils/validationHelpers');
 
 /**
  * Reusable helper to fetch a trip and verify user's permission level.
@@ -23,6 +24,9 @@ const tripService = require('../services/tripService');
  * @returns {Promise<{trip: object, member: object}>} - The trip document and the member object.
  */
 async function getTripAndVerifyPermission(tripId, userId, requiredRoles = ['viewer', 'editor', 'owner']) {
+    if (!tripId || !mongoose.Types.ObjectId.isValid(tripId)) {
+        throw new AppError('Invalid trip ID provided.', 400);
+    }
     // Populating user details for better frontend display
     const trip = await Trip.findById(tripId).populate(
         'group.members.userId',
@@ -32,7 +36,11 @@ async function getTripAndVerifyPermission(tripId, userId, requiredRoles = ['view
         throw new AppError('Trip not found.', 404);
     }
 
-    const member = trip.group.members.find(m => m.userId._id.toString() === userId.toString());
+    const member = trip.group.members.find(m => {
+        if (!m || !m.userId) return false;
+        const mId = m.userId._id ? m.userId._id.toString() : m.userId.toString();
+        return mId === userId.toString();
+    });
     if (!member) {
         throw new AppError('Access denied. You are not a member of this trip.', 403);
     }
@@ -52,6 +60,8 @@ async function getTripAndVerifyPermission(tripId, userId, requiredRoles = ['view
  */
 exports.getAllTrips = async (req, res, next) => {
     const { page = 1, limit = 10, status, destination } = req.query;
+    const safePage = Math.max(parseInt(page, 10) || 1, 1);
+    const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 100);
     const userId = req.user._id;
     const queryKey = cacheKeys.generateUserTripsKey(userId, req.query);
 
@@ -87,18 +97,20 @@ exports.getAllTrips = async (req, res, next) => {
 
         if (destination) {
             // Using a case-insensitive regex for better search results
-            query['destination.name'] = { $regex: destination, $options: 'i' };
+            if (typeof destination === 'string' && destination.trim()) {
+                query['destination.name'] = { $regex: escapeRegex(destination.trim()), $options: 'i' };
+            }
         }
 
-        const skip = (page - 1) * limit;
+        const skip = (safePage - 1) * safeLimit;
         const [trips, total] = await Promise.all([
-            Trip.find(query).sort(sort).skip(skip).limit(parseInt(limit)),
+            Trip.find(query).sort(sort).skip(skip).limit(safeLimit),
             Trip.countDocuments(query)
         ]);
 
         const responseData = {
-            page: parseInt(page),
-            totalPages: Math.ceil(total / limit),
+            page: safePage,
+            totalPages: Math.ceil(total / safeLimit),
             total,
             count: trips.length,
             data: trips

@@ -5,6 +5,8 @@ const { sendSuccess } = require('../utils/responseHelper');
 const cloudinary = require('../config/cloudinary');
 const ConsentLog = require('../models/ConsentLog');
 const crypto = require('crypto');
+const mongoose = require('mongoose');
+const { escapeRegex } = require('../utils/validationHelpers');
 
 /**
  * @desc Get current user profile
@@ -236,21 +238,26 @@ exports.updateUserConsent = async (req, res, next) => {
 exports.getAllUsers = async (req, res, next) => {
   try {
     const { page = 1, limit = 50, search } = req.query;
+    const safePage = Math.max(parseInt(page, 10) || 1, 1);
+    const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 100);
     
     // Build query
     const query = {};
-    if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } }
-      ];
+    if (search && typeof search === 'string') {
+      const sanitizedSearch = escapeRegex(search.trim());
+      if (sanitizedSearch) {
+        query.$or = [
+          { name: { $regex: sanitizedSearch, $options: 'i' } },
+          { email: { $regex: sanitizedSearch, $options: 'i' } }
+        ];
+      }
     }
 
-    // Execute query with pagination
+    // Execute query with pagination using safe bounds
     const users = await User.find(query)
       .select('name email accountStatus createdAt demographics location.city location.country')
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
+      .limit(safeLimit)
+      .skip((safePage - 1) * safeLimit)
       .sort({ createdAt: -1 })
       .lean();
 
@@ -278,11 +285,11 @@ exports.getAllUsers = async (req, res, next) => {
       data: {
         users: usersWithHashes,
         pagination: {
-          current: parseInt(page),
-          pages: Math.ceil(total / limit),
+          current: safePage,
+          pages: Math.ceil(total / safeLimit) || 1,
           total,
-          hasNext: page < Math.ceil(total / limit),
-          hasPrev: page > 1
+          hasNext: safePage < Math.ceil(total / safeLimit),
+          hasPrev: safePage > 1
         }
       }
     });

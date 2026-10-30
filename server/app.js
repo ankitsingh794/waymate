@@ -4,12 +4,13 @@ const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
-const sanitizeInput = require('./middlewares/sanitizeMiddleware'); 
+const sanitizeInput = require('./middlewares/sanitizeMiddleware');
 const hpp = require('hpp');
 const logger = require('./utils/logger');
 const { globalLimiter } = require('./middlewares/rateLimiter');
 const errorHandler = require('./middlewares/errorMiddleware');
 const metricsMiddleware = require('./middlewares/metricsMiddleware');
+const AppError = require('./utils/AppError');
 
 // Routes
 const authRoutes = require('./routes/authRoutes');
@@ -38,14 +39,15 @@ const allowedOrigins = [
   process.env.CLIENT_URL,
   'http://localhost:5173',
   'https://localhost:5173',
-];
+  'http://localhost:3000',
+].filter(Boolean);
 
 const corsOptions = {
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      callback(new AppError('Not allowed by CORS policy', 403));
     }
   },
   credentials: true,
@@ -57,18 +59,24 @@ app.options('*', cors(corsOptions));
 // --- Security Middleware ---
 app.use(helmet());
 app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(metricsMiddleware);
 
-// Sanitize request body and query to prevent XSS attacks
+// Sanitize request body, query, and params to prevent XSS attacks
 app.use(sanitizeInput);
 
 // Sanitize data to prevent NoSQL injection
-app.use(mongoSanitize());
+app.use(
+  mongoSanitize({
+    replaceWith: '_',
+    onSanitize: ({ req, key }) => {
+      logger.warn(`[Security Alert] Sanitized suspicious NoSQL key "${key}" from IP ${req.ip}`);
+    },
+  })
+);
 
 // Prevent HTTP Parameter Pollution
-app.use(hpp({
-    // whitelist: ['duration', 'ratingsAverage'] // Example
-}));
+app.use(hpp());
 
 // --- Other Middleware ---
 app.use(cookieParser());
@@ -76,11 +84,16 @@ app.use(globalLimiter);
 
 // --- Logging ---
 if (process.env.NODE_ENV === 'development') {
-    app.use(morgan('dev'));
+  app.use(morgan('dev'));
 } else {
-    app.use(morgan(':remote-addr - :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent"', {
+  app.use(
+    morgan(
+      ':remote-addr - :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent"',
+      {
         stream: { write: (message) => logger.http(message.trim()) },
-    }));
+      }
+    )
+  );
 }
 
 // --- API Routes ---
@@ -113,13 +126,12 @@ app.get('/health', (req, res) => {
   });
 });
 
-// --- Error Handling ---
+// --- Unmatched Routes 404 Handling ---
 app.all('*', (req, res, next) => {
-    res.status(404).json({
-        status: 'fail',
-        message: `Can't find ${req.originalUrl} on this server!`
-    });
+  next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
 });
+
+// --- Centralized Error Handling ---
 app.use(errorHandler);
 
 module.exports = app;

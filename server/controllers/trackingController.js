@@ -1,6 +1,7 @@
 const trackingService = require('../services/passiveTrackingService');
 const { sendSuccess, sendError } = require('../utils/responseHelper');
 const { isValidObjectId } = require('mongoose');
+const logger = require('../utils/logger');
 
 exports.startTrip = async (req, res) => {
     const { startPoint } = req.body;
@@ -11,11 +12,10 @@ exports.startTrip = async (req, res) => {
         const trip = await trackingService.handleTripStart(req.user, startPoint);
         sendSuccess(res, 201, 'Trip started successfully.', { tripId: trip._id });
     } catch (error) {
-        console.error('Error starting trip:', error);
+        logger.error('Error starting trip:', { error: error.message });
         sendError(res, 500, 'Could not start trip.');
     }
 };
-
 
 exports.confirmTripStart = async (req, res) => {
     try {
@@ -61,13 +61,13 @@ exports.endTrip = async (req, res) => {
     }
     // Asynchronously process the finalization
     sendSuccess(res, 202, 'Trip end signal received. Final processing initiated.');
-    try {
-        // No await here, let it run in the background
-        trackingService.handleTripEnd(req.user, tripId, endPoint);
-    } catch (error) {
-        // Since we already sent a success response, we just log the error
-        console.error(`Error during background trip finalization for trip ${tripId}:`, error);
-    }
+    // Run background task with promise rejection catch to prevent unhandled rejection crashes
+    trackingService.handleTripEnd(req.user, tripId, endPoint)
+        .catch((error) => {
+            logger.error(`Error during background trip finalization for trip ${tripId}:`, {
+                error: error.message
+            });
+        });
 };
 
 exports.confirmOrCorrectTripMode = async (req, res) => {

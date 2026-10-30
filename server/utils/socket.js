@@ -1,5 +1,6 @@
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const { createAdapter } = require('@socket.io/redis-adapter');
 const { createClient } = require('redis');
 const User = require('../models/User');
@@ -9,72 +10,56 @@ const redisCache = require('../config/redis');
 let io = null;
 
 const authenticateSocket = async (socket, next) => {
-  logger.debug('--- [SOCKET AUTHENTICATION START] ---');
-  logger.debug(`[1/7] New socket connection attempt from handshake: ${JSON.stringify(socket.handshake.auth)}`);
-
   try {
-    const token = socket.handshake.auth.token;
+    const token = socket.handshake.auth?.token;
     if (!token) {
-      logger.warn('[FAIL] Authentication failed: Missing token.');
+      logger.warn('[Socket Auth] Authentication failed: Missing token.');
       return next(new Error('Authentication failed: Missing token'));
     }
-    logger.debug('[2/7] Token found in handshake.');
 
     let decoded;
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET);
-      logger.debug(`[3/7] JWT verification successful. Decoded payload:`, decoded);
     } catch (jwtError) {
       if (jwtError.name === 'TokenExpiredError') {
-        logger.warn(`[FAIL] Authentication failed: JWT token has expired. Expired at: ${jwtError.expiredAt}`);
+        logger.warn(`[Socket Auth] Token expired for connection: ${socket.id}`);
         return next(new Error('Authentication failed: Token expired'));
-      } else if (jwtError.name === 'JsonWebTokenError') {
-        logger.warn(`[FAIL] Authentication failed: Invalid JWT token. Error: ${jwtError.message}`);
-        return next(new Error('Authentication failed: Invalid token'));
-      } else {
-        logger.error(`[FAIL] JWT verification error: ${jwtError.message}`);
-        return next(new Error('Authentication failed: Token verification failed'));
       }
+      logger.warn(`[Socket Auth] Invalid token: ${jwtError.message}`);
+      return next(new Error('Authentication failed: Invalid token'));
     }
 
     if (!decoded.jti) {
-      logger.warn('[FAIL] Authentication failed: Token missing JTI (JWT ID).');
+      logger.warn('[Socket Auth] Token missing JTI.');
       return next(new Error('Authentication failed: Token missing ID'));
     }
-    logger.debug(`[4/7] JTI found: ${decoded.jti}`);
 
     const isBlacklisted = await redisCache.isTokenBlacklisted(decoded.jti);
     if (isBlacklisted) {
-      logger.warn(`[FAIL] Authentication failed: Token with JTI ${decoded.jti} is blacklisted.`);
+      logger.warn(`[Socket Auth] Blacklisted token rejected: ${decoded.jti}`);
       return next(new Error('Authentication failed: Token has been invalidated'));
     }
-    logger.debug('[5/7] Token is not blacklisted.');
 
     const user = await User.findById(decoded.id).select('+passwordChangedAt');
     if (!user || user.accountStatus !== 'active') {
       const reason = !user ? 'User not found' : `User account status is ${user.accountStatus}`;
-      logger.warn(`[FAIL] Authentication failed: ${reason}.`);
+      logger.warn(`[Socket Auth] Authentication rejected: ${reason}`);
       return next(new Error('Authentication failed: User invalid'));
     }
-    logger.debug(`[6/7] User found and active: ${user.email}`);
 
-    if (user.passwordChangedAt && (decoded.iat * 1000) < new Date(user.passwordChangedAt).getTime()) {
-      logger.warn('[FAIL] Authentication failed: Password was changed after token was issued.');
+    if (user.passwordChangedAt && decoded.iat * 1000 < new Date(user.passwordChangedAt).getTime()) {
+      logger.warn('[Socket Auth] Password changed after token issuance.');
       return next(new Error('Authentication failed: Credentials changed'));
     }
-    logger.debug('[7/7] Password change check passed.');
 
-    logger.debug('--- [SOCKET AUTHENTICATION SUCCESS] ---');
     socket.user = user;
     next();
-
   } catch (error) {
-    logger.error(`[CRASH] An unexpected error occurred during socket authentication: ${error.message}`, { stack: error.stack });
-    next(new Error(`Authentication failed: ${error.message}`));
+    logger.error(`[Socket Auth] Unexpected error: ${error.message}`);
+    next(new Error('Authentication failed'));
   }
 };
 
-// FIX: Add the getSocketIO function
 const getSocketIO = () => {
   if (!io) {
     throw new Error('Socket.IO has not been initialized. Call initSocketIO first.');
@@ -88,15 +73,12 @@ const getSocketIO = () => {
  * @returns {object} The configured Socket.IO server instance.
  */
 const initSocketIO = (httpServer) => {
-
-  // --- Socket.IO CORS Configuration ---
-  // Must match credentials: true with specific origins (not wildcard *)
   const allowedOrigins = [
     process.env.CLIENT_URL,
     'http://localhost:5173',
     'https://localhost:5173',
     'http://localhost:3000',
-  ];
+  ].filter(Boolean);
 
   const corsOptions = {
     origin: (origin, callback) => {
@@ -109,43 +91,64 @@ const initSocketIO = (httpServer) => {
     },
     methods: ['GET', 'POST'],
     credentials: true,
-    maxHttpBufferSize: 1e6, // 1MB
+    maxHttpBufferSize: 1e6, // 1MB payload limit to prevent buffer overflow attacks
   };
-  logger.info(`Socket.IO CORS configured for origins: ${allowedOrigins.join(', ')}`);
-  
+
   io = new Server(httpServer, {
     cors: corsOptions,
   });
 
-  // Define the connection handler logic once to be reused
   const onConnection = (socket) => {
     logger.info(`✅ Socket connected: ${socket.id} for user ${socket.user.email}`);
+    // Private user notification channel
     socket.join(socket.user._id.toString());
-    
-    socket.on('joinSession', (sessionId) => {
-      // FIX: Make sure sessionId is a string
-      const roomId = typeof sessionId === 'string' ? sessionId : sessionId.sessionId;
-      
-      socket.join(roomId);
-      logger.info(`🏠 Socket ${socket.id} (${socket.user.email}) joined session ${roomId}`);
-      
-      // FIX: Send confirmation
-      socket.emit('sessionJoined', { sessionId: roomId, message: 'Successfully joined session' });
+
+    // Secure session join with participant authorization check
+    socket.on('joinSession', async (sessionId) => {
+      try {
+        const roomId = typeof sessionId === 'string' ? sessionId : sessionId?.sessionId;
+
+        if (!roomId || !mongoose.Types.ObjectId.isValid(roomId)) {
+          socket.emit('socketError', { message: 'Invalid session ID provided.' });
+          return;
+        }
+
+        // Lazy load ChatSession model
+        const ChatSession = require('../models/ChatSession');
+        const session = await ChatSession.findOne({
+          _id: roomId,
+          participants: socket.user._id,
+        });
+
+        if (!session) {
+          logger.warn(`[Security Alert] User ${socket.user.email} attempted to join unauthorized session room ${roomId}`);
+          socket.emit('socketError', { message: 'Access denied: You are not a member of this chat session.' });
+          return;
+        }
+
+        socket.join(roomId);
+        logger.info(`🏠 Socket ${socket.id} (${socket.user.email}) joined authorized session ${roomId}`);
+        socket.emit('sessionJoined', { sessionId: roomId, message: 'Successfully joined session' });
+      } catch (err) {
+        logger.error(`Error in joinSession socket handler: ${err.message}`);
+        socket.emit('socketError', { message: 'Failed to join session.' });
+      }
     });
-    
+
     socket.on('leaveSession', (sessionId) => {
-      socket.leave(sessionId);
-      logger.debug(`Socket ${socket.id} left session ${sessionId}`);
+      const roomId = typeof sessionId === 'string' ? sessionId : sessionId?.sessionId;
+      if (roomId && typeof roomId === 'string') {
+        socket.leave(roomId);
+        logger.debug(`Socket ${socket.id} left session ${roomId}`);
+      }
     });
-    
+
     socket.on('disconnect', (reason) => {
       logger.info(`🔌 Client disconnected: ${socket.id}. Reason: ${reason}`);
     });
   };
 
-  // Use an async IIFE (Immediately Invoked Function Expression) to handle setup
   (async () => {
-    // --- Redis Adapter for Scalability ---
     const redisUrl = process.env.REDIS_URL;
     const redisHost = process.env.REDIS_HOST;
     const redisPort = process.env.REDIS_PORT;
@@ -156,8 +159,7 @@ const initSocketIO = (httpServer) => {
         const pubClient = createClient(redisOptions);
         const subClient = pubClient.duplicate();
 
-        // Register error handlers before connecting
-        [pubClient, subClient].forEach(client => {
+        [pubClient, subClient].forEach((client) => {
           client.on('error', (err) => logger.error('❌ Socket.IO Redis client error', err));
         });
 
@@ -165,8 +167,7 @@ const initSocketIO = (httpServer) => {
         io.adapter(createAdapter(pubClient, subClient));
         logger.info('✅ Socket.IO is using the Redis adapter for scalability.');
       } catch (err) {
-        logger.error('❌ CRITICAL: Failed to connect Socket.IO to Redis adapter. Exiting.', err);
-        process.exit(1);
+        logger.error('❌ Failed to connect Socket.IO to Redis adapter. Running in standalone fallback mode.', err);
       }
     } else {
       logger.warn('⚠️  Redis not configured for Socket.IO. Running in standalone mode.');
@@ -175,7 +176,6 @@ const initSocketIO = (httpServer) => {
     io.use(authenticateSocket);
     io.on('connection', onConnection);
 
-    // Late-import to prevent circular dependencies
     const notificationService = require('../services/notificationService');
     notificationService.initNotificationService(io);
   })();
@@ -183,9 +183,8 @@ const initSocketIO = (httpServer) => {
   return io;
 };
 
-// FIX: Export the getSocketIO function
 module.exports = {
   initSocketIO,
   authenticateSocket,
-  getSocketIO, // Add this export
+  getSocketIO,
 };
