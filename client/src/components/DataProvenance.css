@@ -1,0 +1,233 @@
+/* DataProvenance.css — Visual data attribution and provenance styling */
+
+.data-provenance-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  font-family: inherit;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  transition: all 0.2s ease;
+  user-select: none;
+  position: relative;
+  width: fit-content;
+}
+
+.data-provenance-badge.badge-sm {
+  font-size: 0.625rem;
+  padding: 0.15rem 0.45rem;
+  gap: 0.3rem;
+}
+
+.data-provenance-badge.badge-md {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.65rem;
+  gap: 0.4rem;
+}
+
+/* Variants */
+.data-provenance-badge.variant-live {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.25);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.12);
+}
+
+.data-provenance-badge.variant-hardcoded {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.1);
+}
+
+.data-provenance-badge.variant-curated {
+  background: rgba(6, 182, 212, 0.12);
+  color: #22d3ee;
+  border: 1px solid rgba(6, 182, 212, 0.25);
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.1);
+}
+
+.data-provenance-badge.variant-simulated {
+  background: rgba(139, 92, 246, 0.14);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.28);
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.1);
+}
+
+.data-provenance-badge.variant-demo {
+  background: rgba(217, 119, 6, 0.14);
+  color: #fde047;
+  border: 1px solid rgba(217, 119, 6, 0.35);
+  box-shadow: 0 0 10px rgba(217, 119, 6, 0.1);
+}
+
+/* Pulsing dot for live data */
+.data-badge-pulse-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background-color: #34d399;
+  display: inline-block;
+  box-shadow: 0 0 6px #34d399;
+  animation: data-pulse-anim 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+@keyframes data-pulse-anim {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.85);
+  }
+}
+
+/* Disclaimer Banner */
+.data-disclaimer-banner {
+  border-radius: 1rem;
+  padding: 1rem 1.25rem;
+  margin: 1rem 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  backdrop-filter: blur(8px);
+  position: relative;
+  overflow: hidden;
+  line-height: 1.5;
+}
+
+.data-disclaimer-banner.variant-hardcoded,
+.data-disclaimer-banner.variant-demo {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(26, 21, 13, 0.6) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  color: #fef3c7;
+}
+
+.data-disclaimer-banner.variant-simulated {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(23, 16, 36, 0.6) 100%);
+  border: 1px solid rgba(139, 92, 246, 0.28);
+  color: #f3e8ff;
+}
+
+.data-disclaimer-banner.variant-curated {
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(13, 26, 30, 0.6) 100%);
+  border: 1px solid rgba(6, 182, 212, 0.25);
+  color: #ecfeff;
+}
+
+.data-disclaimer-banner.variant-live {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(13, 27, 21, 0.6) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: #d1fae5;
+}
+
+.data-disclaimer-icon-wrap {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.625rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.125rem;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.data-disclaimer-banner.variant-hardcoded .data-disclaimer-icon-wrap,
+.data-disclaimer-banner.variant-demo .data-disclaimer-icon-wrap {
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.data-disclaimer-banner.variant-simulated .data-disclaimer-icon-wrap {
+  color: #c084fc;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.data-disclaimer-banner.variant-curated .data-disclaimer-icon-wrap {
+  color: #22d3ee;
+  border: 1px solid rgba(6, 182, 212, 0.3);
+}
+
+.data-disclaimer-banner.variant-live .data-disclaimer-icon-wrap {
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.data-disclaimer-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.data-disclaimer-header-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.data-disclaimer-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #fff;
+  margin: 0;
+}
+
+.data-disclaimer-desc {
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.75);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.data-disclaimer-subnote {
+  display: block;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.55);
+  margin-top: 0.375rem;
+  font-style: italic;
+}
+
+/* Legend Strip */
+.data-provenance-legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 0.625rem 1rem;
+  border-radius: 0.75rem;
+  background: rgba(13, 22, 19, 0.75);
+  border: 1px solid #1a2c24;
+  font-size: 0.75rem;
+  color: #9ab3a6;
+  margin-bottom: 1.25rem;
+}
+
+.data-provenance-legend .legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.data-provenance-legend .legend-label {
+  color: #e6f4ed;
+  font-weight: 600;
+}
+
+.data-provenance-legend .legend-desc {
+  color: #7d9487;
+}
+
+.data-provenance-legend .legend-divider {
+  width: 1px;
+  height: 0.875rem;
+  background: #23352e;
+}

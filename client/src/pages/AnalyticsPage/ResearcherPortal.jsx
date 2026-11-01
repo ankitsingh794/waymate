@@ -10,7 +10,15 @@ import {
   VscShield,
 } from 'react-icons/vsc';
 import DashboardNavbar from '../../components/DashboardNavbar';
-import { Alert, Badge, Button, Loading } from '../../components/UI';
+import {
+  Alert,
+  Badge,
+  Button,
+  Loading,
+  DataProvenanceBadge,
+  DataDisclaimerBanner,
+  DataProvenanceLegend,
+} from '../../components/UI';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/axiosInstance';
 import './ResearcherPortal.css';
@@ -63,6 +71,7 @@ export default function ResearcherPortal() {
   };
 
   const isAuthorized = user?.role === 'researcher' || user?.role === 'admin';
+  const hasLiveTripStats = Boolean(stats && stats.totalTrips !== undefined && stats.totalTrips !== null);
 
   return (
     <div className="research-portal-page">
@@ -110,36 +119,85 @@ export default function ResearcherPortal() {
           </Alert>
         )}
 
+        {/* Global Data Provenance Legend */}
+        <DataProvenanceLegend />
+
         {/* Aggregate KPI Strip */}
         <section className="research-kpis-grid">
           <div className="research-kpi-card">
-            <span className="kpi-label">Total Documented Trips</span>
+            <div className="flex items-center justify-between mb-1">
+              <span className="kpi-label">Total Documented Trips</span>
+              <DataProvenanceBadge
+                type={hasLiveTripStats ? 'live' : 'hardcoded'}
+                label={hasLiveTripStats ? 'Live DB' : 'Benchmark'}
+                size="sm"
+              />
+            </div>
             <strong>{stats?.totalTrips || '1,420+'}</strong>
             <span className="kpi-sub">Across 18 regional transit corridors</span>
           </div>
+
           <div className="research-kpi-card">
-            <span className="kpi-label">Passive GPS Segments</span>
+            <div className="flex items-center justify-between mb-1">
+              <span className="kpi-label">Passive GPS Segments</span>
+              <DataProvenanceBadge
+                type={stats?.totalSegments ? 'live' : 'hardcoded'}
+                label={stats?.totalSegments ? 'Live DB' : 'Benchmark'}
+                size="sm"
+              />
+            </div>
             <strong>{stats?.totalSegments || '9,840+'}</strong>
             <span className="kpi-sub">Anonymized O-D waypoints</span>
           </div>
+
           <div className="research-kpi-card">
-            <span className="kpi-label">Verified Ground Truth</span>
+            <div className="flex items-center justify-between mb-1">
+              <span className="kpi-label">Verified Ground Truth</span>
+              <DataProvenanceBadge
+                type={stats?.verifiedSegments ? 'live' : 'hardcoded'}
+                label={stats?.verifiedSegments ? 'Live DB' : 'Benchmark'}
+                size="sm"
+              />
+            </div>
             <strong>{stats?.verifiedSegments || '87.4%'}</strong>
             <span className="kpi-sub">Confirmed by citizen travelers</span>
           </div>
+
           <div className="research-kpi-card">
-            <span className="kpi-label">CO2 Avoided via Transit</span>
+            <div className="flex items-center justify-between mb-1">
+              <span className="kpi-label">CO2 Avoided via Transit</span>
+              <DataProvenanceBadge
+                type={stats?.co2SavedKg ? 'live' : 'hardcoded'}
+                label={stats?.co2SavedKg ? 'Live DB' : 'Benchmark'}
+                size="sm"
+              />
+            </div>
             <strong>{stats?.co2SavedKg ? `${stats.co2SavedKg} kg` : '3,210 kg'}</strong>
             <span className="kpi-sub">Estimated modal shift impact</span>
           </div>
         </section>
 
+        {/* Explicit Disclaimer for Hardcoded Benchmark Distributions */}
+        <DataDisclaimerBanner
+          type="hardcoded"
+          title="Data Provenance Disclaimer: Hardcoded Urban Mobility Benchmark Distribution"
+          description="The modal split percentages and purpose breakdown displayed below represent pre-configured transportation planning benchmark models (NATPAC standard reference cohorts). Live dataset calculations from MongoDB telemetry will override these baseline distributions as citizen cohorts complete more verified trip legs."
+          badgeLabel="Hardcoded Research Benchmark"
+          subnote="Realtime database query endpoints: /api/v1/analytics/mode-distribution & /api/v1/analytics/purpose-distribution"
+        />
+
         {/* Modal Share & Purpose Charts */}
         <div className="research-analytics-grid">
           <section className="research-chart-card">
-            <div className="chart-header">
-              <VscPieChart />
-              <h2>Modal Split Distribution</h2>
+            <div className="chart-header flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <VscPieChart />
+                <h2>Modal Split Distribution</h2>
+              </div>
+              <DataProvenanceBadge
+                type={modeDist && modeDist.length > 0 ? 'live' : 'hardcoded'}
+                label={modeDist && modeDist.length > 0 ? 'Live DB Distribution' : 'Hardcoded Benchmark'}
+              />
             </div>
             <p className="chart-sub">Proportion of trips categorized across active and motorized modes.</p>
 
@@ -167,9 +225,15 @@ export default function ResearcherPortal() {
           </section>
 
           <section className="research-chart-card">
-            <div className="chart-header">
-              <VscGraph />
-              <h2>Expedition Purpose Analysis</h2>
+            <div className="chart-header flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <VscGraph />
+                <h2>Expedition Purpose Analysis</h2>
+              </div>
+              <DataProvenanceBadge
+                type={purposeDist && purposeDist.length > 0 ? 'live' : 'hardcoded'}
+                label={purposeDist && purposeDist.length > 0 ? 'Live DB Purpose' : 'Hardcoded Benchmark'}
+              />
             </div>
             <p className="chart-sub">Primary reasons for commuter and leisure travel journeys.</p>
 
@@ -199,17 +263,23 @@ export default function ResearcherPortal() {
 
         {/* NATPAC Export Engine */}
         <section className="research-export-section">
-          <div className="export-header">
-            <VscCloudDownload />
-            <div>
-              <h2>Standardized NATPAC CSV Export Engine</h2>
-              <p>Download anonymized datasets formatted directly for transportation agency planning models.</p>
+          <div className="export-header flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <VscCloudDownload />
+              <div>
+                <h2>Standardized NATPAC CSV Export Engine</h2>
+                <p>Download anonymized datasets formatted directly for transportation agency planning models.</p>
+              </div>
             </div>
+            <DataProvenanceBadge type="live" label="Live DB Telemetry Engine" />
           </div>
 
           <div className="export-actions-grid">
             <div className="export-action-card">
-              <h3>Comprehensive NATPAC Dataset</h3>
+              <div className="flex items-center justify-between mb-1">
+                <h3>Comprehensive NATPAC Dataset</h3>
+                <DataProvenanceBadge type="live" label="Live DB Export" size="sm" />
+              </div>
               <p>Full anonymized O-D matrix with timestamps, speeds, modes, and weather context.</p>
               <Button
                 variant="primary"
@@ -221,7 +291,10 @@ export default function ResearcherPortal() {
             </div>
 
             <div className="export-action-card">
-              <h3>Trip Chains & Transfers</h3>
+              <div className="flex items-center justify-between mb-1">
+                <h3>Trip Chains & Transfers</h3>
+                <DataProvenanceBadge type="live" label="Live DB Export" size="sm" />
+              </div>
               <p>Sequential transfer logs detailing walking-to-metro and bus-to-rail transfer intervals.</p>
               <Button
                 variant="outline"
@@ -233,7 +306,10 @@ export default function ResearcherPortal() {
             </div>
 
             <div className="export-action-card">
-              <h3>Modal Share Breakdown</h3>
+              <div className="flex items-center justify-between mb-1">
+                <h3>Modal Share Breakdown</h3>
+                <DataProvenanceBadge type="live" label="Live DB Export" size="sm" />
+              </div>
               <p>Aggregated zonal modal split percentages categorized by socioeconomic income brackets.</p>
               <Button
                 variant="outline"

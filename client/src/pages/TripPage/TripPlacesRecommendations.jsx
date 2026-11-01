@@ -12,7 +12,7 @@ import { GiForkKnifeSpoon } from 'react-icons/gi';
 import { IoBedOutline } from 'react-icons/io5';
 import DashboardNavbar from '../../components/DashboardNavbar';
 import TripSubNav from './TripSubNav';
-import { Badge, Button, Loading } from '../../components/UI';
+import { Badge, Button, Loading, DataProvenanceBadge, DataDisclaimerBanner } from '../../components/UI';
 import api from '../../utils/axiosInstance';
 import './TripPlacesRecommendations.css';
 
@@ -109,9 +109,12 @@ export default function TripPlacesRecommendations() {
         {/* Header */}
         <header className="places-rec-header">
           <div>
-            <div className="places-rec-eyebrow">
-              <span className="places-live-dot" />
-              <span>AREA INTELLIGENCE</span>
+            <div className="places-rec-eyebrow" style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                <span className="places-live-dot" />
+                <span>AREA INTELLIGENCE</span>
+              </div>
+              <DataProvenanceBadge type="curated" label="AI Curated (Saved to DB)" size="sm" />
             </div>
             <h1>Curated Points of Interest</h1>
             <p>
@@ -127,6 +130,15 @@ export default function TripPlacesRecommendations() {
             </Link>
           </div>
         </header>
+
+        {/* Data Provenance Disclaimer */}
+        <DataDisclaimerBanner
+          type="curated"
+          title="Curated Recommendations Provenance"
+          description="The points of interest, authentic dining spots, and accommodations below were curated using Gemini AI geo-intelligence and are saved directly into your trip record in MongoDB. Where live Google Places venue photos are unavailable, aesthetic category preview images are used."
+          badgeLabel="AI Curated · MongoDB Persisted"
+          subnote="Database collection origin: Trip record in MongoDB (/api/v1/trips)"
+        />
 
         {/* Category Segmented Control */}
         <section className="places-category-nav" role="tablist">

@@ -22,7 +22,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/axiosInstance';
 import DashboardNavbar from '../../components/DashboardNavbar';
-import { Alert, Badge, Button, Card, CardBody, CardFooter, CardHeader, Loading } from '../../components/UI';
+import { Alert, Badge, Button, Card, CardBody, CardFooter, CardHeader, Loading, DataProvenanceBadge, DataDisclaimerBanner, DataProvenanceLegend } from '../../components/UI';
 import './Dashboard.css';
 
 const FALLBACK_TRIP_IMAGE =
@@ -692,6 +692,9 @@ export default function Dashboard() {
           </Alert>
         )}
 
+        {/* Global Data Provenance Legend */}
+        <DataProvenanceLegend />
+
         <section className="dashboard-kpi-grid">
           {dashboardMetrics.map((metric) => (
             <Card key={metric.label} className="dashboard-kpi-card" padding="md">
@@ -700,7 +703,10 @@ export default function Dashboard() {
                   <metric.icon />
                 </span>
                 <div>
-                  <h3>{typeof metric.value === 'number' ? compactNumber(metric.value) : metric.value}</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                    <h3>{typeof metric.value === 'number' ? compactNumber(metric.value) : metric.value}</h3>
+                    <DataProvenanceBadge type="live" label="Live DB" size="sm" />
+                  </div>
                   <p>{metric.label}</p>
                 </div>
               </CardBody>
@@ -762,11 +768,14 @@ export default function Dashboard() {
                       <span className="dashboard-focus-eyebrow">
                         <span className="dashboard-live-dot" /> Priority Expedition
                       </span>
-                      {focusTrip && (
-                        <span className="dashboard-focus-dates">
-                          <VscCalendar /> {formatDateRange(focusTrip.startDate, focusTrip.endDate)}
-                        </span>
-                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                        <DataProvenanceBadge type="live" label="Live Trip DB" size="sm" />
+                        {focusTrip && (
+                          <span className="dashboard-focus-dates">
+                            <VscCalendar /> {formatDateRange(focusTrip.startDate, focusTrip.endDate)}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -1005,6 +1014,10 @@ export default function Dashboard() {
                   </Button>
                 </div>
 
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#9ab3a6', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>Discovery Query Shortcuts</span>
+                  <DataProvenanceBadge type="hardcoded" label="Curated Preset Queries" size="sm" />
+                </div>
                 <div className="dashboard-discovery-tags">
                   {QUICK_DISCOVERY.map((item) => (
                     <button key={item.id} type="button" onClick={() => handleQuickDiscovery(item.query)}>
@@ -1014,7 +1027,12 @@ export default function Dashboard() {
                 </div>
 
                 {places.length > 0 ? (
-                  <div className="dashboard-places-grid">
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0.75rem 0 0.5rem' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#9ab3a6', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>Live Recommended Places</span>
+                      <DataProvenanceBadge type="live" label="Live Places Telemetry" size="sm" />
+                    </div>
+                    <div className="dashboard-places-grid">
                     {places.map((place, index) => {
                       const mapQuery = encodeURIComponent(`${place.name || ''} ${place.address || place.vicinity || ''}`);
                       const mapUrl = place.link || `https://www.google.com/maps/search/?api=1&query=${mapQuery}`;
@@ -1039,6 +1057,7 @@ export default function Dashboard() {
                       );
                     })}
                   </div>
+                  </>
                 ) : (
                   <div className="dashboard-discovery-empty">
                     <p>Enter a query above or click one of the curated tags to explore places near your travel destination.</p>
@@ -1071,7 +1090,12 @@ export default function Dashboard() {
               <main className="dashboard-main-column">
                 <Card className="dashboard-side-card" padding="lg">
                   <CardHeader
-                    title="Household Transport Hub"
+                    title={
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                        <span>Household Transport Hub</span>
+                        <DataProvenanceBadge type="live" label="Live DB Roster" size="sm" />
+                      </div>
+                    }
                     subtitle={household ? `${household.householdName || 'Household'} · ${household.members?.length || 1} member(s)` : 'No household linked yet'}
                   />
                   <CardBody>
@@ -1113,7 +1137,12 @@ export default function Dashboard() {
 
                 <Card className="dashboard-side-card" padding="lg">
                   <CardHeader
-                    title="Socio-Economic Travel Survey"
+                    title={
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                        <span>Socio-Economic Travel Survey</span>
+                        <DataProvenanceBadge type="live" label="Live DB Survey" size="sm" />
+                      </div>
+                    }
                     subtitle="Demographic and transit habits used for NATPAC modal split models"
                   />
                   <CardBody>
@@ -1187,7 +1216,12 @@ export default function Dashboard() {
               <main className="dashboard-main-column">
                 <Card className="dashboard-side-card" padding="lg">
                   <CardHeader
-                    title="Live Notifications & Travel Alerts"
+                    title={
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                        <span>Live Notifications & Travel Alerts</span>
+                        <DataProvenanceBadge type="live" label="Live DB Alerts" size="sm" />
+                      </div>
+                    }
                     subtitle={`Unread alerts: ${unreadNotifications}`}
                   />
                   <CardBody>

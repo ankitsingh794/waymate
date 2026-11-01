@@ -14,3 +14,8 @@ export { default as CompassGlyph }                             from './CompassGl
 export { Loading, LoadingOverlay }                             from './Loading';
 export { default as Modal }                                    from './Modal';
 export { default as ConfirmDialog, ConfirmProvider, useConfirm } from './ConfirmDialog';
+export {
+  DataProvenanceBadge,
+  DataDisclaimerBanner,
+  DataProvenanceLegend,
+} from '../DataProvenance';

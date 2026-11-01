@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/axiosInstance';
 import { VscCheckAll, VscEdit } from 'react-icons/vsc';
-import { Card, CardHeader, CardBody, CardFooter, Button, Input, Alert } from '../../components/UI';
+import { Card, CardHeader, CardBody, CardFooter, Button, Input, Alert, DataProvenanceBadge } from '../../components/UI';
 import DashboardNavbar from '../../components/DashboardNavbar';
 import './SurveysPage.css';
 
@@ -94,7 +94,10 @@ export default function SurveysPage() {
 
       <div className="surveys-body">
         <div className="page-header">
-          <h1>Survey Data</h1>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <h1>Survey Data</h1>
+            <DataProvenanceBadge type="live" label="Live Citizen Survey DB" size="sm" />
+          </div>
           <p>Help us understand your travel patterns and mobility profile</p>
         </div>
 

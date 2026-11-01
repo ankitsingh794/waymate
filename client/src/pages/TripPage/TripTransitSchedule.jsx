@@ -12,7 +12,7 @@ import {
 import { FaTrainSubway } from 'react-icons/fa6';
 import DashboardNavbar from '../../components/DashboardNavbar';
 import TripSubNav from './TripSubNav';
-import { Alert, Badge, Button, Loading } from '../../components/UI';
+import { Alert, Badge, Button, Loading, DataProvenanceBadge, DataDisclaimerBanner } from '../../components/UI';
 import api from '../../utils/axiosInstance';
 import './TripTransitSchedule.css';
 
@@ -129,8 +129,20 @@ export default function TripTransitSchedule() {
           </Alert>
         )}
 
+        {/* Data Provenance Disclaimer */}
+        <DataDisclaimerBanner
+          type="simulated"
+          title="Data Disclaimer: Multi-Modal Transit Simulation"
+          description="Station corridors, travel dates, and expedition checkpoints are queried from your live trip database record. Train schedules, seat class indicators, and duration models are generated via AI transit simulations. Live railway ticket booking should be confirmed directly with IRCTC."
+          badgeLabel="Predictive Transit Simulation"
+          subnote="Corridor origin/destination source: MongoDB Trip Document (/api/v1/trips)"
+        />
+
         {/* Stations Briefing Card */}
-        <section className="transit-corridor-card">
+        <section className="transit-corridor-card" style={{ position: 'relative' }}>
+          <div style={{ position: 'absolute', top: '0.75rem', right: '1rem' }}>
+            <DataProvenanceBadge type="live" label="Live Trip DB" size="sm" />
+          </div>
           <div className="corridor-stat">
             <span className="label">Origin Station</span>
             <strong>{schedule?.sourceStation || trip?.origin?.city || 'Nearest Rail Hub'}</strong>

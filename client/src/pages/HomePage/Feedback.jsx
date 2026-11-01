@@ -1,4 +1,5 @@
 import { VscStarFull } from 'react-icons/vsc';
+import { DataProvenanceBadge, DataDisclaimerBanner } from '../../components/UI';
 import './Feedback.css';
 
 /*
@@ -56,7 +57,10 @@ const TestimonialCard = ({ avatar, name, role, signal, text }) => (
                     <VscStarFull key={i} aria-hidden="true" />
                 ))}
             </div>
-            <span className="home-testimonial-signal">{signal}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span className="home-testimonial-signal">{signal}</span>
+                <DataProvenanceBadge type="demo" label="Showcase" size="sm" />
+            </div>
         </div>
 
         <blockquote>{text}</blockquote>
@@ -84,6 +88,16 @@ export default function Feedback() {
                         Field-tested feedback from users planning group escapes, focused workcations,
                         and high-constraint itineraries.
                     </p>
+
+                    <div style={{ marginTop: '1.25rem', textAlign: 'left' }}>
+                        <DataDisclaimerBanner
+                            type="demo"
+                            title="Data Disclaimer: Curated Demonstration Showcase"
+                            description="The testimonials, traveler profiles, and usage ratings shown below are hardcoded demonstration showcases illustrating collaborative travel workflows. Verified user testimonials will sync from the live community feedback database as platform reviews are logged."
+                            badgeLabel="Curated Demo Showcase"
+                            subnote="Live user expeditions & reviews query against the MongoDB /api/v1/trips collection."
+                        />
+                    </div>
                 </header>
             </div>
 

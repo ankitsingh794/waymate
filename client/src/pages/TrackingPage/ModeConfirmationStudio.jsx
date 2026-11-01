@@ -10,7 +10,7 @@ import {
   VscSparkle,
 } from 'react-icons/vsc';
 import DashboardNavbar from '../../components/DashboardNavbar';
-import { Alert, Badge, Button, Loading, Modal } from '../../components/UI';
+import { Alert, Badge, Button, Loading, Modal, DataProvenanceBadge } from '../../components/UI';
 import api from '../../utils/axiosInstance';
 import './ModeConfirmationStudio.css';
 

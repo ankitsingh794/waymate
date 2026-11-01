@@ -20,7 +20,7 @@ import {
 } from 'react-icons/fa6';
 import DashboardNavbar from '../../components/DashboardNavbar';
 import TripSubNav from '../TripPage/TripSubNav';
-import { Alert, Badge, Button, Loading, useConfirm } from '../../components/UI';
+import { Alert, Badge, Button, Loading, useConfirm, DataProvenanceBadge } from '../../components/UI';
 import api from '../../utils/axiosInstance';
 import { useAuth } from '../../context/AuthContext';
 import './ExpensesPage.css';
@@ -231,9 +231,12 @@ export default function ExpensesPage() {
         {/* Page Header */}
         <header className="expenses-hero-header">
           <div className="expenses-title-group">
-            <div className="expenses-eyebrow">
-              <span className="live-pulse-dot" />
-              <span>FINANCIAL LEDGER & SQUAD BUDGET</span>
+            <div className="expenses-eyebrow" style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                <span className="live-pulse-dot" />
+                <span>FINANCIAL LEDGER & SQUAD BUDGET</span>
+              </div>
+              <DataProvenanceBadge type="live" label="Live DB Ledger" size="sm" />
             </div>
             <h1>
               {trip?.destination ? `${trip.destination} Expense Ledger` : 'Trip Expense Ledger'}

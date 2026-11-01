@@ -7,6 +7,7 @@ import Cards from './Cards.jsx';
 import Feedback from './Feedback.jsx';
 import Globe from './Globe.jsx';
 import BouncingBubbles from './BouncingBubbles.jsx';
+import { DataProvenanceBadge } from '../../components/UI';
 import './Home.css';
 
 /* ── Step cards ────────────────────────────────────────────────────────────── */
@@ -153,7 +154,10 @@ export default function Home() {
                             <div className="home-hero-stats">
                                 {stats.map((stat) => (
                                     <div key={stat.label} className="home-hero-stat">
-                                        <strong>{stat.value}</strong>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                                            <strong>{stat.value}</strong>
+                                            <DataProvenanceBadge type="demo" label="Showcase" size="sm" />
+                                        </div>
                                         <span>{stat.label}</span>
                                     </div>
                                 ))}
@@ -165,7 +169,7 @@ export default function Home() {
                             <article className="home-editorial-note">
                                 <div className="home-editorial-note-header">
                                     <span className="home-editorial-note-tag">Trip Draft 05</span>
-                                    <span className="home-editorial-note-status">Live</span>
+                                    <DataProvenanceBadge type="demo" label="Preview Spec" size="sm" />
                                 </div>
                                 <h3>"Lisbon + Porto, six days, coastal mornings and late food scenes."</h3>
                                 <p>
