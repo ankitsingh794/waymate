@@ -697,13 +697,15 @@ export default function Dashboard() {
 
         <section className="dashboard-kpi-grid">
           {dashboardMetrics.map((metric) => (
-            <Card key={metric.label} className="dashboard-kpi-card" padding="md">
+            <Card key={metric.label} className="dashboard-kpi-card" padding="none">
               <CardBody className="dashboard-kpi-body">
                 <span className="dashboard-kpi-icon">
                   <metric.icon />
                 </span>
                 <div className="dashboard-kpi-content">
-                  <h3>{typeof metric.value === 'number' ? compactNumber(metric.value) : metric.value}</h3>
+                  <h3 className={typeof metric.value === 'string' ? 'kpi-text-val' : 'kpi-num-val'}>
+                    {typeof metric.value === 'number' ? compactNumber(metric.value) : metric.value}
+                  </h3>
                   <p>{metric.label}</p>
                 </div>
               </CardBody>
