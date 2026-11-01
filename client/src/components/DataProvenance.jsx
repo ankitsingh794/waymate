@@ -159,3 +159,4 @@ export function DataProvenanceLegend({ className = '' }) {
 }
 
 export default DataProvenanceBadge;
+

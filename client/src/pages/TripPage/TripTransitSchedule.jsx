@@ -139,27 +139,30 @@ export default function TripTransitSchedule() {
         />
 
         {/* Stations Briefing Card */}
-        <section className="transit-corridor-card" style={{ position: 'relative' }}>
-          <div style={{ position: 'absolute', top: '0.75rem', right: '1rem' }}>
+        <section className="transit-corridor-card">
+          <div className="corridor-topline">
+            <span className="corridor-route-kicker">Multi-Modal Rail Corridor</span>
             <DataProvenanceBadge type="live" label="Live Trip DB" size="sm" />
           </div>
-          <div className="corridor-stat">
-            <span className="label">Origin Station</span>
-            <strong>{schedule?.sourceStation || trip?.origin?.city || 'Nearest Rail Hub'}</strong>
-          </div>
-          <div className="corridor-arrow">
-            <span>⇄</span>
-          </div>
-          <div className="corridor-stat">
-            <span className="label">Destination Station</span>
-            <strong>{schedule?.destinationStation || trip?.destination || 'Arrival Junction'}</strong>
-          </div>
-          <div className="corridor-stat">
-            <span className="label">Travel Date</span>
-            <strong>
-              {schedule?.travelDate ||
-                (trip?.startDate ? new Date(trip.startDate).toLocaleDateString() : 'Scheduled Day')}
-            </strong>
+          <div className="corridor-stats-row">
+            <div className="corridor-stat">
+              <span className="label">Origin Station</span>
+              <strong>{schedule?.sourceStation || trip?.origin?.city || 'Nearest Rail Hub'}</strong>
+            </div>
+            <div className="corridor-arrow">
+              <span>⇄</span>
+            </div>
+            <div className="corridor-stat">
+              <span className="label">Destination Station</span>
+              <strong>{schedule?.destinationStation || trip?.destination || 'Arrival Junction'}</strong>
+            </div>
+            <div className="corridor-stat">
+              <span className="label">Travel Date</span>
+              <strong>
+                {schedule?.travelDate ||
+                  (trip?.startDate ? new Date(trip.startDate).toLocaleDateString() : 'Scheduled Day')}
+              </strong>
+            </div>
           </div>
         </section>
 

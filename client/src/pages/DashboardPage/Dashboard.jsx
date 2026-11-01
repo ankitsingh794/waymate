@@ -702,11 +702,8 @@ export default function Dashboard() {
                 <span className="dashboard-kpi-icon">
                   <metric.icon />
                 </span>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                    <h3>{typeof metric.value === 'number' ? compactNumber(metric.value) : metric.value}</h3>
-                    <DataProvenanceBadge type="live" label="Live DB" size="sm" />
-                  </div>
+                <div className="dashboard-kpi-content">
+                  <h3>{typeof metric.value === 'number' ? compactNumber(metric.value) : metric.value}</h3>
                   <p>{metric.label}</p>
                 </div>
               </CardBody>

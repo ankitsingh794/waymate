@@ -233,9 +233,11 @@
   -webkit-backdrop-filter: var(--db-glass-blur);
   border: var(--db-glass-border);
   border-radius: 1rem;
-  padding: 1.1rem 1.15rem;
+  padding: 1rem 1.1rem;
   box-shadow: var(--db-glass-shadow);
   transition: border-color 0.22s ease, background 0.22s ease, transform 0.22s ease;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .dashboard-kpi-card:hover {
@@ -248,6 +250,13 @@
   display: flex;
   align-items: center;
   gap: 0.85rem;
+  min-width: 0;
+}
+
+.dashboard-kpi-content {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
 }
 
 .dashboard-kpi-icon {
@@ -276,11 +285,14 @@
 .dashboard-kpi-body h3 {
   margin: 0;
   font-family: var(--db-font-sans);
-  font-size: 1.35rem;
+  font-size: clamp(1.15rem, 1.8vw, 1.35rem);
   font-weight: 700;
   color: #fffdf8;
   line-height: 1.1;
   letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dashboard-kpi-body p {
@@ -291,6 +303,9 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ── Apple-style Segmented Glass Control Bar ──────────────────────────────── */
@@ -1605,9 +1620,10 @@
 }
 
 /* ── Responsive Refinements ───────────────────────────────────────────────── */
-@media (max-width: 1200px) {
+@media (max-width: 1360px) {
   .dashboard-kpi-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
   }
 }
 
@@ -1630,6 +1646,13 @@
   }
 }
 
+@media (max-width: 768px) {
+  .dashboard-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+  }
+}
+
 @media (max-width: 680px) {
   .dashboard-shell {
     width: calc(100% - 1.25rem);
@@ -1646,9 +1669,6 @@
   }
   .dashboard-hero-actions .btn {
     width: 100%;
-  }
-  .dashboard-kpi-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .dashboard-quick-actions-stacked {
     grid-template-columns: 1fr;

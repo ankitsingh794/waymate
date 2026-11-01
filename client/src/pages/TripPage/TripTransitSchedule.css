@@ -372,3 +372,44 @@
   gap: 1rem;
   color: var(--ds-sand-300, #d7bc9c);
 }
+
+/* ── Responsive Refinements ───────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .transit-sched-shell {
+    width: min(1200px, calc(100% - 1.5rem));
+  }
+  .transit-sched-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .transit-sched-header-actions {
+    width: 100%;
+  }
+  .transit-sched-header-actions .btn {
+    width: 100%;
+  }
+  .corridor-stats-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  .corridor-arrow {
+    display: none;
+  }
+  .transit-options-grid {
+    grid-template-columns: 1fr;
+  }
+  .train-timings-strip {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  .duration-line {
+    display: none;
+  }
+  .train-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}
