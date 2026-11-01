@@ -630,3 +630,334 @@
 
 /* Backward-compat: keep old classes working for VerifyEmail / any unchanged refs */
 .register-container { display: contents; }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   ENHANCED REGISTRATION WIZARD STYLES
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+.auth-form-card.register-form-card {
+  width: min(560px, 100%);
+}
+
+.register-stepper-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.register-step-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.28rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(var(--ap-forest-rgb), 0.06);
+  border: 1px solid rgba(var(--ap-forest-rgb), 0.12);
+  color: var(--ap-ink-500);
+  font-size: 0.76rem;
+  font-weight: 600;
+  transition: all var(--ap-dur-s);
+}
+
+.register-step-pill .step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 50%;
+  background: rgba(var(--ap-forest-rgb), 0.12);
+  color: var(--ap-ink-700);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.register-step-pill.is-active {
+  background: var(--ap-forest-900);
+  border-color: var(--ap-forest-900);
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(var(--ap-forest-rgb), 0.15);
+}
+
+.register-step-pill.is-active .step-num {
+  background: var(--ap-sand-300);
+  color: var(--ap-forest-950);
+}
+
+.register-step-pill.is-completed {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #065f46;
+}
+
+.register-step-pill.is-completed .step-num {
+  background: #10b981;
+  color: #fff;
+}
+
+.register-step-connector {
+  flex: 1;
+  height: 2px;
+  background: rgba(var(--ap-forest-rgb), 0.1);
+  border-radius: 999px;
+}
+
+/* Role toggle selector */
+.register-role-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+}
+
+.role-toggle-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  gap: 0.25rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 0.85rem;
+  border: 1.5px solid rgba(var(--ap-forest-rgb), 0.14);
+  background: var(--ap-surface);
+  cursor: pointer;
+  transition: all var(--ap-dur-s);
+}
+
+.role-toggle-option:hover {
+  border-color: rgba(var(--ap-forest-rgb), 0.35);
+  background: #fff;
+}
+
+.role-toggle-option.is-selected {
+  border-color: var(--ap-forest-900);
+  background: rgba(var(--ap-forest-rgb), 0.05);
+  box-shadow: 0 0 0 2px rgba(var(--ap-forest-rgb), 0.18);
+}
+
+.role-option-title {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--ap-ink-900);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.role-option-desc {
+  font-size: 0.72rem;
+  color: var(--ap-ink-500);
+  line-height: 1.35;
+}
+
+/* Stack and Grid */
+.register-fields-stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.register-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.field-required {
+  color: #dc2626;
+  font-weight: 700;
+  margin-left: 0.15rem;
+}
+
+/* Dropdown select styling - High Contrast */
+.auth-field-select {
+  width: 100%;
+  border: 1.5px solid rgba(var(--ap-forest-rgb), 0.15);
+  border-radius: 0.75rem;
+  background: var(--ap-surface);
+  color: var(--ap-ink-900);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 500;
+  padding: 0.72rem 0.9rem;
+  outline: none;
+  cursor: pointer;
+  transition:
+    border-color var(--ap-dur-s),
+    box-shadow var(--ap-dur-s),
+    background-color var(--ap-dur-s);
+}
+
+.auth-field-select:hover {
+  border-color: rgba(var(--ap-forest-rgb), 0.3);
+}
+
+.auth-field-select:focus {
+  border-color: rgba(var(--ap-forest-rgb), 0.55);
+  box-shadow: 0 0 0 3.5px rgba(var(--ap-sand-rgb), 0.22);
+  background: #fff;
+}
+
+.auth-field-select option {
+  background: #ffffff;
+  color: #18251e;
+  padding: 0.5rem;
+}
+
+/* Privacy & Citizen Science Consents Box */
+.register-consents-box {
+  display: grid;
+  gap: 0.7rem;
+  padding: 1rem;
+  border-radius: 0.95rem;
+  background: rgba(var(--ap-forest-rgb), 0.03);
+  border: 1px solid rgba(var(--ap-forest-rgb), 0.12);
+}
+
+.register-consents-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.2rem;
+}
+
+.consents-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(var(--ap-forest-rgb), 0.09);
+  color: var(--ap-forest-900);
+}
+
+.consents-subtext {
+  font-size: 0.74rem;
+  color: var(--ap-ink-500);
+}
+
+.consent-checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  cursor: pointer;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.65rem;
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(var(--ap-forest-rgb), 0.06);
+  transition: all var(--ap-dur-s);
+}
+
+.consent-checkbox-row:hover {
+  background: #ffffff;
+  border-color: rgba(var(--ap-forest-rgb), 0.15);
+}
+
+.consent-checkbox {
+  accent-color: var(--ap-forest-900);
+  width: 1.15rem;
+  height: 1.15rem;
+  margin-top: 0.15rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.consent-text-block {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.consent-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--ap-ink-900);
+}
+
+.consent-desc {
+  font-size: 0.75rem;
+  color: var(--ap-ink-700);
+  line-height: 1.4;
+}
+
+.consent-required-badge {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #92400e;
+  background: rgba(245, 158, 11, 0.18);
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+}
+
+.consent-optin-badge {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #065f46;
+  background: rgba(16, 185, 129, 0.18);
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+}
+
+/* Dual action buttons */
+.register-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.auth-secondary-btn {
+  min-height: 2.85rem;
+  border: 1.5px solid rgba(var(--ap-forest-rgb), 0.2);
+  border-radius: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.76rem 1.25rem;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.94rem;
+  font-weight: 600;
+  color: var(--ap-forest-900);
+  background: transparent;
+  transition: all var(--ap-dur-s);
+}
+
+.auth-secondary-btn:hover:not(:disabled) {
+  background: rgba(var(--ap-forest-rgb), 0.06);
+  border-color: rgba(var(--ap-forest-rgb), 0.35);
+}
+
+.auth-secondary-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.register-final-submit {
+  flex: 1;
+}
+
+/* Responsive adjustment for register */
+@media (max-width: 600px) {
+  .register-role-toggle {
+    grid-template-columns: 1fr;
+  }
+  .register-grid-2 {
+    grid-template-columns: 1fr;
+  }
+  .register-actions-row {
+    flex-direction: column-reverse;
+  }
+  .auth-secondary-btn {
+    width: 100%;
+  }
+}

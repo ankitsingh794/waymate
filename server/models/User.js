@@ -46,7 +46,29 @@ const userSchema = new mongoose.Schema(
     },
     preferences: {
       language: { type: String, default: 'en' },
-      currency: { type: String, default: 'INR' }
+      currency: { type: String, default: 'INR' },
+      primaryMode: {
+        type: String,
+        enum: ['public_transport', 'private_car', 'private_bike', 'walk_cycle', 'other', ''],
+        default: 'public_transport'
+      }
+    },
+    demographics: {
+      ageGroup: {
+        type: String,
+        enum: ['<18', '18-35', '36-60', '>60', 'prefer_not_to_say', ''],
+        default: ''
+      },
+      gender: {
+        type: String,
+        enum: ['male', 'female', 'other', 'prefer_not_to_say', ''],
+        default: ''
+      },
+      occupation: {
+        type: String,
+        trim: true,
+        default: ''
+      }
     },
     location: {
       city: String,

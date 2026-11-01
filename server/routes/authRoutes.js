@@ -14,6 +14,12 @@ const registerValidation = [
   body('name').trim().notEmpty().withMessage('Name is required.'),
   body('email').isEmail().withMessage('Please provide a valid email.').normalizeEmail(),
   passwordValidation('password'),
+  body('role').optional().isIn(['user', 'researcher']).withMessage('Invalid role selected.'),
+  body('city').optional().trim(),
+  body('country').optional().trim(),
+  body('demographics.ageGroup').optional().isIn(['<18', '18-35', '36-60', '>60', 'prefer_not_to_say', '']).withMessage('Invalid age group.'),
+  body('demographics.gender').optional().isIn(['male', 'female', 'other', 'prefer_not_to_say', '']).withMessage('Invalid gender.'),
+  body('preferences.primaryMode').optional().isIn(['public_transport', 'private_car', 'private_bike', 'walk_cycle', 'other', '']).withMessage('Invalid transport mode.'),
 ];
 
 const loginValidation = [
