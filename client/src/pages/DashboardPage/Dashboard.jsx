@@ -653,7 +653,7 @@ export default function Dashboard() {
               <span>WayMate Atelier · Command Center</span>
             </div>
             <h1>
-              Welcome back, <em>{profileData?.name || user?.name || 'Explorer'}</em>.
+              Welcome back, <em>{profileData?.name || user?.name || 'Explorer'}</em>
             </h1>
             <p>
               Orchestrate live journeys, monitor expedition telemetry, and design intelligent itineraries with continuous operational precision.
